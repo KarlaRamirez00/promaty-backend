@@ -1,0 +1,21 @@
+server:
+  port: ${USER_PORT}
+
+spring:
+  application:
+    name: user-server
+  datasource:
+    url: jdbc:postgresql://localhost:5432/promaty_user
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:${EUREKA_PORT}/eureka/
+  instance:
+    prefer-ip-address: true
