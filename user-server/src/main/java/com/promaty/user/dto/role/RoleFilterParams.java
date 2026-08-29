@@ -1,13 +1,12 @@
-package com.promaty.user.dto.user;
+package com.promaty.user.dto.role;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class UserFilterParams {
+public class RoleFilterParams {
 
-	private Long roleId;
 	private Boolean active;
 	private String search;
 }

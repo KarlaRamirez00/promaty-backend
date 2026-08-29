@@ -20,7 +20,7 @@ public class UserDetailDto {
 	private String lastName;
 	private String email;
 	private String phoneNumber;
-	private Boolean status;
+	private Boolean active;
 	private RoleSummaryDto role;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;

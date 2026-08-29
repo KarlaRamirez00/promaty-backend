@@ -8,7 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * Placeholder hasta que authorizer-server/gateway-server esten listos (ver backend-ms.md, seccion 7).
+ * Placeholder hasta que authorizer-server/gateway-server esten listos (ver docs/estado-proyecto.md).
  * Se permite cualquier request sin autenticacion por ahora. Reemplazar por validacion de JWT +
  * @PreAuthorize por permiso.
  */

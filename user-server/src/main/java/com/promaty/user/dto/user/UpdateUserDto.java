@@ -10,9 +10,6 @@ import lombok.Setter;
 @Setter
 public class UpdateUserDto {
 
-	@NotNull(message = "El id es obligatorio.")
-	private Long id;
-
 	@NotBlank(message = "El nombre es obligatorio.")
 	private String firstName;
 

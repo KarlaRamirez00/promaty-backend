@@ -22,7 +22,7 @@ public class GlobalExceptionHandler {
 		for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
 			errorFields.put(fieldError.getField(), fieldError.getDefaultMessage());
 		}
-		return buildResponse(HttpStatus.BAD_REQUEST, "Validation failed for one or more fields.", errorFields);
+		return buildResponse(HttpStatus.BAD_REQUEST, mensajeConCampos(errorFields), errorFields);
 	}
 
 	@ExceptionHandler(ResourceNotFoundException.class)
@@ -35,6 +35,11 @@ public class GlobalExceptionHandler {
 		return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), Map.of());
 	}
 
+	@ExceptionHandler(BusinessValidationException.class)
+	public ResponseEntity<BaseData<Void>> handleBusinessValidation(BusinessValidationException ex) {
+		return buildResponse(HttpStatus.BAD_REQUEST, mensajeConCampos(ex.getErrorFields()), ex.getErrorFields());
+	}
+
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<BaseData<Void>> handleUnexpected(Exception ex) {
 		return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Ocurrio un error inesperado.", Map.of());
@@ -43,5 +48,10 @@ public class GlobalExceptionHandler {
 	private ResponseEntity<BaseData<Void>> buildResponse(HttpStatus status, String message, Map<String, String> errorFields) {
 		ErrorResponse error = new ErrorResponse(status.value(), status.name(), message, errorFields);
 		return ResponseEntity.status(status).body(BaseData.error(error));
+	}
+
+	private String mensajeConCampos(Map<String, String> errorFields) {
+		String campos = String.join(", ", errorFields.keySet());
+		return "Revisa los siguientes campos: " + campos + ".";
 	}
 }

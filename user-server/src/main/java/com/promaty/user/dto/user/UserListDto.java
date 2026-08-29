@@ -17,6 +17,6 @@ public class UserListDto {
 	private String firstName;
 	private String lastName;
 	private String email;
-	private Boolean status;
+	private Boolean active;
 	private RoleSummaryDto role;
 }

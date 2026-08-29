@@ -16,32 +16,22 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "users")
-public class User extends BaseDatedEntity {
-
-	@Column(nullable = false)
-	private String firstName;
-
-	@Column(nullable = false)
-	private String lastName;
+@Table(name = "sub_modules")
+public class SubModule extends BaseDatedEntity {
 
 	@Column(nullable = false, unique = true)
-	private String email;
+	private String name;
 
 	@Column(nullable = false)
-	private String password;
+	private String alias;
 
 	@Column
-	private String phoneNumber;
+	private String description;
 
 	@Column(nullable = false)
-	private Boolean active = true;
+	private String path;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "role_id", nullable = false)
-	private Role role;
-
-	public void toggleActive() {
-		this.active = !this.active;
-	}
+	@JoinColumn(name = "module_id", nullable = false)
+	private Module module;
 }
