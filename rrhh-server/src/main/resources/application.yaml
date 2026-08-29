@@ -1,0 +1,21 @@
+server:
+  port: ${RRHH_PORT}
+
+spring:
+  application:
+    name: rrhh-server
+  datasource:
+    url: jdbc:postgresql://localhost:5432/promaty_rrhh
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:${EUREKA_PORT}/eureka/
+  instance:
+    prefer-ip-address: true
