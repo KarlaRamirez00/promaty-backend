@@ -27,4 +27,10 @@ public class BaseListData<T> {
 		);
 		return new BaseListData<>(page.getContent(), Meta.of(pagination));
 	}
+
+	// Lista sin paginar (ej. un selector). Meta.empty() + @JsonInclude(NON_NULL) en Meta serializa
+	// como "meta": {}, sin nodo pagination.
+	public static <T> BaseListData<T> of(List<T> items) {
+		return new BaseListData<>(items, Meta.empty());
+	}
 }

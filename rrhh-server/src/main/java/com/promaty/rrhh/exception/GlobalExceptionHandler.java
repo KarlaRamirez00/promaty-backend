@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -22,6 +23,12 @@ public class GlobalExceptionHandler {
 		for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
 			errorFields.put(fieldError.getField(), fieldError.getDefaultMessage());
 		}
+		return buildResponse(HttpStatus.BAD_REQUEST, mensajeConCampos(errorFields), errorFields);
+	}
+
+	@ExceptionHandler(MissingServletRequestParameterException.class)
+	public ResponseEntity<BaseData<Void>> handleMissingParam(MissingServletRequestParameterException ex) {
+		Map<String, String> errorFields = Map.of(ex.getParameterName(), "Este parametro es obligatorio.");
 		return buildResponse(HttpStatus.BAD_REQUEST, mensajeConCampos(errorFields), errorFields);
 	}
 
