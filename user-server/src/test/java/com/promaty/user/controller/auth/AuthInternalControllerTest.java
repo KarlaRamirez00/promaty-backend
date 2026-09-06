@@ -14,6 +14,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -22,10 +23,13 @@ import com.promaty.contracts.auth.AuthValidationRequestDto;
 import com.promaty.contracts.auth.AuthValidationResponseDto;
 import com.promaty.user.config.SecurityConfig;
 import com.promaty.user.services.auth.AuthService;
+import com.promaty.user.support.TestJwt;
 
+// /internal/** esta en la allowlist de SecurityConfig, por eso estas llamadas no llevan token.
 @WebMvcTest(AuthInternalController.class)
 @Import(SecurityConfig.class)
 @EnableWebSecurity
+@TestPropertySource(properties = "jwt.secret=" + TestJwt.SECRET)
 class AuthInternalControllerTest {
 
 	@Autowired

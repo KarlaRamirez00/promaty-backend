@@ -26,3 +26,8 @@ app:
     # navegador. Temporal mientras no exista gateway-server (ver docs/architecture.md) - ahi se
     # concentra en un solo lugar.
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+
+jwt:
+  # Misma clave que usa authorizer-server para firmar. Cada servicio valida el token localmente
+  # contra ella, sin llamar a authorizer (ver docs/rbac.md). Sin default: nunca commitear el secreto.
+  secret: ${JWT_SECRET}

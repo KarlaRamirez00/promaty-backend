@@ -19,29 +19,34 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.promaty.user.config.SecurityConfig;
 import com.promaty.user.dto.role.CreateRoleDto;
+import com.promaty.user.dto.role.RoleActiveUpdateResultDto;
 import com.promaty.user.dto.role.RoleDetailDto;
 import com.promaty.user.dto.role.RoleListDto;
-import com.promaty.user.dto.role.RoleActiveUpdateResultDto;
 import com.promaty.user.dto.role.UpdateRoleDto;
 import com.promaty.user.exception.ResourceNotFoundException;
 import com.promaty.user.services.role.RoleService;
+import com.promaty.user.support.TestJwt;
 
-// SecurityConfig hoy usa permitAll() (ver docs/rbac.md); cuando authorizer-server valide JWT,
-// agregar aca simulacion de token/authorities (ej. con spring-security-test .with(jwt()...)).
-// @EnableWebSecurity es necesario aca (aunque SecurityConfig no lo tenga) porque @WebMvcTest en
-// Boot 4.1 ya no trae la infraestructura de Spring Security (bean HttpSecurity) por defecto.
+// Cada llamada lleva un Bearer real (TestJwt): en Boot 4.1 @WebMvcTest no auto-configura la
+// integracion de spring-security-test, asi que @WithMockUser no surtiria efecto. @EnableWebSecurity
+// tambien es necesario por lo mismo (no trae el bean HttpSecurity por defecto).
 @WebMvcTest(RoleController.class)
 @Import(SecurityConfig.class)
 @EnableWebSecurity
+@TestPropertySource(properties = "jwt.secret=" + TestJwt.SECRET)
 class RoleControllerTest {
+
+	private static final String TOKEN = TestJwt.bearer();
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -59,6 +64,7 @@ class RoleControllerTest {
 		when(roleService.createRole(any())).thenReturn(10L);
 
 		mockMvc.perform(post("/roles")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(dto)))
 			.andExpect(status().isCreated())
@@ -72,6 +78,7 @@ class RoleControllerTest {
 		dto.setName(" ");
 
 		mockMvc.perform(post("/roles")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(dto)))
 			.andExpect(status().isBadRequest())
@@ -84,7 +91,7 @@ class RoleControllerTest {
 		Page<RoleListDto> pagina = new PageImpl<>(List.of(rol), PageRequest.of(0, 20), 1);
 		when(roleService.listRoles(any(), any())).thenReturn(pagina);
 
-		mockMvc.perform(get("/roles"))
+		mockMvc.perform(get("/roles").header(HttpHeaders.AUTHORIZATION, TOKEN))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data[0].name").value("Editor"))
 			.andExpect(jsonPath("$.meta.pagination.total").value(1));
@@ -95,7 +102,7 @@ class RoleControllerTest {
 		RoleDetailDto detalle = new RoleDetailDto(1L, "Editor", "desc", true, 0L, List.of(), List.of());
 		when(roleService.getRoleDetail(1L)).thenReturn(detalle);
 
-		mockMvc.perform(get("/roles/1"))
+		mockMvc.perform(get("/roles/1").header(HttpHeaders.AUTHORIZATION, TOKEN))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.name").value("Editor"));
 	}
@@ -104,7 +111,7 @@ class RoleControllerTest {
 	void detail_rolNoExiste_retorna404() throws Exception {
 		when(roleService.getRoleDetail(99L)).thenThrow(new ResourceNotFoundException("Rol no encontrado."));
 
-		mockMvc.perform(get("/roles/99"))
+		mockMvc.perform(get("/roles/99").header(HttpHeaders.AUTHORIZATION, TOKEN))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.error.message").value("Rol no encontrado."));
 	}
@@ -117,6 +124,7 @@ class RoleControllerTest {
 		when(roleService.getRoleDetail(1L)).thenReturn(detalle);
 
 		mockMvc.perform(put("/roles/1")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(dto)))
 			.andExpect(status().isOk())
@@ -129,6 +137,7 @@ class RoleControllerTest {
 		when(roleService.toggleRoleActive(anyLong(), any())).thenReturn(resultado);
 
 		mockMvc.perform(patch("/roles/1/active")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{}"))
 			.andExpect(status().isOk())
