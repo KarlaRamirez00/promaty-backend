@@ -1,6 +1,8 @@
 package com.promaty.rrhh.controller.project;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -42,7 +44,7 @@ public class ProjectController {
 	@GetMapping
 	public ResponseEntity<BaseListData<ProjectListDto>> list(
 		@ModelAttribute ProjectFilterParams filters,
-		Pageable pageable
+		@PageableDefault(sort = {"createdAt", "id"}, direction = Sort.Direction.DESC) Pageable pageable
 	) {
 		return ResponseEntity.ok(BaseListData.of(projectService.listProjects(filters, pageable)));
 	}

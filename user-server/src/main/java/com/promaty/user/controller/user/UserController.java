@@ -1,6 +1,8 @@
 package com.promaty.user.controller.user;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,7 +45,7 @@ public class UserController {
 	@GetMapping
 	public ResponseEntity<BaseListData<UserListDto>> list(
 		@ModelAttribute UserFilterParams filters,
-		Pageable pageable
+		@PageableDefault(sort = {"createdAt", "id"}, direction = Sort.Direction.DESC) Pageable pageable
 	) {
 		return ResponseEntity.ok(BaseListData.of(userService.listUsers(filters, pageable)));
 	}

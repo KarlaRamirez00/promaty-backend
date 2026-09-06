@@ -1,6 +1,8 @@
 package com.promaty.rrhh.controller.client;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,7 +45,7 @@ public class ClientController {
 	@GetMapping
 	public ResponseEntity<BaseListData<ClientListDto>> list(
 		@ModelAttribute ClientFilterParams filters,
-		Pageable pageable
+		@PageableDefault(sort = {"createdAt", "id"}, direction = Sort.Direction.DESC) Pageable pageable
 	) {
 		return ResponseEntity.ok(BaseListData.of(clientService.listClients(filters, pageable)));
 	}
