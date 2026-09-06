@@ -10,6 +10,7 @@
 
 	<modules>
 		<module>auth-contracts</module>
+		<module>security-commons</module>
 		<module>eureka-server</module>
 		<module>user-server</module>
 		<module>authorizer-server</module>
