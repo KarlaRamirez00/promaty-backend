@@ -5,6 +5,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,12 +38,14 @@ public class UserController {
 	}
 
 	@PostMapping
+	@PreAuthorize("hasAuthority('user.create')")
 	public ResponseEntity<BaseData<Long>> create(@Valid @RequestBody CreateUserDto dto) {
 		Long id = userService.createUser(dto);
 		return ResponseEntity.status(HttpStatus.CREATED).body(BaseData.success(id));
 	}
 
 	@GetMapping
+	@PreAuthorize("hasAuthority('user.read')")
 	public ResponseEntity<BaseListData<UserListDto>> list(
 		@ModelAttribute UserFilterParams filters,
 		@PageableDefault(sort = {"createdAt", "id"}, direction = Sort.Direction.DESC) Pageable pageable
@@ -51,11 +54,13 @@ public class UserController {
 	}
 
 	@GetMapping("/{id}")
+	@PreAuthorize("hasAuthority('user.read')")
 	public ResponseEntity<BaseData<UserDetailDto>> detail(@PathVariable Long id) {
 		return ResponseEntity.ok(BaseData.success(userService.getUserDetail(id)));
 	}
 
 	@PutMapping("/{id}")
+	@PreAuthorize("hasAuthority('user.update')")
 	public ResponseEntity<BaseData<UserDetailDto>> update(
 		@PathVariable Long id,
 		@Valid @RequestBody UpdateUserDto dto
@@ -65,6 +70,7 @@ public class UserController {
 	}
 
 	@PatchMapping("/{id}/active")
+	@PreAuthorize("hasAuthority('user.active')")
 	public ResponseEntity<BaseData<UserDetailDto>> toggleActive(@PathVariable Long id) {
 		return ResponseEntity.ok(BaseData.success(userService.toggleUserActive(id)));
 	}

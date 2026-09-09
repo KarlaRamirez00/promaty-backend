@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -15,6 +16,8 @@ import com.promaty.user.dto.response.ErrorResponse;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+	private static final String MSG_ACCESO_DENEGADO = "No tienes permiso para realizar esta accion.";
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<BaseData<Void>> handleValidation(MethodArgumentNotValidException ex) {
@@ -38,6 +41,13 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(BusinessValidationException.class)
 	public ResponseEntity<BaseData<Void>> handleBusinessValidation(BusinessValidationException ex) {
 		return buildResponse(HttpStatus.BAD_REQUEST, mensajeConCampos(ex.getErrorFields()), ex.getErrorFields());
+	}
+
+	// @PreAuthorize rechaza con AuthorizationDeniedException (subtipo de AccessDeniedException) durante
+	// el dispatch, asi que la agarra este advice y no el accessDeniedHandler de la cadena de seguridad.
+	@ExceptionHandler(AccessDeniedException.class)
+	public ResponseEntity<BaseData<Void>> handleAccessDenied(AccessDeniedException ex) {
+		return buildResponse(HttpStatus.FORBIDDEN, MSG_ACCESO_DENEGADO, Map.of());
 	}
 
 	@ExceptionHandler(Exception.class)

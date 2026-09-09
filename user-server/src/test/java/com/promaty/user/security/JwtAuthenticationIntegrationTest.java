@@ -59,7 +59,10 @@ class JwtAuthenticationIntegrationTest {
 	void endpointProtegido_conTokenValido_pasaLaAutenticacion() throws Exception {
 		when(roleService.listRoles(any(), any())).thenReturn(new PageImpl<>(List.of()));
 
-		mockMvc.perform(get("/roles").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer()))
+		// El token lleva role.read: GET /roles exige ese permiso via @PreAuthorize. Aca se prueba que
+		// un token valido autentica y llega al controller; el detalle de 403/200 por permiso vive en
+		// RoleControllerTest.
+		mockMvc.perform(get("/roles").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("role.read")))
 			.andExpect(status().isOk());
 	}
 

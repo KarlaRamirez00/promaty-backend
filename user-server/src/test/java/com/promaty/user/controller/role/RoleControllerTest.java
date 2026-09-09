@@ -46,7 +46,12 @@ import com.promaty.user.support.TestJwt;
 @TestPropertySource(properties = "jwt.secret=" + TestJwt.SECRET)
 class RoleControllerTest {
 
-	private static final String TOKEN = TestJwt.bearer();
+	// Token con todos los permisos de role: los tests de flujo funcional no ejercen la autorizacion
+	// (eso vive en la seccion "Autorizacion por permiso" mas abajo).
+	private static final String TOKEN = TestJwt.bearer("role.read", "role.create", "role.update", "role.active");
+
+	// Token valido pero sin ninguna authority.
+	private static final String SIN_PERMISOS = TestJwt.bearer();
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -143,5 +148,130 @@ class RoleControllerTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.active").value(false))
 			.andExpect(jsonPath("$.data.reassignedUsers").value(3));
+	}
+
+	// --- Autorizacion por permiso (@PreAuthorize) ---
+	// Cada endpoint exige su authority exacta: sin permiso -> 403 con el shape del contrato; con el
+	// permiso exacto -> 2xx. create_conPermisoDeOtraAccion prueba que no basta con tener "algun"
+	// permiso de role.
+
+	@Test
+	void list_sinPermiso_retorna403ConShapeDeContrato() throws Exception {
+		mockMvc.perform(get("/roles").header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.error.status").value(403))
+			.andExpect(jsonPath("$.error.name").value("FORBIDDEN"))
+			.andExpect(jsonPath("$.data").doesNotExist());
+	}
+
+	@Test
+	void detail_sinPermiso_retorna403() throws Exception {
+		mockMvc.perform(get("/roles/1").header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.error.status").value(403));
+	}
+
+	@Test
+	void create_sinPermiso_retorna403() throws Exception {
+		CreateRoleDto dto = new CreateRoleDto();
+		dto.setName("Editor");
+
+		mockMvc.perform(post("/roles")
+				.header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(dto)))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.error.status").value(403));
+	}
+
+	@Test
+	void update_sinPermiso_retorna403() throws Exception {
+		UpdateRoleDto dto = new UpdateRoleDto();
+		dto.setName("Editor");
+
+		mockMvc.perform(put("/roles/1")
+				.header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(dto)))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.error.status").value(403));
+	}
+
+	@Test
+	void toggleActive_sinPermiso_retorna403() throws Exception {
+		mockMvc.perform(patch("/roles/1/active")
+				.header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{}"))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.error.status").value(403));
+	}
+
+	@Test
+	void create_conPermisoDeOtraAccion_retorna403() throws Exception {
+		CreateRoleDto dto = new CreateRoleDto();
+		dto.setName("Editor");
+
+		mockMvc.perform(post("/roles")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("role.read"))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(dto)))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void list_conPermisoExacto_retorna200() throws Exception {
+		when(roleService.listRoles(any(), any())).thenReturn(new PageImpl<>(List.of()));
+
+		mockMvc.perform(get("/roles").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("role.read")))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void detail_conPermisoExacto_retorna200() throws Exception {
+		RoleDetailDto detalle = new RoleDetailDto(1L, "Editor", "desc", true, 0L, List.of(), List.of());
+		when(roleService.getRoleDetail(1L)).thenReturn(detalle);
+
+		mockMvc.perform(get("/roles/1").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("role.read")))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void create_conPermisoExacto_retorna201() throws Exception {
+		CreateRoleDto dto = new CreateRoleDto();
+		dto.setName("Editor");
+		when(roleService.createRole(any())).thenReturn(10L);
+
+		mockMvc.perform(post("/roles")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("role.create"))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(dto)))
+			.andExpect(status().isCreated());
+	}
+
+	@Test
+	void update_conPermisoExacto_retorna200() throws Exception {
+		UpdateRoleDto dto = new UpdateRoleDto();
+		dto.setName("Editor");
+		RoleDetailDto detalle = new RoleDetailDto(1L, "Editor", "desc", true, 0L, List.of(), List.of());
+		when(roleService.getRoleDetail(1L)).thenReturn(detalle);
+
+		mockMvc.perform(put("/roles/1")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("role.update"))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(dto)))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void toggleActive_conPermisoExacto_retorna200() throws Exception {
+		when(roleService.toggleRoleActive(anyLong(), any()))
+			.thenReturn(new RoleActiveUpdateResultDto(1L, false, 0L));
+
+		mockMvc.perform(patch("/roles/1/active")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("role.active"))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{}"))
+			.andExpect(status().isOk());
 	}
 }
