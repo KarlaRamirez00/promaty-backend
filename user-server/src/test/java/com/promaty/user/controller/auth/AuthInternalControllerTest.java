@@ -44,7 +44,7 @@ class AuthInternalControllerTest {
 	@Test
 	void validate_conCredencialesValidas_retorna200ConValidTrue() throws Exception {
 		AuthValidationRequestDto dto = requestDto("ana@promaty.com", "clave123");
-		AuthValidationResponseDto respuesta = new AuthValidationResponseDto(true, 1L, "Editor",
+		AuthValidationResponseDto respuesta = new AuthValidationResponseDto(true, 1L, "Editor", "Ana Pérez",
 				List.of("warehouse.read"), false, List.of(10L));
 		when(authService.validate(any())).thenReturn(respuesta);
 
@@ -53,7 +53,8 @@ class AuthInternalControllerTest {
 				.content(objectMapper.writeValueAsString(dto)))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.valid").value(true))
-			.andExpect(jsonPath("$.data.role").value("Editor"));
+			.andExpect(jsonPath("$.data.role").value("Editor"))
+			.andExpect(jsonPath("$.data.fullName").value("Ana Pérez"));
 	}
 
 	@Test

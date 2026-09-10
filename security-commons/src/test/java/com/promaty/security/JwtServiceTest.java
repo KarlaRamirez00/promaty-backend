@@ -28,6 +28,7 @@ class JwtServiceTest {
 		String token = Jwts.builder()
 			.subject("42")
 			.claim("role", "Editor")
+			.claim("name", "Ana Pérez")
 			.claim("permissions", List.of("rrhh.read", "rrhh.write"))
 			.claim("allowedAllProjects", false)
 			.claim("projectIds", List.of(1, 2, 3))
@@ -38,6 +39,7 @@ class JwtServiceTest {
 
 		assertThat(principal.userId()).isEqualTo("42");
 		assertThat(principal.role()).isEqualTo("Editor");
+		assertThat(principal.name()).isEqualTo("Ana Pérez");
 		assertThat(principal.permissions()).containsExactly("rrhh.read", "rrhh.write");
 		assertThat(principal.allowedAllProjects()).isFalse();
 		assertThat(principal.projectIds()).containsExactly(1L, 2L, 3L);
@@ -85,6 +87,7 @@ class JwtServiceTest {
 		assertThat(principal.projectIds()).isEmpty();
 		assertThat(principal.allowedAllProjects()).isFalse();
 		assertThat(principal.role()).isNull();
+		assertThat(principal.name()).isNull();
 	}
 
 	@Test

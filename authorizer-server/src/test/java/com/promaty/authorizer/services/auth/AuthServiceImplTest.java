@@ -55,6 +55,7 @@ class AuthServiceImplTest {
 		Claims claims = parseClaims(resultado.getToken());
 		assertThat(claims.getSubject()).isEqualTo("1");
 		assertThat(claims.get("role", String.class)).isEqualTo("Editor");
+		assertThat(claims.get("name", String.class)).isEqualTo("Ana Pérez");
 		List<String> permissions = (List<String>) claims.get("permissions", List.class);
 		assertThat(permissions).containsExactly("warehouse.read");
 		assertThat(claims.get("allowedAllProjects", Boolean.class)).isFalse();
@@ -85,6 +86,7 @@ class AuthServiceImplTest {
 		validacion.setValid(true);
 		validacion.setUserId(1L);
 		validacion.setRole("Editor");
+		validacion.setFullName("Ana Pérez");
 		validacion.setPermissions(List.of("warehouse.read"));
 		validacion.setAllowedAllProjects(false);
 		validacion.setProjectIds(List.of(10L, 20L));

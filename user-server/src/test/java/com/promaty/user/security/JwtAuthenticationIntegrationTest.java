@@ -76,7 +76,7 @@ class JwtAuthenticationIntegrationTest {
 	@Test
 	void rutaInterna_sinToken_noEstaProtegida() throws Exception {
 		when(authService.validate(any())).thenReturn(new AuthValidationResponseDto(
-			true, 1L, "Editor", List.of("rrhh.read"), false, List.of(10L)));
+			true, 1L, "Editor", "Ana Pérez", List.of("rrhh.read"), false, List.of(10L)));
 
 		mockMvc.perform(post("/internal/auth/validate")
 				.contentType(MediaType.APPLICATION_JSON)

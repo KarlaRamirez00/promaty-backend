@@ -47,7 +47,8 @@ public class AuthServiceImpl implements AuthService {
 		List<Long> projectIds = allowedAllProjects
 			? List.of()
 			: userProjectAccessRepository.findProjectIdsByUserId(user.getId());
-		return new AuthValidationResponseDto(true, user.getId(), user.getRole().getName(), permissions,
+		String fullName = user.getFirstName() + " " + user.getLastName();
+		return new AuthValidationResponseDto(true, user.getId(), user.getRole().getName(), fullName, permissions,
 			allowedAllProjects, projectIds);
 	}
 }

@@ -6,6 +6,7 @@ import java.util.List;
 public record JwtPrincipal(
 	String userId,
 	String role,
+	String name,
 	List<String> permissions,
 	boolean allowedAllProjects,
 	List<Long> projectIds

@@ -53,6 +53,7 @@ class AuthServiceImplTest {
 		assertThat(resultado.getValid()).isTrue();
 		assertThat(resultado.getUserId()).isEqualTo(1L);
 		assertThat(resultado.getRole()).isEqualTo("Editor");
+		assertThat(resultado.getFullName()).isEqualTo("Ana Pérez");
 		assertThat(resultado.getPermissions()).containsExactly("warehouse.read");
 		assertThat(resultado.getAllowedAllProjects()).isFalse();
 		assertThat(resultado.getProjectIds()).containsExactly(10L, 20L);
@@ -128,6 +129,8 @@ class AuthServiceImplTest {
 
 		User user = new User();
 		user.setId(1L);
+		user.setFirstName("Ana");
+		user.setLastName("Pérez");
 		user.setEmail("ana@promaty.com");
 		user.setPassword("$2a$10$hashSimulado");
 		user.setActive(true);

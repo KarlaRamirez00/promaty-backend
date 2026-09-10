@@ -28,6 +28,7 @@ public class JwtService {
 		return new JwtPrincipal(
 			claims.getSubject(),
 			claims.get("role", String.class),
+			claims.get("name", String.class),
 			readStringList(claims, "permissions"),
 			Boolean.TRUE.equals(claims.get("allowedAllProjects", Boolean.class)),
 			readLongList(claims, "projectIds")

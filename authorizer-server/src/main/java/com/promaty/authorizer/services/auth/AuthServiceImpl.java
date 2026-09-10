@@ -58,6 +58,7 @@ public class AuthServiceImpl implements AuthService {
 		return Jwts.builder()
 			.subject(String.valueOf(validacion.getUserId()))
 			.claim("role", validacion.getRole())
+			.claim("name", validacion.getFullName())
 			.claim("permissions", validacion.getPermissions())
 			.claim("allowedAllProjects", validacion.getAllowedAllProjects())
 			.claim("projectIds", validacion.getProjectIds())

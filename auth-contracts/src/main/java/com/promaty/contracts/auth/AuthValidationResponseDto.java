@@ -16,11 +16,12 @@ public class AuthValidationResponseDto {
 	private Boolean valid;
 	private Long userId;
 	private String role;
+	private String fullName;
 	private List<String> permissions;
 	private Boolean allowedAllProjects;
 	private List<Long> projectIds;
 
 	public static AuthValidationResponseDto invalid() {
-		return new AuthValidationResponseDto(false, null, null, null, null, null);
+		return new AuthValidationResponseDto(false, null, null, null, null, null, null);
 	}
 }
