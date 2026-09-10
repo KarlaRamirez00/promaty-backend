@@ -13,7 +13,9 @@ public final class ProjectSpecialtyMapper {
 		return new ProjectSpecialtyListDto(
 			projectSpecialty.getId(),
 			projectSpecialty.getName(),
-			projectSpecialty.getActive()
+			projectSpecialty.getActive(),
+			projectSpecialty.getCreatedAt(),
+			projectSpecialty.getUpdatedAt()
 		);
 	}
 

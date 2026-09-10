@@ -1,5 +1,7 @@
 package com.promaty.rrhh.dto.projectspecialty;
 
+import java.time.LocalDateTime;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,4 +16,6 @@ public class ProjectSpecialtyListDto {
 	private Long id;
 	private String name;
 	private Boolean active;
+	private LocalDateTime createdAt;
+	private LocalDateTime updatedAt;
 }

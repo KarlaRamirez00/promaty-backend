@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -67,7 +68,7 @@ class ClientControllerTest {
 	@Test
 	void list_retorna200ConDataYPaginacion() throws Exception {
 		Page<ClientListDto> pagina = new PageImpl<>(
-			List.of(new ClientListDto(1L, "Sodimac", true)),
+			List.of(new ClientListDto(1L, "Sodimac", true, LocalDateTime.of(2026, 1, 15, 10, 0), null)),
 			PageRequest.of(0, 20),
 			1
 		);
@@ -76,6 +77,7 @@ class ClientControllerTest {
 		mockMvc.perform(get("/clients"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data[0].name").value("Sodimac"))
+			.andExpect(jsonPath("$.data[0].createdAt").exists())
 			.andExpect(jsonPath("$.meta.pagination.total").value(1));
 	}
 

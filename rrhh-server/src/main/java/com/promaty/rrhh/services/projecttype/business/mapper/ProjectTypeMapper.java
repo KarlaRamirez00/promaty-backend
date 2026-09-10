@@ -13,7 +13,9 @@ public final class ProjectTypeMapper {
 		return new ProjectTypeListDto(
 			projectType.getId(),
 			projectType.getName(),
-			projectType.getActive()
+			projectType.getActive(),
+			projectType.getCreatedAt(),
+			projectType.getUpdatedAt()
 		);
 	}
 

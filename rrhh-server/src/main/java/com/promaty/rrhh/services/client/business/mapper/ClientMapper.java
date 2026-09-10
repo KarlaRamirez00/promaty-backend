@@ -13,7 +13,9 @@ public final class ClientMapper {
 		return new ClientListDto(
 			client.getId(),
 			client.getName(),
-			client.getActive()
+			client.getActive(),
+			client.getCreatedAt(),
+			client.getUpdatedAt()
 		);
 	}
 
