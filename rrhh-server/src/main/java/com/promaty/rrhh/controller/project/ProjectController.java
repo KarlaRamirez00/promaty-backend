@@ -5,6 +5,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,12 +37,14 @@ public class ProjectController {
 	}
 
 	@PostMapping
+	@PreAuthorize("hasAuthority('project.create')")
 	public ResponseEntity<BaseData<Long>> create(@Valid @RequestBody CreateProjectDto dto) {
 		Long id = projectService.createProject(dto);
 		return ResponseEntity.status(HttpStatus.CREATED).body(BaseData.success(id));
 	}
 
 	@GetMapping
+	@PreAuthorize("hasAuthority('project.read')")
 	public ResponseEntity<BaseListData<ProjectListDto>> list(
 		@ModelAttribute ProjectFilterParams filters,
 		@PageableDefault(sort = {"createdAt", "id"}, direction = Sort.Direction.DESC) Pageable pageable
@@ -50,11 +53,13 @@ public class ProjectController {
 	}
 
 	@GetMapping("/{id}")
+	@PreAuthorize("hasAuthority('project.read')")
 	public ResponseEntity<BaseData<ProjectDetailDto>> detail(@PathVariable Long id) {
 		return ResponseEntity.ok(BaseData.success(projectService.getProjectDetail(id)));
 	}
 
 	@PutMapping("/{id}")
+	@PreAuthorize("hasAuthority('project.update')")
 	public ResponseEntity<BaseData<ProjectDetailDto>> update(
 		@PathVariable Long id,
 		@Valid @RequestBody UpdateProjectDto dto

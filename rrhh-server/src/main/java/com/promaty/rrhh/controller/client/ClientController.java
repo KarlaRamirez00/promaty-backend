@@ -5,6 +5,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,12 +38,14 @@ public class ClientController {
 	}
 
 	@PostMapping
+	@PreAuthorize("hasAuthority('client.create')")
 	public ResponseEntity<BaseData<Long>> create(@Valid @RequestBody CreateClientDto dto) {
 		Long id = clientService.createClient(dto);
 		return ResponseEntity.status(HttpStatus.CREATED).body(BaseData.success(id));
 	}
 
 	@GetMapping
+	@PreAuthorize("hasAuthority('client.read')")
 	public ResponseEntity<BaseListData<ClientListDto>> list(
 		@ModelAttribute ClientFilterParams filters,
 		@PageableDefault(sort = {"createdAt", "id"}, direction = Sort.Direction.DESC) Pageable pageable
@@ -51,11 +54,13 @@ public class ClientController {
 	}
 
 	@GetMapping("/{id}")
+	@PreAuthorize("hasAuthority('client.read')")
 	public ResponseEntity<BaseData<ClientDetailDto>> detail(@PathVariable Long id) {
 		return ResponseEntity.ok(BaseData.success(clientService.getClientDetail(id)));
 	}
 
 	@PutMapping("/{id}")
+	@PreAuthorize("hasAuthority('client.update')")
 	public ResponseEntity<BaseData<ClientDetailDto>> update(
 		@PathVariable Long id,
 		@Valid @RequestBody UpdateClientDto dto
@@ -65,6 +70,7 @@ public class ClientController {
 	}
 
 	@PatchMapping("/{id}/active")
+	@PreAuthorize("hasAuthority('client.active')")
 	public ResponseEntity<BaseData<ClientDetailDto>> toggleActive(@PathVariable Long id) {
 		return ResponseEntity.ok(BaseData.success(clientService.toggleClientActive(id)));
 	}

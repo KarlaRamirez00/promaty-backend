@@ -5,6 +5,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,12 +38,14 @@ public class ProjectSpecialtyController {
 	}
 
 	@PostMapping
+	@PreAuthorize("hasAuthority('projectSpecialty.create')")
 	public ResponseEntity<BaseData<Long>> create(@Valid @RequestBody CreateProjectSpecialtyDto dto) {
 		Long id = projectSpecialtyService.createProjectSpecialty(dto);
 		return ResponseEntity.status(HttpStatus.CREATED).body(BaseData.success(id));
 	}
 
 	@GetMapping
+	@PreAuthorize("hasAuthority('projectSpecialty.read')")
 	public ResponseEntity<BaseListData<ProjectSpecialtyListDto>> list(
 		@ModelAttribute ProjectSpecialtyFilterParams filters,
 		@PageableDefault(sort = {"createdAt", "id"}, direction = Sort.Direction.DESC) Pageable pageable
@@ -51,11 +54,13 @@ public class ProjectSpecialtyController {
 	}
 
 	@GetMapping("/{id}")
+	@PreAuthorize("hasAuthority('projectSpecialty.read')")
 	public ResponseEntity<BaseData<ProjectSpecialtyDetailDto>> detail(@PathVariable Long id) {
 		return ResponseEntity.ok(BaseData.success(projectSpecialtyService.getProjectSpecialtyDetail(id)));
 	}
 
 	@PutMapping("/{id}")
+	@PreAuthorize("hasAuthority('projectSpecialty.update')")
 	public ResponseEntity<BaseData<ProjectSpecialtyDetailDto>> update(
 		@PathVariable Long id,
 		@Valid @RequestBody UpdateProjectSpecialtyDto dto
@@ -65,6 +70,7 @@ public class ProjectSpecialtyController {
 	}
 
 	@PatchMapping("/{id}/active")
+	@PreAuthorize("hasAuthority('projectSpecialty.active')")
 	public ResponseEntity<BaseData<ProjectSpecialtyDetailDto>> toggleActive(@PathVariable Long id) {
 		return ResponseEntity.ok(BaseData.success(projectSpecialtyService.toggleProjectSpecialtyActive(id)));
 	}

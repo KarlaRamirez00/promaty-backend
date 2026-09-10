@@ -18,8 +18,10 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -30,17 +32,25 @@ import com.promaty.rrhh.dto.project.ProjectListDto;
 import com.promaty.rrhh.dto.project.RelationSummaryDto;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.services.project.ProjectService;
+import com.promaty.rrhh.support.TestJwt;
 
 // @WebMvcTest en Boot 4.1 no auto-configura Spring Security; @EnableWebSecurity restituye el
 // bean HttpSecurity que SecurityConfig necesita.
 @WebMvcTest(ProjectController.class)
 @Import(SecurityConfig.class)
 @EnableWebSecurity
+@TestPropertySource(properties = "jwt.secret=" + TestJwt.SECRET)
 class ProjectControllerTest {
 
 	private static final String PROYECTO_JSON =
 		"{\"name\":\"Edificio Norte\",\"costCenterCode\":\"00824\",\"typeId\":10,\"specialtyId\":20,"
 			+ "\"clientId\":30,\"statusId\":40,\"startDate\":\"2026-01-01\"}";
+
+	// Token con todos los permisos de project para los tests de flujo; la autorizacion por permiso se prueba aparte.
+	private static final String TOKEN =
+		TestJwt.bearer("project.read", "project.create", "project.update");
+
+	private static final String SIN_PERMISOS = TestJwt.bearer();
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -53,6 +63,7 @@ class ProjectControllerTest {
 		when(projectService.createProject(any())).thenReturn(10L);
 
 		mockMvc.perform(post("/projects")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(PROYECTO_JSON))
 			.andExpect(status().isCreated())
@@ -63,6 +74,7 @@ class ProjectControllerTest {
 	@Test
 	void create_sinCamposObligatorios_retorna400ConErrorFields() throws Exception {
 		mockMvc.perform(post("/projects")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{}"))
 			.andExpect(status().isBadRequest())
@@ -81,7 +93,7 @@ class ProjectControllerTest {
 		);
 		when(projectService.listProjects(any(), any())).thenReturn(pagina);
 
-		mockMvc.perform(get("/projects"))
+		mockMvc.perform(get("/projects").header(HttpHeaders.AUTHORIZATION, TOKEN))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data[0].name").value("Edificio Norte"))
 			.andExpect(jsonPath("$.data[0].statusName").value("En ejecución"))
@@ -92,7 +104,7 @@ class ProjectControllerTest {
 	void detail_registroExiste_retorna200ConData() throws Exception {
 		when(projectService.getProjectDetail(1L)).thenReturn(detalleDto());
 
-		mockMvc.perform(get("/projects/1"))
+		mockMvc.perform(get("/projects/1").header(HttpHeaders.AUTHORIZATION, TOKEN))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.name").value("Edificio Norte"))
 			.andExpect(jsonPath("$.data.type.name").value("Obra gruesa"))
@@ -104,7 +116,7 @@ class ProjectControllerTest {
 		when(projectService.getProjectDetail(99L))
 			.thenThrow(new ResourceNotFoundException("Proyecto no encontrado."));
 
-		mockMvc.perform(get("/projects/99"))
+		mockMvc.perform(get("/projects/99").header(HttpHeaders.AUTHORIZATION, TOKEN))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.error.message").value("Proyecto no encontrado."));
 	}
@@ -114,10 +126,99 @@ class ProjectControllerTest {
 		when(projectService.getProjectDetail(1L)).thenReturn(detalleDto());
 
 		mockMvc.perform(put("/projects/1")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(PROYECTO_JSON))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.name").value("Edificio Norte"));
+	}
+
+	// --- Autorizacion por permiso (@PreAuthorize) ---
+	// Cada endpoint exige su authority exacta: sin permiso -> 403 con el shape del contrato; con el
+	// permiso exacto -> 2xx. create_conPermisoDeOtraAccion prueba que no basta con tener "algun"
+	// permiso de project.
+
+	@Test
+	void list_sinPermiso_retorna403ConShapeDeContrato() throws Exception {
+		mockMvc.perform(get("/projects").header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.error.status").value(403))
+			.andExpect(jsonPath("$.error.name").value("FORBIDDEN"))
+			.andExpect(jsonPath("$.data").doesNotExist());
+	}
+
+	@Test
+	void detail_sinPermiso_retorna403() throws Exception {
+		mockMvc.perform(get("/projects/1").header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.error.status").value(403));
+	}
+
+	@Test
+	void create_sinPermiso_retorna403() throws Exception {
+		mockMvc.perform(post("/projects")
+				.header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(PROYECTO_JSON))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.error.status").value(403));
+	}
+
+	@Test
+	void update_sinPermiso_retorna403() throws Exception {
+		mockMvc.perform(put("/projects/1")
+				.header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(PROYECTO_JSON))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.error.status").value(403));
+	}
+
+	@Test
+	void create_conPermisoDeOtraAccion_retorna403() throws Exception {
+		mockMvc.perform(post("/projects")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("project.read"))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(PROYECTO_JSON))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void list_conPermisoExacto_retorna200() throws Exception {
+		when(projectService.listProjects(any(), any())).thenReturn(new PageImpl<>(List.of()));
+
+		mockMvc.perform(get("/projects").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("project.read")))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void detail_conPermisoExacto_retorna200() throws Exception {
+		when(projectService.getProjectDetail(1L)).thenReturn(detalleDto());
+
+		mockMvc.perform(get("/projects/1").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("project.read")))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void create_conPermisoExacto_retorna201() throws Exception {
+		when(projectService.createProject(any())).thenReturn(10L);
+
+		mockMvc.perform(post("/projects")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("project.create"))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(PROYECTO_JSON))
+			.andExpect(status().isCreated());
+	}
+
+	@Test
+	void update_conPermisoExacto_retorna200() throws Exception {
+		when(projectService.getProjectDetail(1L)).thenReturn(detalleDto());
+
+		mockMvc.perform(put("/projects/1")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("project.update"))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(PROYECTO_JSON))
+			.andExpect(status().isOk());
 	}
 
 	private ProjectDetailDto detalleDto() {

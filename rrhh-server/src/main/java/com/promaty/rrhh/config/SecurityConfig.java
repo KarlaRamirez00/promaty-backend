@@ -6,19 +6,28 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-/**
- * Placeholder hasta que gateway-server este listo (ver docs/architecture.md).
- * Se permite cualquier request sin autenticacion por ahora. Reemplazar por validacion de JWT +
- * @PreAuthorize por permiso.
- */
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.promaty.security.JwtAuthenticationFilter;
+import com.promaty.security.JwtService;
+
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
+
+	private static final String[] RUTAS_PUBLICAS = {
+		"/actuator/health",
+		"/swagger-ui/**",
+		"/v3/api-docs/**"
+	};
 
 	private final List<String> allowedOrigins;
 
@@ -27,20 +36,38 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+	public JwtService jwtService(@Value("${jwt.secret}") String jwtSecret) {
+		return new JwtService(jwtSecret);
+	}
+
+	@Bean
+	public RestAuthErrorHandler restAuthErrorHandler(ObjectMapper objectMapper) {
+		return new RestAuthErrorHandler(objectMapper);
+	}
+
+	@Bean
+	public SecurityFilterChain securityFilterChain(
+		HttpSecurity http,
+		JwtService jwtService,
+		RestAuthErrorHandler restAuthErrorHandler
+	) {
 		return http
-			// CSRF no aplica: API stateless con Bearer token, sin sesion basada en cookies.
+			// API stateless con Bearer token, sin sesion por cookies: CSRF no aplica.
 			.csrf(csrf -> csrf.disable()) // NOSONAR (java:S4502)
 			.cors(Customizer.withDefaults())
-			.authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.authorizeHttpRequests(auth -> auth
+				.requestMatchers(RUTAS_PUBLICAS).permitAll()
+				.anyRequest().authenticated())
+			.exceptionHandling(ex -> ex
+				.authenticationEntryPoint(restAuthErrorHandler)
+				.accessDeniedHandler(restAuthErrorHandler))
+			// Un @Bean de tipo Filter lo auto-registraria Spring Boot como filtro de servlet suelto,
+			// fuera de la cadena de seguridad; por eso se instancia a mano aca.
+			.addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
 			.build();
 	}
 
-	/**
-	 * Sin esto el preflight OPTIONS del navegador nunca recibe los headers Access-Control-*, y el
-	 * browser bloquea la respuesta real aunque el endpoint sea permitAll() - CORS lo decide el
-	 * navegador, no Spring Security.
-	 */
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuracion = new CorsConfiguration();

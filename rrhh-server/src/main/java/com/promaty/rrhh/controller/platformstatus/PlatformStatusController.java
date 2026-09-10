@@ -1,6 +1,7 @@
 package com.promaty.rrhh.controller.platformstatus;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -21,6 +22,7 @@ public class PlatformStatusController {
 	}
 
 	@GetMapping
+	@PreAuthorize("hasAuthority('platformStatus.read')")
 	public ResponseEntity<BaseListData<PlatformStatusOptionDto>> list(@RequestParam String subModule) {
 		return ResponseEntity.ok(BaseListData.of(platformStatusService.listOptionsBySubModule(subModule)));
 	}
