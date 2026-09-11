@@ -21,6 +21,7 @@ import com.promaty.rrhh.entity.ProjectSpecialty;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ProjectSpecialtyRepository;
 import com.promaty.rrhh.services.projectspecialty.business.validation.ProjectSpecialtyValidation;
+import com.promaty.rrhh.services.shared.ActionsResolver;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectSpecialtyServiceImplTest {
@@ -30,6 +31,9 @@ class ProjectSpecialtyServiceImplTest {
 
 	@Mock
 	private ProjectSpecialtyValidation projectSpecialtyValidation;
+
+	@Mock
+	private ActionsResolver actionsResolver;
 
 	@InjectMocks
 	private ProjectSpecialtyServiceImpl service;

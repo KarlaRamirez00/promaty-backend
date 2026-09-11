@@ -1,6 +1,9 @@
 package com.promaty.rrhh.dto.project;
 
 import java.time.LocalDate;
+import java.util.List;
+
+import com.promaty.rrhh.dto.shared.Action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -22,4 +25,5 @@ public class ProjectListDto {
 	private String statusName;
 	private LocalDate startDate;
 	private LocalDate endDate;
+	private List<Action> actions;
 }

@@ -27,6 +27,7 @@ import com.promaty.rrhh.repository.ProjectRepository;
 import com.promaty.rrhh.services.project.business.builder.CreateProjectBuilder;
 import com.promaty.rrhh.services.project.business.builder.UpdateProjectBuilder;
 import com.promaty.rrhh.services.project.business.validation.ProjectValidation;
+import com.promaty.rrhh.services.shared.ActionsResolver;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectServiceImplTest {
@@ -39,6 +40,8 @@ class ProjectServiceImplTest {
 	private CreateProjectBuilder createProjectBuilder;
 	@Mock
 	private UpdateProjectBuilder updateProjectBuilder;
+	@Mock
+	private ActionsResolver actionsResolver;
 
 	@InjectMocks
 	private ProjectServiceImpl service;

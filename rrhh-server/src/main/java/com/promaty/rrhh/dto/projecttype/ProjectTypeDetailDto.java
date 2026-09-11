@@ -1,6 +1,9 @@
 package com.promaty.rrhh.dto.projecttype;
 
 import java.time.LocalDateTime;
+import java.util.List;
+
+import com.promaty.rrhh.dto.shared.Action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -18,4 +21,5 @@ public class ProjectTypeDetailDto {
 	private Boolean active;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
+	private List<Action> actions;
 }

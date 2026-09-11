@@ -87,7 +87,7 @@ class ProjectControllerTest {
 	void list_retorna200ConDataYPaginacion() throws Exception {
 		Page<ProjectListDto> pagina = new PageImpl<>(
 			List.of(new ProjectListDto(1L, "Edificio Norte", "00824", "Obra gruesa", "Eléctrica", "Sodimac", "En ejecución",
-				LocalDate.of(2026, 1, 1), null)),
+				LocalDate.of(2026, 1, 1), null, List.of())),
 			PageRequest.of(0, 20),
 			1
 		);
@@ -233,7 +233,8 @@ class ProjectControllerTest {
 			LocalDate.of(2026, 1, 1),
 			null,
 			null,
-			null
+			null,
+			List.of()
 		);
 	}
 }

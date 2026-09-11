@@ -2,8 +2,10 @@ package com.promaty.rrhh.dto.project;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.promaty.rrhh.dto.platformstatus.PlatformStatusOptionDto;
+import com.promaty.rrhh.dto.shared.Action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -27,4 +29,5 @@ public class ProjectDetailDto {
 	private LocalDate endDate;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
+	private List<Action> actions;
 }

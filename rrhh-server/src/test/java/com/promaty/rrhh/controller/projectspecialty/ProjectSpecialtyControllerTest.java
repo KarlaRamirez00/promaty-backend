@@ -80,7 +80,7 @@ class ProjectSpecialtyControllerTest {
 	@Test
 	void list_retorna200ConDataYPaginacion() throws Exception {
 		Page<ProjectSpecialtyListDto> pagina = new PageImpl<>(
-			List.of(new ProjectSpecialtyListDto(1L, "Eléctrica", true, LocalDateTime.of(2026, 1, 15, 10, 0), null)),
+			List.of(new ProjectSpecialtyListDto(1L, "Eléctrica", true, LocalDateTime.of(2026, 1, 15, 10, 0), null, List.of())),
 			PageRequest.of(0, 20),
 			1
 		);
@@ -96,7 +96,7 @@ class ProjectSpecialtyControllerTest {
 	@Test
 	void detail_registroExiste_retorna200ConData() throws Exception {
 		when(projectSpecialtyService.getProjectSpecialtyDetail(1L))
-			.thenReturn(new ProjectSpecialtyDetailDto(1L, "Eléctrica", true, null, null));
+			.thenReturn(new ProjectSpecialtyDetailDto(1L, "Eléctrica", true, null, null, List.of()));
 
 		mockMvc.perform(get("/projectSpecialties/1").header(HttpHeaders.AUTHORIZATION, TOKEN))
 			.andExpect(status().isOk())
@@ -116,7 +116,7 @@ class ProjectSpecialtyControllerTest {
 	@Test
 	void update_conDatosValidos_retorna200ConDetalleActualizado() throws Exception {
 		when(projectSpecialtyService.getProjectSpecialtyDetail(1L))
-			.thenReturn(new ProjectSpecialtyDetailDto(1L, "Sanitaria", true, null, null));
+			.thenReturn(new ProjectSpecialtyDetailDto(1L, "Sanitaria", true, null, null, List.of()));
 
 		mockMvc.perform(put("/projectSpecialties/1")
 				.header(HttpHeaders.AUTHORIZATION, TOKEN)
@@ -129,7 +129,7 @@ class ProjectSpecialtyControllerTest {
 	@Test
 	void toggleActive_retorna200ConFlagAlternado() throws Exception {
 		when(projectSpecialtyService.toggleProjectSpecialtyActive(1L))
-			.thenReturn(new ProjectSpecialtyDetailDto(1L, "Eléctrica", false, null, null));
+			.thenReturn(new ProjectSpecialtyDetailDto(1L, "Eléctrica", false, null, null, List.of()));
 
 		mockMvc.perform(patch("/projectSpecialties/1/active").header(HttpHeaders.AUTHORIZATION, TOKEN))
 			.andExpect(status().isOk())
@@ -204,7 +204,7 @@ class ProjectSpecialtyControllerTest {
 	@Test
 	void detail_conPermisoExacto_retorna200() throws Exception {
 		when(projectSpecialtyService.getProjectSpecialtyDetail(1L))
-			.thenReturn(new ProjectSpecialtyDetailDto(1L, "Eléctrica", true, null, null));
+			.thenReturn(new ProjectSpecialtyDetailDto(1L, "Eléctrica", true, null, null, List.of()));
 
 		mockMvc.perform(get("/projectSpecialties/1").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("projectSpecialty.read")))
 			.andExpect(status().isOk());
@@ -224,7 +224,7 @@ class ProjectSpecialtyControllerTest {
 	@Test
 	void update_conPermisoExacto_retorna200() throws Exception {
 		when(projectSpecialtyService.getProjectSpecialtyDetail(1L))
-			.thenReturn(new ProjectSpecialtyDetailDto(1L, "Sanitaria", true, null, null));
+			.thenReturn(new ProjectSpecialtyDetailDto(1L, "Sanitaria", true, null, null, List.of()));
 
 		mockMvc.perform(put("/projectSpecialties/1")
 				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("projectSpecialty.update"))
@@ -236,7 +236,7 @@ class ProjectSpecialtyControllerTest {
 	@Test
 	void toggleActive_conPermisoExacto_retorna200() throws Exception {
 		when(projectSpecialtyService.toggleProjectSpecialtyActive(1L))
-			.thenReturn(new ProjectSpecialtyDetailDto(1L, "Eléctrica", false, null, null));
+			.thenReturn(new ProjectSpecialtyDetailDto(1L, "Eléctrica", false, null, null, List.of()));
 
 		mockMvc.perform(patch("/projectSpecialties/1/active")
 				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("projectSpecialty.active")))

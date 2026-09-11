@@ -1,5 +1,8 @@
 package com.promaty.rrhh.services.projectspecialty;
 
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -11,24 +14,35 @@ import com.promaty.rrhh.dto.projectspecialty.ProjectSpecialtyDetailDto;
 import com.promaty.rrhh.dto.projectspecialty.ProjectSpecialtyFilterParams;
 import com.promaty.rrhh.dto.projectspecialty.ProjectSpecialtyListDto;
 import com.promaty.rrhh.dto.projectspecialty.UpdateProjectSpecialtyDto;
+import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.entity.ProjectSpecialty;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ProjectSpecialtyRepository;
 import com.promaty.rrhh.services.projectspecialty.business.builder.ProjectSpecialtyQueryBuilder;
 import com.promaty.rrhh.services.projectspecialty.business.mapper.ProjectSpecialtyMapper;
 import com.promaty.rrhh.services.projectspecialty.business.validation.ProjectSpecialtyValidation;
+import com.promaty.rrhh.services.shared.ActionsResolver;
+import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
 
 @Service
 public class ProjectSpecialtyServiceImpl implements ProjectSpecialtyService {
 
 	private static final String NO_ENCONTRADO = "Especialidad no encontrada.";
 
+	private static final Map<String, Action> REGLAS_ACCIONES = Map.of(
+		"projectSpecialty.update", Action.UPDATE,
+		"projectSpecialty.active", Action.ACTIVE
+	);
+
 	private final ProjectSpecialtyRepository projectSpecialtyRepository;
 	private final ProjectSpecialtyValidation projectSpecialtyValidation;
+	private final ActionsResolver actionsResolver;
 
-	public ProjectSpecialtyServiceImpl(ProjectSpecialtyRepository projectSpecialtyRepository, ProjectSpecialtyValidation projectSpecialtyValidation) {
+	public ProjectSpecialtyServiceImpl(ProjectSpecialtyRepository projectSpecialtyRepository,
+			ProjectSpecialtyValidation projectSpecialtyValidation, ActionsResolver actionsResolver) {
 		this.projectSpecialtyRepository = projectSpecialtyRepository;
 		this.projectSpecialtyValidation = projectSpecialtyValidation;
+		this.actionsResolver = actionsResolver;
 	}
 
 	@Override
@@ -53,13 +67,16 @@ public class ProjectSpecialtyServiceImpl implements ProjectSpecialtyService {
 	@Transactional(readOnly = true)
 	public Page<ProjectSpecialtyListDto> listProjectSpecialties(ProjectSpecialtyFilterParams filters, Pageable pageable) {
 		Specification<ProjectSpecialty> especificacion = ProjectSpecialtyQueryBuilder.fromFilters(filters);
-		return projectSpecialtyRepository.findAll(especificacion, pageable).map(ProjectSpecialtyMapper::toListDto);
+		List<Action> actions = actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES);
+		return projectSpecialtyRepository.findAll(especificacion, pageable)
+			.map(ProjectSpecialtyMapper::toListDto)
+			.map(dto -> conAcciones(dto, actions));
 	}
 
 	@Override
 	@Transactional(readOnly = true)
 	public ProjectSpecialtyDetailDto getProjectSpecialtyDetail(Long id) {
-		return ProjectSpecialtyMapper.toDetailDto(buscarPorId(id));
+		return conAcciones(ProjectSpecialtyMapper.toDetailDto(buscarPorId(id)));
 	}
 
 	@Override
@@ -67,11 +84,21 @@ public class ProjectSpecialtyServiceImpl implements ProjectSpecialtyService {
 	public ProjectSpecialtyDetailDto toggleProjectSpecialtyActive(Long id) {
 		ProjectSpecialty projectSpecialty = buscarPorId(id);
 		projectSpecialty.toggleActive();
-		return ProjectSpecialtyMapper.toDetailDto(projectSpecialtyRepository.save(projectSpecialty));
+		return conAcciones(ProjectSpecialtyMapper.toDetailDto(projectSpecialtyRepository.save(projectSpecialty)));
 	}
 
 	private ProjectSpecialty buscarPorId(Long id) {
 		return projectSpecialtyRepository.findById(id)
 			.orElseThrow(() -> new ResourceNotFoundException(NO_ENCONTRADO));
+	}
+
+	private ProjectSpecialtyListDto conAcciones(ProjectSpecialtyListDto dto, List<Action> actions) {
+		dto.setActions(actions);
+		return dto;
+	}
+
+	private ProjectSpecialtyDetailDto conAcciones(ProjectSpecialtyDetailDto dto) {
+		dto.setActions(actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES));
+		return dto;
 	}
 }
