@@ -11,7 +11,14 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+    # data.sql debe correr despues del DDL de Hibernate, no antes.
+    defer-datasource-initialization: true
     show-sql: true
+  sql:
+    init:
+      # 'always': el default solo ejecuta scripts en BD embebidas, no en PostgreSQL.
+      mode: always
+      encoding: UTF-8
 
 eureka:
   client:
