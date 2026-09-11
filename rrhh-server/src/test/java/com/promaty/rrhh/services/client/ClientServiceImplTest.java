@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -17,10 +18,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.promaty.rrhh.dto.client.ClientDetailDto;
 import com.promaty.rrhh.dto.client.CreateClientDto;
 import com.promaty.rrhh.dto.client.UpdateClientDto;
+import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.entity.Client;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ClientRepository;
 import com.promaty.rrhh.services.client.business.validation.ClientValidation;
+import com.promaty.rrhh.services.shared.ActionsResolver;
 
 @ExtendWith(MockitoExtension.class)
 class ClientServiceImplTest {
@@ -30,6 +33,9 @@ class ClientServiceImplTest {
 
 	@Mock
 	private ClientValidation clientValidation;
+
+	@Mock
+	private ActionsResolver actionsResolver;
 
 	@InjectMocks
 	private ClientServiceImpl service;
@@ -62,6 +68,16 @@ class ClientServiceImplTest {
 
 		assertThatThrownBy(() -> service.getClientDetail(1L))
 			.isInstanceOf(ResourceNotFoundException.class);
+	}
+
+	@Test
+	void getClientDetail_devuelveLasAccionesQueResuelveElResolver() {
+		when(clientRepository.findById(1L)).thenReturn(Optional.of(client(1L, "Sodimac", true)));
+		when(actionsResolver.resolve(any(), any())).thenReturn(List.of(Action.UPDATE, Action.ACTIVE));
+
+		ClientDetailDto detalle = service.getClientDetail(1L);
+
+		assertThat(detalle.getActions()).containsExactly(Action.UPDATE, Action.ACTIVE);
 	}
 
 	@Test

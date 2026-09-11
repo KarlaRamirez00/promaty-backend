@@ -80,7 +80,7 @@ class ClientControllerTest {
 	@Test
 	void list_retorna200ConDataYPaginacion() throws Exception {
 		Page<ClientListDto> pagina = new PageImpl<>(
-			List.of(new ClientListDto(1L, "Sodimac", true, LocalDateTime.of(2026, 1, 15, 10, 0), null)),
+			List.of(new ClientListDto(1L, "Sodimac", true, LocalDateTime.of(2026, 1, 15, 10, 0), null, List.of())),
 			PageRequest.of(0, 20),
 			1
 		);
@@ -96,7 +96,7 @@ class ClientControllerTest {
 	@Test
 	void detail_registroExiste_retorna200ConData() throws Exception {
 		when(clientService.getClientDetail(1L))
-			.thenReturn(new ClientDetailDto(1L, "Sodimac", true, null, null));
+			.thenReturn(new ClientDetailDto(1L, "Sodimac", true, null, null, List.of()));
 
 		mockMvc.perform(get("/clients/1").header(HttpHeaders.AUTHORIZATION, TOKEN))
 			.andExpect(status().isOk())
@@ -116,7 +116,7 @@ class ClientControllerTest {
 	@Test
 	void update_conDatosValidos_retorna200ConDetalleActualizado() throws Exception {
 		when(clientService.getClientDetail(1L))
-			.thenReturn(new ClientDetailDto(1L, "Falabella", true, null, null));
+			.thenReturn(new ClientDetailDto(1L, "Falabella", true, null, null, List.of()));
 
 		mockMvc.perform(put("/clients/1")
 				.header(HttpHeaders.AUTHORIZATION, TOKEN)
@@ -129,7 +129,7 @@ class ClientControllerTest {
 	@Test
 	void toggleActive_retorna200ConFlagAlternado() throws Exception {
 		when(clientService.toggleClientActive(1L))
-			.thenReturn(new ClientDetailDto(1L, "Sodimac", false, null, null));
+			.thenReturn(new ClientDetailDto(1L, "Sodimac", false, null, null, List.of()));
 
 		mockMvc.perform(patch("/clients/1/active").header(HttpHeaders.AUTHORIZATION, TOKEN))
 			.andExpect(status().isOk())
@@ -204,7 +204,7 @@ class ClientControllerTest {
 	@Test
 	void detail_conPermisoExacto_retorna200() throws Exception {
 		when(clientService.getClientDetail(1L))
-			.thenReturn(new ClientDetailDto(1L, "Sodimac", true, null, null));
+			.thenReturn(new ClientDetailDto(1L, "Sodimac", true, null, null, List.of()));
 
 		mockMvc.perform(get("/clients/1").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("client.read")))
 			.andExpect(status().isOk());
@@ -224,7 +224,7 @@ class ClientControllerTest {
 	@Test
 	void update_conPermisoExacto_retorna200() throws Exception {
 		when(clientService.getClientDetail(1L))
-			.thenReturn(new ClientDetailDto(1L, "Falabella", true, null, null));
+			.thenReturn(new ClientDetailDto(1L, "Falabella", true, null, null, List.of()));
 
 		mockMvc.perform(put("/clients/1")
 				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("client.update"))
@@ -236,7 +236,7 @@ class ClientControllerTest {
 	@Test
 	void toggleActive_conPermisoExacto_retorna200() throws Exception {
 		when(clientService.toggleClientActive(1L))
-			.thenReturn(new ClientDetailDto(1L, "Sodimac", false, null, null));
+			.thenReturn(new ClientDetailDto(1L, "Sodimac", false, null, null, List.of()));
 
 		mockMvc.perform(patch("/clients/1/active").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("client.active")))
 			.andExpect(status().isOk());
