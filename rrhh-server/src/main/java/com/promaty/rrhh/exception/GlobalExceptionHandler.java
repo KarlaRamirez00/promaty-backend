@@ -3,6 +3,8 @@ package com.promaty.rrhh.exception;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -17,6 +19,8 @@ import com.promaty.rrhh.dto.response.ErrorResponse;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+	private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
 	private static final String MSG_ACCESO_DENEGADO = "No tienes permiso para realizar esta accion.";
 
@@ -59,6 +63,7 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<BaseData<Void>> handleUnexpected(Exception ex) {
+		log.error("Error inesperado no mapeado", ex);
 		return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Ocurrio un error inesperado.", Map.of());
 	}
 
