@@ -15,5 +15,6 @@
 		<module>user-server</module>
 		<module>authorizer-server</module>
 		<module>rrhh-server</module>
+		<module>gateway-server</module>
 	</modules>
 </project>
