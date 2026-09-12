@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.promaty.user.dto.permission.PermissionSummaryDto;
+import com.promaty.user.dto.shared.Action;
 import com.promaty.user.dto.submodule.SubModuleSummaryDto;
 
 import lombok.AllArgsConstructor;
@@ -28,4 +29,5 @@ public class RoleDetailDto {
 	private LocalDateTime updatedAt;
 	private String createdBy;
 	private String updatedBy;
+	private List<Action> actions;
 }

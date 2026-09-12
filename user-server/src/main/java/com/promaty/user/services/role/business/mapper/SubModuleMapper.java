@@ -12,6 +12,6 @@ public final class SubModuleMapper {
 		if (subModule == null) {
 			return null;
 		}
-		return new SubModuleSummaryDto(subModule.getId(), subModule.getName());
+		return new SubModuleSummaryDto(subModule.getId(), subModule.getName(), subModule.getAlias());
 	}
 }

@@ -1,4 +1,6 @@
-package com.promaty.user.dto.submodule;
+package com.promaty.user.dto.permission;
+
+import com.promaty.user.dto.submodule.SubModuleSummaryDto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,9 +11,11 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class SubModuleSummaryDto {
+public class PermissionCatalogDto {
 
 	private Long id;
 	private String name;
 	private String alias;
+	private String description;
+	private SubModuleSummaryDto subModule;
 }

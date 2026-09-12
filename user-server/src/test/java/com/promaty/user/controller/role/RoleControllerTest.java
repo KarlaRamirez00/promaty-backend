@@ -92,7 +92,7 @@ class RoleControllerTest {
 
 	@Test
 	void list_retorna200ConDataYPaginacion() throws Exception {
-		RoleListDto rol = new RoleListDto(1L, "Editor", "desc", true, 0L, null, null, "system", null);
+		RoleListDto rol = new RoleListDto(1L, "Editor", "desc", true, 0L, null, null, "system", null, List.of());
 		Page<RoleListDto> pagina = new PageImpl<>(List.of(rol), PageRequest.of(0, 20), 1);
 		when(roleService.listRoles(any(), any())).thenReturn(pagina);
 
@@ -104,7 +104,7 @@ class RoleControllerTest {
 
 	@Test
 	void detail_rolExiste_retorna200ConData() throws Exception {
-		RoleDetailDto detalle = new RoleDetailDto(1L, "Editor", "desc", true, 0L, List.of(), List.of(), null, null, "system", null);
+		RoleDetailDto detalle = new RoleDetailDto(1L, "Editor", "desc", true, 0L, List.of(), List.of(), null, null, "system", null, List.of());
 		when(roleService.getRoleDetail(1L)).thenReturn(detalle);
 
 		mockMvc.perform(get("/roles/1").header(HttpHeaders.AUTHORIZATION, TOKEN))
@@ -125,7 +125,7 @@ class RoleControllerTest {
 	void update_conDatosValidos_retorna200ConDetalleActualizado() throws Exception {
 		UpdateRoleDto dto = new UpdateRoleDto();
 		dto.setName("Editor actualizado");
-		RoleDetailDto detalle = new RoleDetailDto(1L, "Editor actualizado", "desc", true, 0L, List.of(), List.of(), null, null, "system", null);
+		RoleDetailDto detalle = new RoleDetailDto(1L, "Editor actualizado", "desc", true, 0L, List.of(), List.of(), null, null, "system", null, List.of());
 		when(roleService.getRoleDetail(1L)).thenReturn(detalle);
 
 		mockMvc.perform(put("/roles/1")
@@ -229,7 +229,7 @@ class RoleControllerTest {
 
 	@Test
 	void detail_conPermisoExacto_retorna200() throws Exception {
-		RoleDetailDto detalle = new RoleDetailDto(1L, "Editor", "desc", true, 0L, List.of(), List.of(), null, null, "system", null);
+		RoleDetailDto detalle = new RoleDetailDto(1L, "Editor", "desc", true, 0L, List.of(), List.of(), null, null, "system", null, List.of());
 		when(roleService.getRoleDetail(1L)).thenReturn(detalle);
 
 		mockMvc.perform(get("/roles/1").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("role.read")))
@@ -253,7 +253,7 @@ class RoleControllerTest {
 	void update_conPermisoExacto_retorna200() throws Exception {
 		UpdateRoleDto dto = new UpdateRoleDto();
 		dto.setName("Editor");
-		RoleDetailDto detalle = new RoleDetailDto(1L, "Editor", "desc", true, 0L, List.of(), List.of(), null, null, "system", null);
+		RoleDetailDto detalle = new RoleDetailDto(1L, "Editor", "desc", true, 0L, List.of(), List.of(), null, null, "system", null, List.of());
 		when(roleService.getRoleDetail(1L)).thenReturn(detalle);
 
 		mockMvc.perform(put("/roles/1")

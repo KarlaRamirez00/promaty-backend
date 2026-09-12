@@ -29,6 +29,7 @@ import com.promaty.user.repository.UserRepository;
 import com.promaty.user.services.role.business.builder.CreateRoleBuilder;
 import com.promaty.user.services.role.business.builder.RoleRelationsResolver;
 import com.promaty.user.services.role.business.validation.RoleValidation;
+import com.promaty.user.services.shared.ActionsResolver;
 
 @ExtendWith(MockitoExtension.class)
 class RoleServiceImplTest {
@@ -47,6 +48,9 @@ class RoleServiceImplTest {
 
 	@Mock
 	private RoleRelationsResolver relationsResolver;
+
+	@Mock
+	private ActionsResolver actionsResolver;
 
 	@InjectMocks
 	private RoleServiceImpl roleService;

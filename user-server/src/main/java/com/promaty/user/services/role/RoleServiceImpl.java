@@ -18,6 +18,7 @@ import com.promaty.user.dto.role.RoleListDto;
 import com.promaty.user.dto.role.RoleActiveUpdateDto;
 import com.promaty.user.dto.role.RoleActiveUpdateResultDto;
 import com.promaty.user.dto.role.UpdateRoleDto;
+import com.promaty.user.dto.shared.Action;
 import com.promaty.user.entity.Permission;
 import com.promaty.user.entity.Role;
 import com.promaty.user.entity.SubModule;
@@ -33,6 +34,8 @@ import com.promaty.user.services.role.business.builder.RoleRelationsResolver;
 import com.promaty.user.services.role.business.builder.UpdateRoleBuilder;
 import com.promaty.user.services.role.business.mapper.RoleMapper;
 import com.promaty.user.services.role.business.validation.RoleValidation;
+import com.promaty.user.services.shared.ActionsResolver;
+import com.promaty.user.services.shared.CurrentUserAuthorities;
 
 @Service
 public class RoleServiceImpl implements RoleService {
@@ -40,24 +43,32 @@ public class RoleServiceImpl implements RoleService {
 	private static final String ROL_NO_ENCONTRADO = "Rol no encontrado.";
 	private static final String ROL_REEMPLAZO_NO_ENCONTRADO = "El rol de reemplazo no existe.";
 
+	private static final Map<String, Action> REGLAS_ACCIONES = Map.of(
+		"role.update", Action.UPDATE,
+		"role.active", Action.ACTIVE
+	);
+
 	private final RoleRepository roleRepository;
 	private final UserRepository userRepository;
 	private final RoleValidation roleValidation;
 	private final CreateRoleBuilder createRoleBuilder;
 	private final RoleRelationsResolver relationsResolver;
+	private final ActionsResolver actionsResolver;
 
 	public RoleServiceImpl(
 		RoleRepository roleRepository,
 		UserRepository userRepository,
 		RoleValidation roleValidation,
 		CreateRoleBuilder createRoleBuilder,
-		RoleRelationsResolver relationsResolver
+		RoleRelationsResolver relationsResolver,
+		ActionsResolver actionsResolver
 	) {
 		this.roleRepository = roleRepository;
 		this.userRepository = userRepository;
 		this.roleValidation = roleValidation;
 		this.createRoleBuilder = createRoleBuilder;
 		this.relationsResolver = relationsResolver;
+		this.actionsResolver = actionsResolver;
 	}
 
 	@Override
@@ -87,8 +98,13 @@ public class RoleServiceImpl implements RoleService {
 
 		Map<Long, Long> usuariosPorRol = userRepository.countUsersGroupedByRole().stream()
 			.collect(Collectors.toMap(RoleUserCount::getRoleId, RoleUserCount::getTotal));
+		List<Action> actions = actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES);
 
-		return roles.map(role -> RoleMapper.toListDto(role, usuariosPorRol.getOrDefault(role.getId(), 0L)));
+		return roles.map(role -> {
+			RoleListDto dto = RoleMapper.toListDto(role, usuariosPorRol.getOrDefault(role.getId(), 0L));
+			dto.setActions(actions);
+			return dto;
+		});
 	}
 
 	@Override
@@ -96,7 +112,9 @@ public class RoleServiceImpl implements RoleService {
 	public RoleDetailDto getRoleDetail(Long id) {
 		Role role = buscarPorId(id);
 		long totalUsers = userRepository.countByRole_Id(id);
-		return RoleMapper.toDetailDto(role, totalUsers);
+		RoleDetailDto detalle = RoleMapper.toDetailDto(role, totalUsers);
+		detalle.setActions(actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES));
+		return detalle;
 	}
 
 	@Override
