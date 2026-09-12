@@ -19,7 +19,8 @@ public final class RoleMapper {
 	}
 
 	public static RoleListDto toListDto(Role role, Long totalUsers) {
-		return new RoleListDto(role.getId(), role.getName(), role.getDescription(), role.getActive(), totalUsers);
+		return new RoleListDto(role.getId(), role.getName(), role.getDescription(), role.getActive(), totalUsers,
+			role.getCreatedAt(), role.getUpdatedAt(), role.getCreatedBy(), role.getUpdatedBy());
 	}
 
 	public static RoleDetailDto toDetailDto(Role role, Long totalUsers) {
@@ -37,7 +38,11 @@ public final class RoleMapper {
 			role.getActive(),
 			totalUsers,
 			permisos,
-			subModulos
+			subModulos,
+			role.getCreatedAt(),
+			role.getUpdatedAt(),
+			role.getCreatedBy(),
+			role.getUpdatedBy()
 		);
 	}
 }

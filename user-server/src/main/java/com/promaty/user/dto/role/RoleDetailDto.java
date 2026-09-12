@@ -1,5 +1,6 @@
 package com.promaty.user.dto.role;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.promaty.user.dto.permission.PermissionSummaryDto;
@@ -23,4 +24,8 @@ public class RoleDetailDto {
 	private Long totalUsers;
 	private List<PermissionSummaryDto> permissions;
 	private List<SubModuleSummaryDto> subModules;
+	private LocalDateTime createdAt;
+	private LocalDateTime updatedAt;
+	private String createdBy;
+	private String updatedBy;
 }

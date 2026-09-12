@@ -24,4 +24,6 @@ public class UserDetailDto {
 	private RoleSummaryDto role;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
+	private String createdBy;
+	private String updatedBy;
 }

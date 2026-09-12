@@ -1,5 +1,7 @@
 package com.promaty.user.dto.role;
 
+import java.time.LocalDateTime;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,4 +18,8 @@ public class RoleListDto {
 	private String description;
 	private Boolean active;
 	private Long totalUsers;
+	private LocalDateTime createdAt;
+	private LocalDateTime updatedAt;
+	private String createdBy;
+	private String updatedBy;
 }

@@ -1,5 +1,7 @@
 package com.promaty.user.dto.user;
 
+import java.time.LocalDateTime;
+
 import com.promaty.user.dto.role.RoleSummaryDto;
 
 import lombok.AllArgsConstructor;
@@ -19,4 +21,8 @@ public class UserListDto {
 	private String email;
 	private Boolean active;
 	private RoleSummaryDto role;
+	private LocalDateTime createdAt;
+	private LocalDateTime updatedAt;
+	private String createdBy;
+	private String updatedBy;
 }

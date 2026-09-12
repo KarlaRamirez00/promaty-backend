@@ -17,7 +17,11 @@ public final class UserMapper {
 			user.getLastName(),
 			user.getEmail(),
 			user.getActive(),
-			RoleMapper.toSummaryDto(user.getRole())
+			RoleMapper.toSummaryDto(user.getRole()),
+			user.getCreatedAt(),
+			user.getUpdatedAt(),
+			user.getCreatedBy(),
+			user.getUpdatedBy()
 		);
 	}
 
@@ -31,7 +35,9 @@ public final class UserMapper {
 			user.getActive(),
 			RoleMapper.toSummaryDto(user.getRole()),
 			user.getCreatedAt(),
-			user.getUpdatedAt()
+			user.getUpdatedAt(),
+			user.getCreatedBy(),
+			user.getUpdatedBy()
 		);
 	}
 }
