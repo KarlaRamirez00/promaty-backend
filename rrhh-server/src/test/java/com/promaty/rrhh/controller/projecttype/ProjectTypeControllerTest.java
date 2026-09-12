@@ -80,7 +80,7 @@ class ProjectTypeControllerTest {
 	@Test
 	void list_retorna200ConDataYPaginacion() throws Exception {
 		Page<ProjectTypeListDto> pagina = new PageImpl<>(
-			List.of(new ProjectTypeListDto(1L, "Obra gruesa", true, LocalDateTime.of(2026, 1, 15, 10, 0), null, List.of())),
+			List.of(new ProjectTypeListDto(1L, "Obra gruesa", true, LocalDateTime.of(2026, 1, 15, 10, 0), null, "system", null, List.of())),
 			PageRequest.of(0, 20),
 			1
 		);
@@ -96,7 +96,7 @@ class ProjectTypeControllerTest {
 	@Test
 	void detail_registroExiste_retorna200ConData() throws Exception {
 		when(projectTypeService.getProjectTypeDetail(1L))
-			.thenReturn(new ProjectTypeDetailDto(1L, "Obra gruesa", true, null, null, List.of()));
+			.thenReturn(new ProjectTypeDetailDto(1L, "Obra gruesa", true, null, null, "system", null, List.of()));
 
 		mockMvc.perform(get("/projectTypes/1").header(HttpHeaders.AUTHORIZATION, TOKEN))
 			.andExpect(status().isOk())
@@ -116,7 +116,7 @@ class ProjectTypeControllerTest {
 	@Test
 	void update_conDatosValidos_retorna200ConDetalleActualizado() throws Exception {
 		when(projectTypeService.getProjectTypeDetail(1L))
-			.thenReturn(new ProjectTypeDetailDto(1L, "Terminaciones", true, null, null, List.of()));
+			.thenReturn(new ProjectTypeDetailDto(1L, "Terminaciones", true, null, null, "system", null, List.of()));
 
 		mockMvc.perform(put("/projectTypes/1")
 				.header(HttpHeaders.AUTHORIZATION, TOKEN)
@@ -129,7 +129,7 @@ class ProjectTypeControllerTest {
 	@Test
 	void toggleActive_retorna200ConFlagAlternado() throws Exception {
 		when(projectTypeService.toggleProjectTypeActive(1L))
-			.thenReturn(new ProjectTypeDetailDto(1L, "Obra gruesa", false, null, null, List.of()));
+			.thenReturn(new ProjectTypeDetailDto(1L, "Obra gruesa", false, null, null, "system", null, List.of()));
 
 		mockMvc.perform(patch("/projectTypes/1/active").header(HttpHeaders.AUTHORIZATION, TOKEN))
 			.andExpect(status().isOk())
@@ -204,7 +204,7 @@ class ProjectTypeControllerTest {
 	@Test
 	void detail_conPermisoExacto_retorna200() throws Exception {
 		when(projectTypeService.getProjectTypeDetail(1L))
-			.thenReturn(new ProjectTypeDetailDto(1L, "Obra gruesa", true, null, null, List.of()));
+			.thenReturn(new ProjectTypeDetailDto(1L, "Obra gruesa", true, null, null, "system", null, List.of()));
 
 		mockMvc.perform(get("/projectTypes/1").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("projectType.read")))
 			.andExpect(status().isOk());
@@ -224,7 +224,7 @@ class ProjectTypeControllerTest {
 	@Test
 	void update_conPermisoExacto_retorna200() throws Exception {
 		when(projectTypeService.getProjectTypeDetail(1L))
-			.thenReturn(new ProjectTypeDetailDto(1L, "Terminaciones", true, null, null, List.of()));
+			.thenReturn(new ProjectTypeDetailDto(1L, "Terminaciones", true, null, null, "system", null, List.of()));
 
 		mockMvc.perform(put("/projectTypes/1")
 				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("projectType.update"))
@@ -236,7 +236,7 @@ class ProjectTypeControllerTest {
 	@Test
 	void toggleActive_conPermisoExacto_retorna200() throws Exception {
 		when(projectTypeService.toggleProjectTypeActive(1L))
-			.thenReturn(new ProjectTypeDetailDto(1L, "Obra gruesa", false, null, null, List.of()));
+			.thenReturn(new ProjectTypeDetailDto(1L, "Obra gruesa", false, null, null, "system", null, List.of()));
 
 		mockMvc.perform(patch("/projectTypes/1/active")
 				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("projectType.active")))

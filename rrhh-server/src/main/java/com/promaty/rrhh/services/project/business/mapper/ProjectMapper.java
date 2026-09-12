@@ -22,6 +22,8 @@ public final class ProjectMapper {
 			project.getStatus().getName(),
 			project.getStartDate(),
 			project.getEndDate(),
+			project.getCreatedBy(),
+			project.getUpdatedBy(),
 			null // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
 		);
 	}
@@ -39,6 +41,8 @@ public final class ProjectMapper {
 			project.getEndDate(),
 			project.getCreatedAt(),
 			project.getUpdatedAt(),
+			project.getCreatedBy(),
+			project.getUpdatedBy(),
 			null // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
 		);
 	}

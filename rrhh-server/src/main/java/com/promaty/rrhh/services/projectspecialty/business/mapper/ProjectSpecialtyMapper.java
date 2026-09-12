@@ -16,6 +16,8 @@ public final class ProjectSpecialtyMapper {
 			projectSpecialty.getActive(),
 			projectSpecialty.getCreatedAt(),
 			projectSpecialty.getUpdatedAt(),
+			projectSpecialty.getCreatedBy(),
+			projectSpecialty.getUpdatedBy(),
 			null // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
 		);
 	}
@@ -27,6 +29,8 @@ public final class ProjectSpecialtyMapper {
 			projectSpecialty.getActive(),
 			projectSpecialty.getCreatedAt(),
 			projectSpecialty.getUpdatedAt(),
+			projectSpecialty.getCreatedBy(),
+			projectSpecialty.getUpdatedBy(),
 			null // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
 		);
 	}

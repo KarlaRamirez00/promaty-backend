@@ -29,5 +29,7 @@ public class ProjectDetailDto {
 	private LocalDate endDate;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
+	private String createdBy;
+	private String updatedBy;
 	private List<Action> actions;
 }

@@ -16,6 +16,8 @@ public final class ClientMapper {
 			client.getActive(),
 			client.getCreatedAt(),
 			client.getUpdatedAt(),
+			client.getCreatedBy(),
+			client.getUpdatedBy(),
 			null // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
 		);
 	}
@@ -27,6 +29,8 @@ public final class ClientMapper {
 			client.getActive(),
 			client.getCreatedAt(),
 			client.getUpdatedAt(),
+			client.getCreatedBy(),
+			client.getUpdatedBy(),
 			null // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
 		);
 	}

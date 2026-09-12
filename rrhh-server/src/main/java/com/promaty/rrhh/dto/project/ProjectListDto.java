@@ -25,5 +25,7 @@ public class ProjectListDto {
 	private String statusName;
 	private LocalDate startDate;
 	private LocalDate endDate;
+	private String createdBy;
+	private String updatedBy;
 	private List<Action> actions;
 }
