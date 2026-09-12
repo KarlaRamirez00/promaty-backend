@@ -1,6 +1,7 @@
 package com.promaty.rrhh.dto.projectspecialty;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -9,5 +10,6 @@ import lombok.Setter;
 public class CreateProjectSpecialtyDto {
 
 	@NotBlank(message = "El nombre es obligatorio.")
+	@Size(max = 150, message = "El nombre no puede superar los 150 caracteres.")
 	private String name;
 }

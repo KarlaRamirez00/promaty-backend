@@ -78,6 +78,16 @@ class ClientControllerTest {
 	}
 
 	@Test
+	void create_conNombreMuyLargo_retorna400ConErrorFields() throws Exception {
+		mockMvc.perform(post("/clients")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"name\":\"" + "a".repeat(151) + "\"}"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.error.errorFields.name").exists());
+	}
+
+	@Test
 	void list_retorna200ConDataYPaginacion() throws Exception {
 		Page<ClientListDto> pagina = new PageImpl<>(
 			List.of(new ClientListDto(1L, "Sodimac", true, LocalDateTime.of(2026, 1, 15, 10, 0), null, "system", null, List.of())),

@@ -16,7 +16,7 @@ import lombok.Setter;
 @Table(name = "project_specialty")
 public class ProjectSpecialty extends BaseDatedEntity {
 
-	@Column(nullable = false, unique = true)
+	@Column(nullable = false, unique = true, length = 150)
 	private String name;
 
 	@Column(nullable = false)

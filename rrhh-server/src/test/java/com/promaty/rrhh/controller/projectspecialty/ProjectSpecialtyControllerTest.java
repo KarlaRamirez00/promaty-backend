@@ -78,6 +78,16 @@ class ProjectSpecialtyControllerTest {
 	}
 
 	@Test
+	void create_conNombreMuyLargo_retorna400ConErrorFields() throws Exception {
+		mockMvc.perform(post("/projectSpecialties")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"name\":\"" + "a".repeat(151) + "\"}"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.error.errorFields.name").exists());
+	}
+
+	@Test
 	void list_retorna200ConDataYPaginacion() throws Exception {
 		Page<ProjectSpecialtyListDto> pagina = new PageImpl<>(
 			List.of(new ProjectSpecialtyListDto(1L, "Eléctrica", true, LocalDateTime.of(2026, 1, 15, 10, 0), null, "system", null, List.of())),
