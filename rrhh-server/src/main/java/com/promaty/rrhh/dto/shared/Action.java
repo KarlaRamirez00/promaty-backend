@@ -4,5 +4,6 @@ public enum Action {
 	READ,
 	CREATE,
 	UPDATE,
-	ACTIVE
+	ACTIVE,
+	STATUS
 }

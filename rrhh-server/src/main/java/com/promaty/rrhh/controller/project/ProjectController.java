@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -20,6 +21,7 @@ import com.promaty.rrhh.dto.project.ProjectDetailDto;
 import com.promaty.rrhh.dto.project.ProjectFilterParams;
 import com.promaty.rrhh.dto.project.ProjectListDto;
 import com.promaty.rrhh.dto.project.UpdateProjectDto;
+import com.promaty.rrhh.dto.project.UpdateProjectStatusDto;
 import com.promaty.rrhh.dto.response.BaseData;
 import com.promaty.rrhh.dto.response.BaseListData;
 import com.promaty.rrhh.services.project.ProjectService;
@@ -66,5 +68,14 @@ public class ProjectController {
 	) {
 		projectService.updateProject(id, dto);
 		return ResponseEntity.ok(BaseData.success(projectService.getProjectDetail(id)));
+	}
+
+	@PatchMapping("/{id}/status")
+	@PreAuthorize("hasAuthority('project.status')")
+	public ResponseEntity<BaseData<ProjectDetailDto>> updateStatus(
+		@PathVariable Long id,
+		@Valid @RequestBody UpdateProjectStatusDto dto
+	) {
+		return ResponseEntity.ok(BaseData.success(projectService.updateProjectStatus(id, dto)));
 	}
 }

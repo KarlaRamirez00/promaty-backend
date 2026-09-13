@@ -46,6 +46,7 @@ FROM (VALUES
   ('project.read', 'Ver proyectos', 'projects'),
   ('project.create', 'Crear proyectos', 'projects'),
   ('project.update', 'Editar proyectos', 'projects'),
+  ('project.status', 'Cambiar estado de proyecto', 'projects'),
   ('platformStatus.read', 'Ver estados de plataforma', 'platformStatuses')
 ) AS p(name, alias, sub)
 JOIN sub_modules sm ON sm.name = p.sub

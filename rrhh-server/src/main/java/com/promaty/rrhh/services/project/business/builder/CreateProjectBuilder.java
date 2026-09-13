@@ -21,7 +21,7 @@ public class CreateProjectBuilder {
 		project.setType(relationsResolver.resolveType(dto.getTypeId()));
 		project.setSpecialty(relationsResolver.resolveSpecialty(dto.getSpecialtyId()));
 		project.setClient(relationsResolver.resolveClient(dto.getClientId()));
-		project.setStatus(relationsResolver.resolveStatus(dto.getStatusId()));
+		project.setStatus(relationsResolver.resolveDefaultStatus());
 		project.setStartDate(dto.getStartDate());
 		project.setEndDate(dto.getEndDate());
 		return project;

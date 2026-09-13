@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.promaty.rrhh.dto.project.CreateProjectDto;
 import com.promaty.rrhh.dto.project.ProjectDetailDto;
 import com.promaty.rrhh.dto.project.UpdateProjectDto;
+import com.promaty.rrhh.dto.project.UpdateProjectStatusDto;
 import com.promaty.rrhh.entity.Client;
 import com.promaty.rrhh.entity.PlatformStatus;
 import com.promaty.rrhh.entity.Project;
@@ -25,6 +26,7 @@ import com.promaty.rrhh.entity.ProjectType;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ProjectRepository;
 import com.promaty.rrhh.services.project.business.builder.CreateProjectBuilder;
+import com.promaty.rrhh.services.project.business.builder.ProjectRelationsResolver;
 import com.promaty.rrhh.services.project.business.builder.UpdateProjectBuilder;
 import com.promaty.rrhh.services.project.business.validation.ProjectValidation;
 import com.promaty.rrhh.services.shared.ActionsResolver;
@@ -40,6 +42,8 @@ class ProjectServiceImplTest {
 	private CreateProjectBuilder createProjectBuilder;
 	@Mock
 	private UpdateProjectBuilder updateProjectBuilder;
+	@Mock
+	private ProjectRelationsResolver relationsResolver;
 	@Mock
 	private ActionsResolver actionsResolver;
 
@@ -80,6 +84,35 @@ class ProjectServiceImplTest {
 		verify(projectValidation).validateUpdate(1L, dto);
 		verify(updateProjectBuilder).apply(existente, dto);
 		verify(projectRepository).save(existente);
+	}
+
+	@Test
+	void updateProjectStatus_registroNoExiste_lanzaResourceNotFoundException() {
+		UpdateProjectStatusDto dto = new UpdateProjectStatusDto();
+		dto.setStatusId(40L);
+		when(projectRepository.findById(1L)).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> service.updateProjectStatus(1L, dto))
+			.isInstanceOf(ResourceNotFoundException.class);
+	}
+
+	@Test
+	void updateProjectStatus_conDatosValidos_validaResuelveEstadoYGuarda() {
+		UpdateProjectStatusDto dto = new UpdateProjectStatusDto();
+		dto.setStatusId(40L);
+		Project existente = projectCompleto();
+		PlatformStatus nuevoEstado = new PlatformStatus();
+		nuevoEstado.setId(40L);
+		nuevoEstado.setCode("IN_PROGRESS");
+		when(projectRepository.findById(1L)).thenReturn(Optional.of(existente));
+		when(relationsResolver.resolveStatus(40L)).thenReturn(nuevoEstado);
+		when(projectRepository.save(existente)).thenReturn(existente);
+
+		ProjectDetailDto detalle = service.updateProjectStatus(1L, dto);
+
+		verify(projectValidation).validateStatusChange(dto);
+		assertThat(existente.getStatus()).isEqualTo(nuevoEstado);
+		assertThat(detalle.getStatus().getCode()).isEqualTo("IN_PROGRESS");
 	}
 
 	@Test

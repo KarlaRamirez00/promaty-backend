@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import com.promaty.rrhh.dto.project.CreateProjectDto;
 import com.promaty.rrhh.dto.project.UpdateProjectDto;
+import com.promaty.rrhh.dto.project.UpdateProjectStatusDto;
 import com.promaty.rrhh.entity.Project;
 import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.repository.ClientRepository;
@@ -49,7 +50,7 @@ public class ProjectValidation {
 		if (projectRepository.findByCostCenterCode(dto.getCostCenterCode()).isPresent()) {
 			errores.put("costCenterCode", CENTRO_COSTO_DUPLICADO);
 		}
-		validarRelaciones(errores, dto.getTypeId(), dto.getSpecialtyId(), dto.getClientId(), dto.getStatusId());
+		validarRelaciones(errores, dto.getTypeId(), dto.getSpecialtyId(), dto.getClientId());
 		validarRangoFechas(errores, dto.getStartDate(), dto.getEndDate());
 
 		lanzarSiHayErrores(errores);
@@ -62,13 +63,23 @@ public class ProjectValidation {
 		if (conMismoCentroCosto.isPresent() && !conMismoCentroCosto.get().getId().equals(id)) {
 			errores.put("costCenterCode", CENTRO_COSTO_DUPLICADO);
 		}
-		validarRelaciones(errores, dto.getTypeId(), dto.getSpecialtyId(), dto.getClientId(), dto.getStatusId());
+		validarRelaciones(errores, dto.getTypeId(), dto.getSpecialtyId(), dto.getClientId());
 		validarRangoFechas(errores, dto.getStartDate(), dto.getEndDate());
 
 		lanzarSiHayErrores(errores);
 	}
 
-	private void validarRelaciones(Map<String, String> errores, Long typeId, Long specialtyId, Long clientId, Long statusId) {
+	public void validateStatusChange(UpdateProjectStatusDto dto) {
+		Map<String, String> errores = new LinkedHashMap<>();
+
+		if (dto.getStatusId() != null && !platformStatusRepository.existsById(dto.getStatusId())) {
+			errores.put("statusId", "El estado indicado no existe.");
+		}
+
+		lanzarSiHayErrores(errores);
+	}
+
+	private void validarRelaciones(Map<String, String> errores, Long typeId, Long specialtyId, Long clientId) {
 		if (typeId != null && !projectTypeRepository.existsById(typeId)) {
 			errores.put("typeId", "El tipo de proyecto indicado no existe.");
 		}
@@ -77,9 +88,6 @@ public class ProjectValidation {
 		}
 		if (clientId != null && !clientRepository.existsById(clientId)) {
 			errores.put("clientId", "El mandante indicado no existe.");
-		}
-		if (statusId != null && !platformStatusRepository.existsById(statusId)) {
-			errores.put("statusId", "El estado indicado no existe.");
 		}
 	}
 

@@ -14,12 +14,14 @@ import com.promaty.rrhh.dto.project.ProjectDetailDto;
 import com.promaty.rrhh.dto.project.ProjectFilterParams;
 import com.promaty.rrhh.dto.project.ProjectListDto;
 import com.promaty.rrhh.dto.project.UpdateProjectDto;
+import com.promaty.rrhh.dto.project.UpdateProjectStatusDto;
 import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.entity.Project;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ProjectRepository;
 import com.promaty.rrhh.services.project.business.builder.CreateProjectBuilder;
 import com.promaty.rrhh.services.project.business.builder.ProjectQueryBuilder;
+import com.promaty.rrhh.services.project.business.builder.ProjectRelationsResolver;
 import com.promaty.rrhh.services.project.business.builder.UpdateProjectBuilder;
 import com.promaty.rrhh.services.project.business.mapper.ProjectMapper;
 import com.promaty.rrhh.services.project.business.validation.ProjectValidation;
@@ -32,13 +34,15 @@ public class ProjectServiceImpl implements ProjectService {
 	private static final String NO_ENCONTRADO = "Proyecto no encontrado.";
 
 	private static final Map<String, Action> REGLAS_ACCIONES = Map.of(
-		"project.update", Action.UPDATE
+		"project.update", Action.UPDATE,
+		"project.status", Action.STATUS
 	);
 
 	private final ProjectRepository projectRepository;
 	private final ProjectValidation projectValidation;
 	private final CreateProjectBuilder createProjectBuilder;
 	private final UpdateProjectBuilder updateProjectBuilder;
+	private final ProjectRelationsResolver relationsResolver;
 	private final ActionsResolver actionsResolver;
 
 	public ProjectServiceImpl(
@@ -46,12 +50,14 @@ public class ProjectServiceImpl implements ProjectService {
 		ProjectValidation projectValidation,
 		CreateProjectBuilder createProjectBuilder,
 		UpdateProjectBuilder updateProjectBuilder,
+		ProjectRelationsResolver relationsResolver,
 		ActionsResolver actionsResolver
 	) {
 		this.projectRepository = projectRepository;
 		this.projectValidation = projectValidation;
 		this.createProjectBuilder = createProjectBuilder;
 		this.updateProjectBuilder = updateProjectBuilder;
+		this.relationsResolver = relationsResolver;
 		this.actionsResolver = actionsResolver;
 	}
 
@@ -70,6 +76,15 @@ public class ProjectServiceImpl implements ProjectService {
 		Project existente = buscarPorId(id);
 		updateProjectBuilder.apply(existente, dto);
 		projectRepository.save(existente);
+	}
+
+	@Override
+	@Transactional
+	public ProjectDetailDto updateProjectStatus(Long id, UpdateProjectStatusDto dto) {
+		projectValidation.validateStatusChange(dto);
+		Project existente = buscarPorId(id);
+		existente.setStatus(relationsResolver.resolveStatus(dto.getStatusId()));
+		return conAcciones(ProjectMapper.toDetailDto(projectRepository.save(existente)));
 	}
 
 	@Override

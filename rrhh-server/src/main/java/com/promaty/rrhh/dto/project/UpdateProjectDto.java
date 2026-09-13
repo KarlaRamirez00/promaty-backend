@@ -26,9 +26,6 @@ public class UpdateProjectDto {
 	@NotNull(message = "El mandante es obligatorio.")
 	private Long clientId;
 
-	@NotNull(message = "El estado es obligatorio.")
-	private Long statusId;
-
 	@NotNull(message = "La fecha de inicio es obligatoria.")
 	private LocalDate startDate;
 

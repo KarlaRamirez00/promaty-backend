@@ -3,6 +3,7 @@ package com.promaty.rrhh.controller.project;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -44,11 +45,11 @@ class ProjectControllerTest {
 
 	private static final String PROYECTO_JSON =
 		"{\"name\":\"Edificio Norte\",\"costCenterCode\":\"00824\",\"typeId\":10,\"specialtyId\":20,"
-			+ "\"clientId\":30,\"statusId\":40,\"startDate\":\"2026-01-01\"}";
+			+ "\"clientId\":30,\"startDate\":\"2026-01-01\"}";
 
 	// Token con todos los permisos de project para los tests de flujo; la autorizacion por permiso se prueba aparte.
 	private static final String TOKEN =
-		TestJwt.bearer("project.read", "project.create", "project.update");
+		TestJwt.bearer("project.read", "project.create", "project.update", "project.status");
 
 	private static final String SIN_PERMISOS = TestJwt.bearer();
 
@@ -133,6 +134,28 @@ class ProjectControllerTest {
 			.andExpect(jsonPath("$.data.name").value("Edificio Norte"));
 	}
 
+	@Test
+	void updateStatus_conDatosValidos_retorna200ConDetalleActualizado() throws Exception {
+		when(projectService.updateProjectStatus(any(), any())).thenReturn(detalleDto());
+
+		mockMvc.perform(patch("/projects/1/status")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"statusId\":40}"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.status.code").value("IN_PROGRESS"));
+	}
+
+	@Test
+	void updateStatus_sinStatusId_retorna400ConErrorFields() throws Exception {
+		mockMvc.perform(patch("/projects/1/status")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{}"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.error.errorFields.statusId").exists());
+	}
+
 	// --- Autorizacion por permiso (@PreAuthorize) ---
 	// Cada endpoint exige su authority exacta: sin permiso -> 403 con el shape del contrato; con el
 	// permiso exacto -> 2xx. create_conPermisoDeOtraAccion prueba que no basta con tener "algun"
@@ -170,6 +193,16 @@ class ProjectControllerTest {
 				.header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(PROYECTO_JSON))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.error.status").value(403));
+	}
+
+	@Test
+	void updateStatus_sinPermiso_retorna403() throws Exception {
+		mockMvc.perform(patch("/projects/1/status")
+				.header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"statusId\":40}"))
 			.andExpect(status().isForbidden())
 			.andExpect(jsonPath("$.error.status").value(403));
 	}
@@ -218,6 +251,17 @@ class ProjectControllerTest {
 				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("project.update"))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(PROYECTO_JSON))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void updateStatus_conPermisoExacto_retorna200() throws Exception {
+		when(projectService.updateProjectStatus(any(), any())).thenReturn(detalleDto());
+
+		mockMvc.perform(patch("/projects/1/status")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("project.status"))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"statusId\":40}"))
 			.andExpect(status().isOk());
 	}
 

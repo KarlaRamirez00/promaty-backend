@@ -20,6 +20,9 @@ import com.promaty.rrhh.repository.ProjectTypeRepository;
 @Component
 public class ProjectRelationsResolver {
 
+	private static final String SUB_MODULE_PROJECT = "project";
+	private static final String CODIGO_ESTADO_INICIAL = "PLANNED";
+
 	private final ProjectTypeRepository projectTypeRepository;
 	private final ProjectSpecialtyRepository projectSpecialtyRepository;
 	private final ClientRepository clientRepository;
@@ -55,5 +58,10 @@ public class ProjectRelationsResolver {
 	public PlatformStatus resolveStatus(Long statusId) {
 		return platformStatusRepository.findById(statusId)
 			.orElseThrow(() -> new ResourceNotFoundException("El estado indicado no existe."));
+	}
+
+	public PlatformStatus resolveDefaultStatus() {
+		return platformStatusRepository.findBySubModuleAndCode(SUB_MODULE_PROJECT, CODIGO_ESTADO_INICIAL)
+			.orElseThrow(() -> new ResourceNotFoundException("No existe el estado inicial de proyecto (PLANNED)."));
 	}
 }
