@@ -15,10 +15,3 @@ eureka:
 jwt:
   secret: ${JWT_SECRET}
   expiration-ms: ${JWT_EXPIRATION_MS:28800000}
-
-app:
-  cors:
-    # Lista separada por comas de origenes del frontend autorizados a llamar esta API desde el
-    # navegador. Temporal mientras no exista gateway-server (ver docs/architecture.md) - ahi se
-    # concentra en un solo lugar.
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
