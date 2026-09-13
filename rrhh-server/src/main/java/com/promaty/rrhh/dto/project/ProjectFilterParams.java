@@ -1,5 +1,7 @@
 package com.promaty.rrhh.dto.project;
 
+import java.time.LocalDate;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,4 +14,6 @@ public class ProjectFilterParams {
 	private Long specialtyId;
 	private Long clientId;
 	private Long statusId;
+	private LocalDate startDateFrom;
+	private LocalDate startDateTo;
 }

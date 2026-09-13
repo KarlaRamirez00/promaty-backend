@@ -37,6 +37,12 @@ public final class ProjectQueryBuilder {
 			if (filters.getStatusId() != null) {
 				predicates.add(cb.equal(root.get("status").get("id"), filters.getStatusId()));
 			}
+			if (filters.getStartDateFrom() != null) {
+				predicates.add(cb.greaterThanOrEqualTo(root.get("startDate"), filters.getStartDateFrom()));
+			}
+			if (filters.getStartDateTo() != null) {
+				predicates.add(cb.lessThanOrEqualTo(root.get("startDate"), filters.getStartDateTo()));
+			}
 
 			return cb.and(predicates.toArray(new Predicate[0]));
 		};

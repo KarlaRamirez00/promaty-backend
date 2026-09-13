@@ -5,6 +5,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -150,6 +152,44 @@ class ProjectQueryBuilderTest {
 
 		assertThat(resultado).isEqualTo(combinado);
 		assertThat(captor.getValue()).containsExactly(statusPredicate);
+	}
+
+	@Test
+	void fromFilters_conStartDateFrom_agregaPredicadoMayorOIgual() {
+		ProjectFilterParams filtros = new ProjectFilterParams();
+		filtros.setStartDateFrom(LocalDate.of(2026, 1, 1));
+
+		Path<LocalDate> startDatePath = mock(Path.class);
+		Predicate startDatePredicate = mock(Predicate.class);
+		Predicate combinado = mock(Predicate.class);
+		when(root.<LocalDate>get("startDate")).thenReturn(startDatePath);
+		when(cb.greaterThanOrEqualTo(startDatePath, LocalDate.of(2026, 1, 1))).thenReturn(startDatePredicate);
+		ArgumentCaptor<Predicate[]> captor = ArgumentCaptor.forClass(Predicate[].class);
+		when(cb.and(captor.capture())).thenReturn(combinado);
+
+		Predicate resultado = ProjectQueryBuilder.fromFilters(filtros).toPredicate(root, query, cb);
+
+		assertThat(resultado).isEqualTo(combinado);
+		assertThat(captor.getValue()).containsExactly(startDatePredicate);
+	}
+
+	@Test
+	void fromFilters_conStartDateTo_agregaPredicadoMenorOIgual() {
+		ProjectFilterParams filtros = new ProjectFilterParams();
+		filtros.setStartDateTo(LocalDate.of(2026, 6, 30));
+
+		Path<LocalDate> startDatePath = mock(Path.class);
+		Predicate startDatePredicate = mock(Predicate.class);
+		Predicate combinado = mock(Predicate.class);
+		when(root.<LocalDate>get("startDate")).thenReturn(startDatePath);
+		when(cb.lessThanOrEqualTo(startDatePath, LocalDate.of(2026, 6, 30))).thenReturn(startDatePredicate);
+		ArgumentCaptor<Predicate[]> captor = ArgumentCaptor.forClass(Predicate[].class);
+		when(cb.and(captor.capture())).thenReturn(combinado);
+
+		Predicate resultado = ProjectQueryBuilder.fromFilters(filtros).toPredicate(root, query, cb);
+
+		assertThat(resultado).isEqualTo(combinado);
+		assertThat(captor.getValue()).containsExactly(startDatePredicate);
 	}
 
 	@Test
