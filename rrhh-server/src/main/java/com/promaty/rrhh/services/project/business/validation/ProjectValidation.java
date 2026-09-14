@@ -23,6 +23,7 @@ public class ProjectValidation {
 
 	private static final String MENSAJE_VALIDACION = "La validacion fallo para uno o mas campos.";
 	private static final String CENTRO_COSTO_DUPLICADO = "Ya existe un proyecto con este centro de costo.";
+	private static final int LONGITUD_CENTRO_COSTO = 5;
 
 	private final ProjectRepository projectRepository;
 	private final ProjectTypeRepository projectTypeRepository;
@@ -46,6 +47,7 @@ public class ProjectValidation {
 
 	public void validateCreate(CreateProjectDto dto) {
 		Map<String, String> errores = new LinkedHashMap<>();
+		dto.setCostCenterCode(normalizarCentroCosto(dto.getCostCenterCode()));
 
 		if (projectRepository.findByCostCenterCode(dto.getCostCenterCode()).isPresent()) {
 			errores.put("costCenterCode", CENTRO_COSTO_DUPLICADO);
@@ -58,6 +60,7 @@ public class ProjectValidation {
 
 	public void validateUpdate(Long id, UpdateProjectDto dto) {
 		Map<String, String> errores = new LinkedHashMap<>();
+		dto.setCostCenterCode(normalizarCentroCosto(dto.getCostCenterCode()));
 
 		Optional<Project> conMismoCentroCosto = projectRepository.findByCostCenterCode(dto.getCostCenterCode());
 		if (conMismoCentroCosto.isPresent() && !conMismoCentroCosto.get().getId().equals(id)) {
@@ -77,6 +80,15 @@ public class ProjectValidation {
 		}
 
 		lanzarSiHayErrores(errores);
+	}
+
+	private String normalizarCentroCosto(String costCenterCode) {
+		if (costCenterCode == null || !costCenterCode.matches("\\d+")) {
+			return costCenterCode;
+		}
+		return costCenterCode.length() < LONGITUD_CENTRO_COSTO
+			? "0".repeat(LONGITUD_CENTRO_COSTO - costCenterCode.length()) + costCenterCode
+			: costCenterCode;
 	}
 
 	private void validarRelaciones(Map<String, String> errores, Long typeId, Long specialtyId, Long clientId) {

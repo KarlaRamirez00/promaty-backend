@@ -129,6 +129,42 @@ class ProjectValidationTest {
 	}
 
 	@Test
+	void validateCreate_conCentroCostoCortoNumerico_lorRellenaConCerosALaIzquierda() {
+		todasLasFkExisten();
+		CreateProjectDto dto = createDto();
+		dto.setCostCenterCode("678");
+		when(projectRepository.findByCostCenterCode("00678")).thenReturn(Optional.empty());
+
+		projectValidation.validateCreate(dto);
+
+		assertThat(dto.getCostCenterCode()).isEqualTo("00678");
+	}
+
+	@Test
+	void validateCreate_conCentroCostoNoNumerico_noLoModifica() {
+		todasLasFkExisten();
+		CreateProjectDto dto = createDto();
+		dto.setCostCenterCode("AB12");
+		when(projectRepository.findByCostCenterCode("AB12")).thenReturn(Optional.empty());
+
+		projectValidation.validateCreate(dto);
+
+		assertThat(dto.getCostCenterCode()).isEqualTo("AB12");
+	}
+
+	@Test
+	void validateUpdate_conCentroCostoCortoNumerico_loRellenaConCerosALaIzquierda() {
+		todasLasFkExisten();
+		UpdateProjectDto dto = updateDto();
+		dto.setCostCenterCode("56");
+		when(projectRepository.findByCostCenterCode("00056")).thenReturn(Optional.empty());
+
+		projectValidation.validateUpdate(1L, dto);
+
+		assertThat(dto.getCostCenterCode()).isEqualTo("00056");
+	}
+
+	@Test
 	void validateStatusChange_conEstadoInexistente_lanzaErrorEnStatusId() {
 		when(platformStatusRepository.existsById(40L)).thenReturn(false);
 
