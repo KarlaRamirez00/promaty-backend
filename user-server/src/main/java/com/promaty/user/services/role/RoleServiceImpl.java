@@ -42,6 +42,7 @@ public class RoleServiceImpl implements RoleService {
 
 	private static final String ROL_NO_ENCONTRADO = "Rol no encontrado.";
 	private static final String ROL_REEMPLAZO_NO_ENCONTRADO = "El rol de reemplazo no existe.";
+	private static final String ROL_DE_SISTEMA = "Este rol es del sistema y no puede editarse ni desactivarse.";
 
 	private static final Map<String, Action> REGLAS_ACCIONES = Map.of(
 		"role.update", Action.UPDATE,
@@ -82,8 +83,9 @@ public class RoleServiceImpl implements RoleService {
 	@Override
 	@Transactional
 	public void updateRole(Long id, UpdateRoleDto dto) {
-		roleValidation.validateUpdate(id, dto);
 		Role existente = buscarPorId(id);
+		rechazarSiEsDeSistema(existente);
+		roleValidation.validateUpdate(id, dto);
 		Set<Permission> permisos = relationsResolver.resolvePermissions(dto.getPermissionIds());
 		Set<SubModule> subModulos = relationsResolver.resolveSubModules(dto.getSubModuleIds());
 		UpdateRoleBuilder.apply(existente, dto, permisos, subModulos);
@@ -98,11 +100,10 @@ public class RoleServiceImpl implements RoleService {
 
 		Map<Long, Long> usuariosPorRol = userRepository.countUsersGroupedByRole().stream()
 			.collect(Collectors.toMap(RoleUserCount::getRoleId, RoleUserCount::getTotal));
-		List<Action> actions = actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES);
 
 		return roles.map(role -> {
 			RoleListDto dto = RoleMapper.toListDto(role, usuariosPorRol.getOrDefault(role.getId(), 0L));
-			dto.setActions(actions);
+			dto.setActions(resolveActions(role));
 			return dto;
 		});
 	}
@@ -113,7 +114,7 @@ public class RoleServiceImpl implements RoleService {
 		Role role = buscarPorId(id);
 		long totalUsers = userRepository.countByRole_Id(id);
 		RoleDetailDto detalle = RoleMapper.toDetailDto(role, totalUsers);
-		detalle.setActions(actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES));
+		detalle.setActions(resolveActions(role));
 		return detalle;
 	}
 
@@ -121,6 +122,7 @@ public class RoleServiceImpl implements RoleService {
 	@Transactional
 	public RoleActiveUpdateResultDto toggleRoleActive(Long id, RoleActiveUpdateDto dto) {
 		Role role = buscarPorId(id);
+		rechazarSiEsDeSistema(role);
 		List<User> usuariosAsignados = userRepository.findByRole_Id(id);
 		long reasignados = 0;
 
@@ -151,5 +153,21 @@ public class RoleServiceImpl implements RoleService {
 	private Role buscarPorId(Long id) {
 		return roleRepository.findById(id)
 			.orElseThrow(() -> new ResourceNotFoundException(ROL_NO_ENCONTRADO));
+	}
+
+	private void rechazarSiEsDeSistema(Role role) {
+		if (Boolean.TRUE.equals(role.getSystem())) {
+			throw new BusinessValidationException(ROL_DE_SISTEMA, Map.of("id", ROL_DE_SISTEMA));
+		}
+	}
+
+	private List<Action> resolveActions(Role role) {
+		List<Action> actions = actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES);
+		if (!Boolean.TRUE.equals(role.getSystem())) {
+			return actions;
+		}
+		return actions.stream()
+			.filter(action -> action != Action.UPDATE && action != Action.ACTIVE)
+			.collect(Collectors.toList());
 	}
 }

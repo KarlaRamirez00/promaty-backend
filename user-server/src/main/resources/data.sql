@@ -61,6 +61,8 @@ WHERE r.name = 'Editor'
     SELECT 1 FROM role_permission rp WHERE rp.role_id = r.id AND rp.permission_id = pe.id
   );
 
+UPDATE roles SET is_system = true WHERE name = 'Superadmin' AND is_system = false;
+
 INSERT INTO role_submodule (role_id, submodule_id)
 SELECT r.id, sm.id
 FROM roles r

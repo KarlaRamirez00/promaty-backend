@@ -20,6 +20,7 @@ import com.promaty.user.dto.role.CreateRoleDto;
 import com.promaty.user.dto.role.RoleActiveUpdateDto;
 import com.promaty.user.dto.role.RoleActiveUpdateResultDto;
 import com.promaty.user.dto.role.UpdateRoleDto;
+import com.promaty.user.dto.shared.Action;
 import com.promaty.user.entity.Role;
 import com.promaty.user.entity.User;
 import com.promaty.user.exception.BusinessValidationException;
@@ -84,6 +85,55 @@ class RoleServiceImplTest {
 
 		assertThatThrownBy(() -> roleService.getRoleDetail(1L))
 			.isInstanceOf(ResourceNotFoundException.class);
+	}
+
+	@Test
+	void updateRole_esRolDeSistema_lanzaBusinessValidationExceptionSinLlegarAValidar() {
+		Role role = roleConId(1L, true);
+		role.setSystem(true);
+		when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
+
+		assertThatThrownBy(() -> roleService.updateRole(1L, new UpdateRoleDto()))
+			.isInstanceOf(BusinessValidationException.class);
+		verify(roleValidation, never()).validateUpdate(any(), any());
+	}
+
+	@Test
+	void toggleRoleActive_esRolDeSistema_lanzaBusinessValidationException() {
+		Role role = roleConId(1L, true);
+		role.setSystem(true);
+		when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
+
+		assertThatThrownBy(() -> roleService.toggleRoleActive(1L, new RoleActiveUpdateDto()))
+			.isInstanceOf(BusinessValidationException.class);
+		verify(roleRepository, never()).save(any());
+	}
+
+	@Test
+	void getRoleDetail_esRolDeSistema_excluyeUpdateYActiveDeActions() {
+		Role role = roleConId(1L, true);
+		role.setSystem(true);
+		when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
+		when(userRepository.countByRole_Id(1L)).thenReturn(0L);
+		when(actionsResolver.resolve(any(), any()))
+			.thenReturn(List.of(Action.READ, Action.UPDATE, Action.ACTIVE));
+
+		var detalle = roleService.getRoleDetail(1L);
+
+		assertThat(detalle.getActions()).containsExactly(Action.READ);
+	}
+
+	@Test
+	void getRoleDetail_noEsRolDeSistema_mantieneTodasLasActions() {
+		Role role = roleConId(1L, true);
+		when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
+		when(userRepository.countByRole_Id(1L)).thenReturn(0L);
+		when(actionsResolver.resolve(any(), any()))
+			.thenReturn(List.of(Action.READ, Action.UPDATE, Action.ACTIVE));
+
+		var detalle = roleService.getRoleDetail(1L);
+
+		assertThat(detalle.getActions()).containsExactly(Action.READ, Action.UPDATE, Action.ACTIVE);
 	}
 
 	@Test

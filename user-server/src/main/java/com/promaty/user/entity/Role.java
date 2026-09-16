@@ -32,6 +32,9 @@ public class Role extends BaseDatedEntity {
 	@Column(nullable = false)
 	private Boolean active = true;
 
+	@Column(name = "is_system", nullable = false)
+	private Boolean system = false;
+
 	@ManyToMany(fetch = FetchType.LAZY)
 	@JoinTable(
 		name = "role_permission",
