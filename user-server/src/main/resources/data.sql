@@ -15,7 +15,8 @@ FROM (VALUES
   ('projectTypes', 'Tipos de proyecto', '/tipos-proyecto'),
   ('projectSpecialties', 'Especialidades', '/especialidades'),
   ('projects', 'Proyectos', '/proyectos'),
-  ('platformStatuses', 'Estados', '/estados')
+  ('platformStatuses', 'Estados', '/estados'),
+  ('colaboradores', 'Colaboradores', '/colaboradores')
 ) AS s(name, alias, path)
 CROSS JOIN (SELECT id FROM modules WHERE name = 'sistema') m
 WHERE NOT EXISTS (SELECT 1 FROM sub_modules sm WHERE sm.name = s.name);
@@ -47,7 +48,11 @@ FROM (VALUES
   ('project.create', 'Crear proyectos', 'projects'),
   ('project.update', 'Editar proyectos', 'projects'),
   ('project.status', 'Cambiar estado de proyecto', 'projects'),
-  ('platformStatus.read', 'Ver estados de plataforma', 'platformStatuses')
+  ('platformStatus.read', 'Ver estados de plataforma', 'platformStatuses'),
+  ('colaborador.read', 'Ver colaboradores', 'colaboradores'),
+  ('colaborador.create', 'Crear colaboradores', 'colaboradores'),
+  ('colaborador.update', 'Editar colaboradores', 'colaboradores'),
+  ('colaborador.active', 'Activar colaboradores', 'colaboradores')
 ) AS p(name, alias, sub)
 JOIN sub_modules sm ON sm.name = p.sub
 WHERE NOT EXISTS (SELECT 1 FROM permissions pe WHERE pe.name = p.name);
