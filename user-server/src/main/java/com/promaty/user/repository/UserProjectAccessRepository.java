@@ -9,6 +9,6 @@ import com.promaty.user.entity.UserProjectAccess;
 
 public interface UserProjectAccessRepository extends JpaRepository<UserProjectAccess, Long> {
 
-	@Query("SELECT upa.projectId FROM UserProjectAccess upa WHERE upa.userId = :userId")
+	@Query("SELECT upa.projectId FROM UserProjectAccess upa WHERE upa.user.id = :userId")
 	List<Long> findProjectIdsByUserId(Long userId);
 }
