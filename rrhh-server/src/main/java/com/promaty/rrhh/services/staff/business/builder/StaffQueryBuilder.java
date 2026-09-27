@@ -19,9 +19,6 @@ public final class StaffQueryBuilder {
 		return (root, query, cb) -> {
 			List<Predicate> predicates = new ArrayList<>();
 
-			if (filters.getActive() != null) {
-				predicates.add(cb.equal(root.get("active"), filters.getActive()));
-			}
 			if (filters.getSearch() != null && !filters.getSearch().isBlank()) {
 				String patron = "%" + filters.getSearch().toLowerCase() + "%";
 				predicates.add(cb.or(

@@ -44,11 +44,4 @@ public class Staff extends BaseDatedEntity {
 
 	@Column(name = "phone1", nullable = false, length = 9)
 	private String phone1;
-
-	@Column(nullable = false)
-	private Boolean active = true;
-
-	public void toggleActive() {
-		this.active = !this.active;
-	}
 }

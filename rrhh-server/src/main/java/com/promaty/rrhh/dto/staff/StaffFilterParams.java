@@ -8,5 +8,4 @@ import lombok.Setter;
 public class StaffFilterParams {
 
 	private String search;
-	private Boolean active;
 }

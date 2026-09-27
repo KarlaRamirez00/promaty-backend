@@ -30,8 +30,7 @@ public class StaffServiceImpl implements StaffService {
 	private static final String NO_ENCONTRADO = "Colaborador no encontrado.";
 
 	private static final Map<String, Action> REGLAS_ACCIONES = Map.of(
-		"staff.update", Action.UPDATE,
-		"staff.active", Action.ACTIVE
+		"staff.update", Action.UPDATE
 	);
 
 	private final StaffRepository staffRepository;
@@ -96,14 +95,6 @@ public class StaffServiceImpl implements StaffService {
 	@Transactional(readOnly = true)
 	public StaffDetailDto getStaffDetail(Long id) {
 		return conAcciones(StaffMapper.toDetailDto(buscarPorId(id)));
-	}
-
-	@Override
-	@Transactional
-	public StaffDetailDto toggleStaffActive(Long id) {
-		Staff staff = buscarPorId(id);
-		staff.toggleActive();
-		return conAcciones(StaffMapper.toDetailDto(staffRepository.save(staff)));
 	}
 
 	private Staff buscarPorId(Long id) {

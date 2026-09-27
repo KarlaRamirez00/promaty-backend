@@ -27,7 +27,6 @@ public class StaffDetailDto {
 	private LocalDate birthDate;
 	private String personalEmail;
 	private String phone1;
-	private Boolean active;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
 	private String createdBy;

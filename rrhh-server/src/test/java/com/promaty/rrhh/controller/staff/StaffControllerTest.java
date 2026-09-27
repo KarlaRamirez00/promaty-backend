@@ -40,7 +40,7 @@ import com.promaty.rrhh.support.TestJwt;
 class StaffControllerTest {
 
 	private static final String TOKEN =
-		TestJwt.bearer("staff.read", "staff.create", "staff.update", "staff.active");
+		TestJwt.bearer("staff.read", "staff.create", "staff.update");
 	private static final String SIN_PERMISOS = TestJwt.bearer();
 
 	private static final String STAFF_JSON = """
@@ -87,7 +87,7 @@ class StaffControllerTest {
 	@Test
 	void list_retorna200ConData() throws Exception {
 		Page<StaffListDto> pagina = new PageImpl<>(List.of(
-			new StaffListDto(1L, IdentificationType.RUT, "12345678-5", "Juan", "Perez", "Soto", true,
+			new StaffListDto(1L, IdentificationType.RUT, "12345678-5", "Juan", "Perez", "Soto",
 				null, null, "system", null, List.of())
 		));
 		when(staffService.listStaff(any(), any())).thenReturn(pagina);
@@ -136,14 +136,6 @@ class StaffControllerTest {
 	}
 
 	@Test
-	void toggleActive_retorna200() throws Exception {
-		when(staffService.toggleStaffActive(1L)).thenReturn(detalle());
-
-		mockMvc.perform(patch("/staff/1/active").header(HttpHeaders.AUTHORIZATION, TOKEN))
-			.andExpect(status().isOk());
-	}
-
-	@Test
 	void list_sinPermiso_retorna403() throws Exception {
 		mockMvc.perform(get("/staff").header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS))
 			.andExpect(status().isForbidden());
@@ -160,7 +152,7 @@ class StaffControllerTest {
 
 	private StaffDetailDto detalle() {
 		return new StaffDetailDto(1L, IdentificationType.RUT, "12345678-5", "Juan", "Perez", "Soto",
-			LocalDate.of(1990, 1, 1), "juan.perez@example.com", "912345678", true, null, null, "system", null,
+			LocalDate.of(1990, 1, 1), "juan.perez@example.com", "912345678", null, null, "system", null,
 			List.of());
 	}
 }

@@ -88,16 +88,6 @@ class StaffServiceImplTest {
 		assertThat(detalle.getIdentificationNumber()).isEqualTo("12345678-5");
 	}
 
-	@Test
-	void toggleStaffActive_alternaElFlagYGuarda() {
-		Staff staff = staffConId(1L);
-		when(staffRepository.findById(1L)).thenReturn(Optional.of(staff));
-		when(staffRepository.save(staff)).thenReturn(staff);
-
-		StaffDetailDto detalle = service.toggleStaffActive(1L);
-
-		assertThat(detalle.getActive()).isFalse();
-	}
 
 	private CreateStaffDto createDto() {
 		CreateStaffDto dto = new CreateStaffDto();

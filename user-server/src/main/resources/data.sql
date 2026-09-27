@@ -51,8 +51,7 @@ FROM (VALUES
   ('platformStatus.read', 'Ver estados de plataforma', 'platformStatuses'),
   ('staff.read', 'Ver colaboradores', 'staff'),
   ('staff.create', 'Crear colaboradores', 'staff'),
-  ('staff.update', 'Editar colaboradores', 'staff'),
-  ('staff.active', 'Activar colaboradores', 'staff')
+  ('staff.update', 'Editar colaboradores', 'staff')
 ) AS p(name, alias, sub)
 JOIN sub_modules sm ON sm.name = p.sub
 WHERE NOT EXISTS (SELECT 1 FROM permissions pe WHERE pe.name = p.name);

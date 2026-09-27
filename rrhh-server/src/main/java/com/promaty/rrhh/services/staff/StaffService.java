@@ -18,6 +18,4 @@ public interface StaffService {
 	Page<StaffListDto> listStaff(StaffFilterParams filters, Pageable pageable);
 
 	StaffDetailDto getStaffDetail(Long id);
-
-	StaffDetailDto toggleStaffActive(Long id);
 }

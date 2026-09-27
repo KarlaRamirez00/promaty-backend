@@ -9,7 +9,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -67,11 +66,5 @@ public class StaffController {
 	) {
 		staffService.updateStaff(id, dto);
 		return ResponseEntity.ok(BaseData.success(staffService.getStaffDetail(id)));
-	}
-
-	@PatchMapping("/{id}/active")
-	@PreAuthorize("hasAuthority('staff.active')")
-	public ResponseEntity<BaseData<StaffDetailDto>> toggleActive(@PathVariable Long id) {
-		return ResponseEntity.ok(BaseData.success(staffService.toggleStaffActive(id)));
 	}
 }
