@@ -17,11 +17,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.promaty.rrhh.dto.staff.CreateStaffDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
+import com.promaty.rrhh.entity.Afp;
+import com.promaty.rrhh.entity.Bank;
+import com.promaty.rrhh.entity.EducationLevel;
+import com.promaty.rrhh.entity.HealthSystem;
 import com.promaty.rrhh.entity.IdentificationType;
+import com.promaty.rrhh.entity.MaritalStatus;
+import com.promaty.rrhh.entity.Nationality;
+import com.promaty.rrhh.entity.RegisteredSex;
 import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.services.shared.ActionsResolver;
+import com.promaty.rrhh.services.staff.business.builder.CreateStaffBuilder;
+import com.promaty.rrhh.services.staff.business.builder.UpdateStaffBuilder;
 import com.promaty.rrhh.services.staff.business.validation.StaffValidation;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,6 +41,10 @@ class StaffServiceImplTest {
 	@Mock
 	private StaffValidation staffValidation;
 	@Mock
+	private CreateStaffBuilder createStaffBuilder;
+	@Mock
+	private UpdateStaffBuilder updateStaffBuilder;
+	@Mock
 	private ActionsResolver actionsResolver;
 
 	@InjectMocks
@@ -39,9 +52,11 @@ class StaffServiceImplTest {
 
 	@Test
 	void createStaff_conDatosValidos_validaConstruyeGuardaYRetornaId() {
-		CreateStaffDto dto = createDto();
+		CreateStaffDto dto = new CreateStaffDto();
+		Staff construido = new Staff();
 		Staff guardado = staffConId(5L);
-		when(staffRepository.save(org.mockito.ArgumentMatchers.any())).thenReturn(guardado);
+		when(createStaffBuilder.build(dto)).thenReturn(construido);
+		when(staffRepository.save(construido)).thenReturn(guardado);
 
 		Long id = service.createStaff(dto);
 
@@ -51,7 +66,7 @@ class StaffServiceImplTest {
 
 	@Test
 	void updateStaff_registroNoExiste_lanzaResourceNotFoundException() {
-		UpdateStaffDto dto = updateDto();
+		UpdateStaffDto dto = new UpdateStaffDto();
 		when(staffRepository.findById(1L)).thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> service.updateStaff(1L, dto))
@@ -59,15 +74,15 @@ class StaffServiceImplTest {
 	}
 
 	@Test
-	void updateStaff_conDatosValidos_validaAplicaYGuarda() {
-		UpdateStaffDto dto = updateDto();
+	void updateStaff_conDatosValidos_validaAplicaBuilderYGuarda() {
+		UpdateStaffDto dto = new UpdateStaffDto();
 		Staff existente = staffConId(1L);
 		when(staffRepository.findById(1L)).thenReturn(Optional.of(existente));
 
 		service.updateStaff(1L, dto);
 
 		verify(staffValidation).validateUpdate(dto);
-		assertThat(existente.getFirstName()).isEqualTo(dto.getFirstName());
+		verify(updateStaffBuilder).apply(existente, dto);
 		verify(staffRepository).save(existente);
 	}
 
@@ -80,42 +95,24 @@ class StaffServiceImplTest {
 	}
 
 	@Test
-	void getStaffDetail_registroExiste_retornaDetalleMapeado() {
-		when(staffRepository.findById(1L)).thenReturn(Optional.of(staffConId(1L)));
+	void getStaffDetail_registroExiste_retornaDetalleMapeadoConSusRelaciones() {
+		when(staffRepository.findById(1L)).thenReturn(Optional.of(staffCompleto()));
 
 		StaffDetailDto detalle = service.getStaffDetail(1L);
 
 		assertThat(detalle.getIdentificationNumber()).isEqualTo("12345678-5");
-	}
-
-
-	private CreateStaffDto createDto() {
-		CreateStaffDto dto = new CreateStaffDto();
-		dto.setIdentificationType(IdentificationType.RUT);
-		dto.setIdentificationNumber("12345678-5");
-		dto.setFirstName("Juan");
-		dto.setPaternalLastName("Perez");
-		dto.setMaternalLastName("Soto");
-		dto.setBirthDate(LocalDate.of(1990, 1, 1));
-		dto.setPersonalEmail("juan.perez@example.com");
-		dto.setPhone1("912345678");
-		return dto;
-	}
-
-	private UpdateStaffDto updateDto() {
-		UpdateStaffDto dto = new UpdateStaffDto();
-		dto.setFirstName("Juana");
-		dto.setPaternalLastName("Perez");
-		dto.setMaternalLastName("Soto");
-		dto.setBirthDate(LocalDate.of(1990, 1, 1));
-		dto.setPersonalEmail("juana.perez@example.com");
-		dto.setPhone1("912345678");
-		return dto;
+		assertThat(detalle.getRegisteredSex().getCode()).isEqualTo("MALE");
+		assertThat(detalle.getBank().getCode()).isEqualTo("BANCO_ESTADO");
 	}
 
 	private Staff staffConId(Long id) {
 		Staff staff = new Staff();
 		staff.setId(id);
+		return staff;
+	}
+
+	private Staff staffCompleto() {
+		Staff staff = staffConId(1L);
 		staff.setIdentificationType(IdentificationType.RUT);
 		staff.setIdentificationNumber("12345678-5");
 		staff.setFirstName("Juan");
@@ -124,6 +121,49 @@ class StaffServiceImplTest {
 		staff.setBirthDate(LocalDate.of(1990, 1, 1));
 		staff.setPersonalEmail("juan.perez@example.com");
 		staff.setPhone1("912345678");
+
+		RegisteredSex registeredSex = new RegisteredSex();
+		registeredSex.setId(1L);
+		registeredSex.setName("Masculino");
+		registeredSex.setCode("MALE");
+		staff.setRegisteredSex(registeredSex);
+
+		MaritalStatus maritalStatus = new MaritalStatus();
+		maritalStatus.setId(2L);
+		maritalStatus.setName("Soltero/a");
+		maritalStatus.setCode("SINGLE");
+		staff.setMaritalStatus(maritalStatus);
+
+		Nationality nationality = new Nationality();
+		nationality.setId(3L);
+		nationality.setName("Chilena");
+		nationality.setCode("CHL");
+		staff.setNationality(nationality);
+
+		EducationLevel educationLevel = new EducationLevel();
+		educationLevel.setId(4L);
+		educationLevel.setName("Educación media");
+		educationLevel.setCode("HIGH_SCHOOL");
+		staff.setEducationLevel(educationLevel);
+
+		Afp afp = new Afp();
+		afp.setId(5L);
+		afp.setName("AFP Capital");
+		afp.setCode("CAPITAL");
+		staff.setAfp(afp);
+
+		HealthSystem healthSystem = new HealthSystem();
+		healthSystem.setId(6L);
+		healthSystem.setName("Fonasa");
+		healthSystem.setCode("FONASA");
+		staff.setHealthSystem(healthSystem);
+
+		Bank bank = new Bank();
+		bank.setId(7L);
+		bank.setName("BancoEstado");
+		bank.setCode("BANCO_ESTADO");
+		staff.setBank(bank);
+
 		return staff;
 	}
 }

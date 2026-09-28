@@ -20,7 +20,9 @@ import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.services.shared.ActionsResolver;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
+import com.promaty.rrhh.services.staff.business.builder.CreateStaffBuilder;
 import com.promaty.rrhh.services.staff.business.builder.StaffQueryBuilder;
+import com.promaty.rrhh.services.staff.business.builder.UpdateStaffBuilder;
 import com.promaty.rrhh.services.staff.business.mapper.StaffMapper;
 import com.promaty.rrhh.services.staff.business.validation.StaffValidation;
 
@@ -35,15 +37,21 @@ public class StaffServiceImpl implements StaffService {
 
 	private final StaffRepository staffRepository;
 	private final StaffValidation staffValidation;
+	private final CreateStaffBuilder createStaffBuilder;
+	private final UpdateStaffBuilder updateStaffBuilder;
 	private final ActionsResolver actionsResolver;
 
 	public StaffServiceImpl(
 		StaffRepository staffRepository,
 		StaffValidation staffValidation,
+		CreateStaffBuilder createStaffBuilder,
+		UpdateStaffBuilder updateStaffBuilder,
 		ActionsResolver actionsResolver
 	) {
 		this.staffRepository = staffRepository;
 		this.staffValidation = staffValidation;
+		this.createStaffBuilder = createStaffBuilder;
+		this.updateStaffBuilder = updateStaffBuilder;
 		this.actionsResolver = actionsResolver;
 	}
 
@@ -51,17 +59,7 @@ public class StaffServiceImpl implements StaffService {
 	@Transactional
 	public Long createStaff(CreateStaffDto dto) {
 		staffValidation.validateCreate(dto);
-
-		Staff staff = new Staff();
-		staff.setIdentificationType(dto.getIdentificationType());
-		staff.setIdentificationNumber(dto.getIdentificationNumber());
-		staff.setFirstName(dto.getFirstName());
-		staff.setPaternalLastName(dto.getPaternalLastName());
-		staff.setMaternalLastName(dto.getMaternalLastName());
-		staff.setBirthDate(dto.getBirthDate());
-		staff.setPersonalEmail(dto.getPersonalEmail());
-		staff.setPhone1(dto.getPhone1());
-
+		Staff staff = createStaffBuilder.build(dto);
 		return staffRepository.save(staff).getId();
 	}
 
@@ -70,14 +68,7 @@ public class StaffServiceImpl implements StaffService {
 	public void updateStaff(Long id, UpdateStaffDto dto) {
 		staffValidation.validateUpdate(dto);
 		Staff existente = buscarPorId(id);
-
-		existente.setFirstName(dto.getFirstName());
-		existente.setPaternalLastName(dto.getPaternalLastName());
-		existente.setMaternalLastName(dto.getMaternalLastName());
-		existente.setBirthDate(dto.getBirthDate());
-		existente.setPersonalEmail(dto.getPersonalEmail());
-		existente.setPhone1(dto.getPhone1());
-
+		updateStaffBuilder.apply(existente, dto);
 		staffRepository.save(existente);
 	}
 

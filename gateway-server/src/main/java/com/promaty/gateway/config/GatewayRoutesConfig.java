@@ -33,7 +33,14 @@ public class GatewayRoutesConfig {
 				.or(path("/projects/**"))
 				.or(path("/platformStatuses/**"))
 				.or(path("/staff/**"))
-				.or(path("/requests/**")), http())
+				.or(path("/requests/**"))
+				.or(path("/registeredSexes/**"))
+				.or(path("/maritalStatuses/**"))
+				.or(path("/nationalities/**"))
+				.or(path("/educationLevels/**"))
+				.or(path("/afps/**"))
+				.or(path("/healthSystems/**"))
+				.or(path("/banks/**")), http())
 			.filter(lb("rrhh-server"));
 	}
 }

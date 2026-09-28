@@ -26,8 +26,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.promaty.rrhh.config.SecurityConfig;
+import com.promaty.rrhh.dto.staff.RelationSummaryDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffListDto;
+import com.promaty.rrhh.entity.AccountType;
+import com.promaty.rrhh.entity.ClothingSize;
 import com.promaty.rrhh.entity.IdentificationType;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.services.staff.StaffService;
@@ -51,8 +54,51 @@ class StaffControllerTest {
 		  "paternalLastName": "Perez",
 		  "maternalLastName": "Soto",
 		  "birthDate": "1990-01-01",
+		  "registeredSexId": 1,
+		  "maritalStatusId": 1,
+		  "nationalityId": 1,
+		  "phone1": "912345678",
+		  "emergencyPhone": "987654321",
+		  "emergencyContactName": "Maria Perez",
+		  "address": "Calle Falsa 123",
+		  "city": "Santiago",
+		  "hasChildren": false,
 		  "personalEmail": "juan.perez@example.com",
-		  "phone1": "912345678"
+		  "shoeSize": 42,
+		  "clothingSize": "M",
+		  "educationLevelId": 1,
+		  "afpId": 1,
+		  "healthSystemId": 1,
+		  "bankId": 1,
+		  "accountType": "CHECKING",
+		  "accountNumber": "00012345678"
+		}
+		""";
+
+	private static final String UPDATE_STAFF_JSON = """
+		{
+		  "firstName": "Juan",
+		  "paternalLastName": "Perez",
+		  "maternalLastName": "Soto",
+		  "birthDate": "1990-01-01",
+		  "registeredSexId": 1,
+		  "maritalStatusId": 1,
+		  "nationalityId": 1,
+		  "phone1": "912345678",
+		  "emergencyPhone": "987654321",
+		  "emergencyContactName": "Maria Perez",
+		  "address": "Calle Falsa 123",
+		  "city": "Santiago",
+		  "hasChildren": false,
+		  "personalEmail": "juan.perez@example.com",
+		  "shoeSize": 42,
+		  "clothingSize": "M",
+		  "educationLevelId": 1,
+		  "afpId": 1,
+		  "healthSystemId": 1,
+		  "bankId": 1,
+		  "accountType": "CHECKING",
+		  "accountNumber": "00012345678"
 		}
 		""";
 
@@ -122,16 +168,7 @@ class StaffControllerTest {
 		mockMvc.perform(put("/staff/1")
 				.header(HttpHeaders.AUTHORIZATION, TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content("""
-					{
-					  "firstName": "Juan",
-					  "paternalLastName": "Perez",
-					  "maternalLastName": "Soto",
-					  "birthDate": "1990-01-01",
-					  "personalEmail": "juan.perez@example.com",
-					  "phone1": "912345678"
-					}
-					"""))
+				.content(UPDATE_STAFF_JSON))
 			.andExpect(status().isOk());
 	}
 
@@ -151,8 +188,17 @@ class StaffControllerTest {
 	}
 
 	private StaffDetailDto detalle() {
+		RelationSummaryDto registeredSex = new RelationSummaryDto(1L, "Masculino", "MALE");
+		RelationSummaryDto maritalStatus = new RelationSummaryDto(1L, "Soltero/a", "SINGLE");
+		RelationSummaryDto nationality = new RelationSummaryDto(1L, "Chilena", "CHL");
+		RelationSummaryDto educationLevel = new RelationSummaryDto(1L, "Educación media", "HIGH_SCHOOL");
+		RelationSummaryDto afp = new RelationSummaryDto(1L, "AFP Capital", "CAPITAL");
+		RelationSummaryDto healthSystem = new RelationSummaryDto(1L, "Fonasa", "FONASA");
+		RelationSummaryDto bank = new RelationSummaryDto(1L, "BancoEstado", "BANCO_ESTADO");
 		return new StaffDetailDto(1L, IdentificationType.RUT, "12345678-5", "Juan", "Perez", "Soto",
-			LocalDate.of(1990, 1, 1), "juan.perez@example.com", "912345678", null, null, "system", null,
-			List.of());
+			LocalDate.of(1990, 1, 1), registeredSex, maritalStatus, nationality, "912345678",
+			"987654321", "Maria Perez", "Calle Falsa 123", "Santiago", false, null,
+			"juan.perez@example.com", 42, ClothingSize.M, educationLevel, afp, healthSystem, bank,
+			AccountType.CHECKING, "00012345678", null, null, "system", null, List.of());
 	}
 }

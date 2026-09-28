@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.promaty.rrhh.dto.shared.Action;
+import com.promaty.rrhh.entity.AccountType;
+import com.promaty.rrhh.entity.ClothingSize;
 import com.promaty.rrhh.entity.IdentificationType;
 
 import lombok.AllArgsConstructor;
@@ -25,8 +27,25 @@ public class StaffDetailDto {
 	private String paternalLastName;
 	private String maternalLastName;
 	private LocalDate birthDate;
-	private String personalEmail;
+	private RelationSummaryDto registeredSex;
+	private RelationSummaryDto maritalStatus;
+	private RelationSummaryDto nationality;
 	private String phone1;
+	private String emergencyPhone;
+	private String emergencyContactName;
+	private String address;
+	private String city;
+	private Boolean hasChildren;
+	private Integer childrenCount;
+	private String personalEmail;
+	private Integer shoeSize;
+	private ClothingSize clothingSize;
+	private RelationSummaryDto educationLevel;
+	private RelationSummaryDto afp;
+	private RelationSummaryDto healthSystem;
+	private RelationSummaryDto bank;
+	private AccountType accountType;
+	private String accountNumber;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
 	private String createdBy;
