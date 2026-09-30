@@ -68,6 +68,8 @@ class RoleQueryBuilderTest {
 		Path<String> descPath = mock(Path.class);
 		Expression<String> nameLower = mock(Expression.class);
 		Expression<String> descLower = mock(Expression.class);
+		Expression<String> nameNoAccent = mock(Expression.class);
+		Expression<String> descNoAccent = mock(Expression.class);
 		Predicate namePredicate = mock(Predicate.class);
 		Predicate descPredicate = mock(Predicate.class);
 		Predicate orPredicate = mock(Predicate.class);
@@ -77,8 +79,10 @@ class RoleQueryBuilderTest {
 		when(root.<String>get("description")).thenReturn(descPath);
 		when(cb.lower(namePath)).thenReturn(nameLower);
 		when(cb.lower(descPath)).thenReturn(descLower);
-		when(cb.like(nameLower, "%admin%")).thenReturn(namePredicate);
-		when(cb.like(descLower, "%admin%")).thenReturn(descPredicate);
+		when(cb.function("unaccent", String.class, nameLower)).thenReturn(nameNoAccent);
+		when(cb.function("unaccent", String.class, descLower)).thenReturn(descNoAccent);
+		when(cb.like(nameNoAccent, "%admin%")).thenReturn(namePredicate);
+		when(cb.like(descNoAccent, "%admin%")).thenReturn(descPredicate);
 		when(cb.or(namePredicate, descPredicate)).thenReturn(orPredicate);
 		ArgumentCaptor<Predicate[]> captor = ArgumentCaptor.forClass(Predicate[].class);
 		when(cb.and(captor.capture())).thenReturn(combinado);
@@ -101,6 +105,8 @@ class RoleQueryBuilderTest {
 		Path<String> descPath = mock(Path.class);
 		Expression<String> nameLower = mock(Expression.class);
 		Expression<String> descLower = mock(Expression.class);
+		Expression<String> nameNoAccent = mock(Expression.class);
+		Expression<String> descNoAccent = mock(Expression.class);
 		Predicate namePredicate = mock(Predicate.class);
 		Predicate descPredicate = mock(Predicate.class);
 		Predicate orPredicate = mock(Predicate.class);
@@ -112,8 +118,10 @@ class RoleQueryBuilderTest {
 		when(root.<String>get("description")).thenReturn(descPath);
 		when(cb.lower(namePath)).thenReturn(nameLower);
 		when(cb.lower(descPath)).thenReturn(descLower);
-		when(cb.like(nameLower, "%admin%")).thenReturn(namePredicate);
-		when(cb.like(descLower, "%admin%")).thenReturn(descPredicate);
+		when(cb.function("unaccent", String.class, nameLower)).thenReturn(nameNoAccent);
+		when(cb.function("unaccent", String.class, descLower)).thenReturn(descNoAccent);
+		when(cb.like(nameNoAccent, "%admin%")).thenReturn(namePredicate);
+		when(cb.like(descNoAccent, "%admin%")).thenReturn(descPredicate);
 		when(cb.or(namePredicate, descPredicate)).thenReturn(orPredicate);
 		ArgumentCaptor<Predicate[]> captor = ArgumentCaptor.forClass(Predicate[].class);
 		when(cb.and(captor.capture())).thenReturn(combinado);

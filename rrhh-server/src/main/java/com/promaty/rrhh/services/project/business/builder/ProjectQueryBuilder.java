@@ -7,6 +7,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 import com.promaty.rrhh.dto.project.ProjectFilterParams;
 import com.promaty.rrhh.entity.Project;
+import com.promaty.rrhh.services.shared.SearchNormalizer;
 
 import jakarta.persistence.criteria.Predicate;
 
@@ -20,9 +21,10 @@ public final class ProjectQueryBuilder {
 			List<Predicate> predicates = new ArrayList<>();
 
 			if (filters.getSearch() != null && !filters.getSearch().isBlank()) {
-				String patron = "%" + filters.getSearch().toLowerCase() + "%";
-				Predicate porNombre = cb.like(cb.lower(root.get("name")), patron);
-				Predicate porCentroCosto = cb.like(cb.lower(root.get("costCenterCode")), patron);
+				String unaccentedPattern = SearchNormalizer.likePattern(filters.getSearch());
+				String plainPattern = "%" + filters.getSearch().toLowerCase() + "%";
+				Predicate porNombre = cb.like(SearchNormalizer.unaccent(cb, cb.lower(root.get("name"))), unaccentedPattern);
+				Predicate porCentroCosto = cb.like(cb.lower(root.get("costCenterCode")), plainPattern);
 				predicates.add(cb.or(porNombre, porCentroCosto));
 			}
 			if (filters.getTypeId() != null) {

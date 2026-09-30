@@ -7,6 +7,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 import com.promaty.user.dto.role.RoleFilterParams;
 import com.promaty.user.entity.Role;
+import com.promaty.user.services.shared.SearchNormalizer;
 
 import jakarta.persistence.criteria.Predicate;
 
@@ -23,10 +24,10 @@ public final class RoleQueryBuilder {
 				predicates.add(cb.equal(root.get("active"), filters.getActive()));
 			}
 			if (filters.getSearch() != null && !filters.getSearch().isBlank()) {
-				String patron = "%" + filters.getSearch().toLowerCase() + "%";
+				String pattern = SearchNormalizer.likePattern(filters.getSearch());
 				predicates.add(cb.or(
-					cb.like(cb.lower(root.get("name")), patron),
-					cb.like(cb.lower(root.get("description")), patron)
+					cb.like(SearchNormalizer.unaccent(cb, cb.lower(root.get("name"))), pattern),
+					cb.like(SearchNormalizer.unaccent(cb, cb.lower(root.get("description"))), pattern)
 				));
 			}
 

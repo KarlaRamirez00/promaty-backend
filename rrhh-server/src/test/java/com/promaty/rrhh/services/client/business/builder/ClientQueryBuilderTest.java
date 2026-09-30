@@ -65,11 +65,13 @@ class ClientQueryBuilderTest {
 
 		Path<String> namePath = mock(Path.class);
 		Expression<String> nameLower = mock(Expression.class);
+		Expression<String> nameNoAccent = mock(Expression.class);
 		Predicate likePredicate = mock(Predicate.class);
 		Predicate combinado = mock(Predicate.class);
 		when(root.<String>get("name")).thenReturn(namePath);
 		when(cb.lower(namePath)).thenReturn(nameLower);
-		when(cb.like(nameLower, "%sodi%")).thenReturn(likePredicate);
+		when(cb.function("unaccent", String.class, nameLower)).thenReturn(nameNoAccent);
+		when(cb.like(nameNoAccent, "%sodi%")).thenReturn(likePredicate);
 		ArgumentCaptor<Predicate[]> captor = ArgumentCaptor.forClass(Predicate[].class);
 		when(cb.and(captor.capture())).thenReturn(combinado);
 
@@ -102,13 +104,15 @@ class ClientQueryBuilderTest {
 		Predicate activePredicate = mock(Predicate.class);
 		Path<String> namePath = mock(Path.class);
 		Expression<String> nameLower = mock(Expression.class);
+		Expression<String> nameNoAccent = mock(Expression.class);
 		Predicate likePredicate = mock(Predicate.class);
 		Predicate combinado = mock(Predicate.class);
 		when(root.<Boolean>get("active")).thenReturn(activePath);
 		when(cb.equal(activePath, false)).thenReturn(activePredicate);
 		when(root.<String>get("name")).thenReturn(namePath);
 		when(cb.lower(namePath)).thenReturn(nameLower);
-		when(cb.like(nameLower, "%sodi%")).thenReturn(likePredicate);
+		when(cb.function("unaccent", String.class, nameLower)).thenReturn(nameNoAccent);
+		when(cb.like(nameNoAccent, "%sodi%")).thenReturn(likePredicate);
 		ArgumentCaptor<Predicate[]> captor = ArgumentCaptor.forClass(Predicate[].class);
 		when(cb.and(captor.capture())).thenReturn(combinado);
 

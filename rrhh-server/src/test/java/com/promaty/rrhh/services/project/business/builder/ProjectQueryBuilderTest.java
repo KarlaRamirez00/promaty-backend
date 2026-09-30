@@ -49,6 +49,7 @@ class ProjectQueryBuilderTest {
 		Path<String> namePath = mock(Path.class);
 		Path<String> costCenterPath = mock(Path.class);
 		Expression<String> nameLower = mock(Expression.class);
+		Expression<String> nameNoAccent = mock(Expression.class);
 		Expression<String> costCenterLower = mock(Expression.class);
 		Predicate namePredicate = mock(Predicate.class);
 		Predicate costCenterPredicate = mock(Predicate.class);
@@ -57,8 +58,9 @@ class ProjectQueryBuilderTest {
 		when(root.<String>get("name")).thenReturn(namePath);
 		when(root.<String>get("costCenterCode")).thenReturn(costCenterPath);
 		when(cb.lower(namePath)).thenReturn(nameLower);
+		when(cb.function("unaccent", String.class, nameLower)).thenReturn(nameNoAccent);
 		when(cb.lower(costCenterPath)).thenReturn(costCenterLower);
-		when(cb.like(nameLower, "%norte%")).thenReturn(namePredicate);
+		when(cb.like(nameNoAccent, "%norte%")).thenReturn(namePredicate);
 		when(cb.like(costCenterLower, "%norte%")).thenReturn(costCenterPredicate);
 		when(cb.or(namePredicate, costCenterPredicate)).thenReturn(orPredicate);
 		ArgumentCaptor<Predicate[]> captor = ArgumentCaptor.forClass(Predicate[].class);
@@ -201,6 +203,7 @@ class ProjectQueryBuilderTest {
 		Path<String> namePath = mock(Path.class);
 		Path<String> costCenterPath = mock(Path.class);
 		Expression<String> nameLower = mock(Expression.class);
+		Expression<String> nameNoAccent = mock(Expression.class);
 		Expression<String> costCenterLower = mock(Expression.class);
 		Predicate namePredicate = mock(Predicate.class);
 		Predicate costCenterPredicate = mock(Predicate.class);
@@ -212,8 +215,9 @@ class ProjectQueryBuilderTest {
 		when(root.<String>get("name")).thenReturn(namePath);
 		when(root.<String>get("costCenterCode")).thenReturn(costCenterPath);
 		when(cb.lower(namePath)).thenReturn(nameLower);
+		when(cb.function("unaccent", String.class, nameLower)).thenReturn(nameNoAccent);
 		when(cb.lower(costCenterPath)).thenReturn(costCenterLower);
-		when(cb.like(nameLower, "%norte%")).thenReturn(namePredicate);
+		when(cb.like(nameNoAccent, "%norte%")).thenReturn(namePredicate);
 		when(cb.like(costCenterLower, "%norte%")).thenReturn(costCenterPredicate);
 		when(cb.or(namePredicate, costCenterPredicate)).thenReturn(orPredicate);
 		when(root.<Object>get("type")).thenReturn(typePath);

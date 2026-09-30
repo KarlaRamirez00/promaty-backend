@@ -1,3 +1,7 @@
+-- Requerida por UserQueryBuilder/RoleQueryBuilder para que el filtro de busqueda ignore tildes.
+-- CREATE EXTENSION es idempotente por si sola, sin necesitar guarda NOT EXISTS.
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
 -- Sembrado RBAC de user-server: catalogo Module/SubModule/Permission + asignacion al rol Editor.
 -- Idempotente (guardas NOT EXISTS): Spring lo corre en cada arranque tras el DDL de Hibernate.
 -- Los 'path' de sub_modules son provisorios; cruzar con las rutas reales del frontend.

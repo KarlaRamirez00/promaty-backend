@@ -7,6 +7,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 import com.promaty.user.dto.user.UserFilterParams;
 import com.promaty.user.entity.User;
+import com.promaty.user.services.shared.SearchNormalizer;
 
 import jakarta.persistence.criteria.Predicate;
 
@@ -26,11 +27,12 @@ public final class UserQueryBuilder {
 				predicates.add(cb.equal(root.get("active"), filters.getActive()));
 			}
 			if (filters.getSearch() != null && !filters.getSearch().isBlank()) {
-				String patron = "%" + filters.getSearch().toLowerCase() + "%";
+				String unaccentedPattern = SearchNormalizer.likePattern(filters.getSearch());
+				String plainPattern = "%" + filters.getSearch().toLowerCase() + "%";
 				predicates.add(cb.or(
-					cb.like(cb.lower(root.get("firstName")), patron),
-					cb.like(cb.lower(root.get("lastName")), patron),
-					cb.like(cb.lower(root.get("email")), patron)
+					cb.like(SearchNormalizer.unaccent(cb, cb.lower(root.get("firstName"))), unaccentedPattern),
+					cb.like(SearchNormalizer.unaccent(cb, cb.lower(root.get("lastName"))), unaccentedPattern),
+					cb.like(cb.lower(root.get("email")), plainPattern)
 				));
 			}
 
