@@ -61,7 +61,7 @@ class StaffControllerTest {
 		  "emergencyPhone": "987654321",
 		  "emergencyContactName": "Maria Perez",
 		  "address": "Calle Falsa 123",
-		  "city": "Santiago",
+		  "comunaId": 1,
 		  "hasChildren": false,
 		  "personalEmail": "juan.perez@example.com",
 		  "shoeSize": 42,
@@ -88,7 +88,7 @@ class StaffControllerTest {
 		  "emergencyPhone": "987654321",
 		  "emergencyContactName": "Maria Perez",
 		  "address": "Calle Falsa 123",
-		  "city": "Santiago",
+		  "comunaId": 1,
 		  "hasChildren": false,
 		  "personalEmail": "juan.perez@example.com",
 		  "shoeSize": 42,
@@ -195,9 +195,12 @@ class StaffControllerTest {
 		RelationSummaryDto afp = new RelationSummaryDto(1L, "AFP Capital", "CAPITAL");
 		RelationSummaryDto healthSystem = new RelationSummaryDto(1L, "Fonasa", "FONASA");
 		RelationSummaryDto bank = new RelationSummaryDto(1L, "BancoEstado", "BANCO_ESTADO");
+		RelationSummaryDto region = new RelationSummaryDto(1L, "Región Metropolitana de Santiago", "CL-RM");
+		RelationSummaryDto provincia = new RelationSummaryDto(1L, "Santiago", "rm01");
+		RelationSummaryDto comuna = new RelationSummaryDto(1L, "Santiago", "rm0101");
 		return new StaffDetailDto(1L, IdentificationType.RUT, "12345678-5", "Juan", "Perez", "Soto",
 			LocalDate.of(1990, 1, 1), registeredSex, maritalStatus, nationality, "912345678",
-			"987654321", "Maria Perez", "Calle Falsa 123", "Santiago", false, null,
+			"987654321", "Maria Perez", "Calle Falsa 123", region, provincia, comuna, false, null,
 			"juan.perez@example.com", 42, ClothingSize.M, educationLevel, afp, healthSystem, bank,
 			AccountType.CHECKING, "00012345678", null, null, "system", null, List.of());
 	}

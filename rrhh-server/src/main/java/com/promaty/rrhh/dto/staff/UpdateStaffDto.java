@@ -62,9 +62,8 @@ public class UpdateStaffDto {
 	@Size(max = 200, message = "El domicilio no puede superar los 200 caracteres.")
 	private String address;
 
-	@NotBlank(message = "La ciudad es obligatoria.")
-	@Size(max = 100, message = "La ciudad no puede superar los 100 caracteres.")
-	private String city;
+	@NotNull(message = "La comuna es obligatoria.")
+	private Long comunaId;
 
 	@NotNull(message = "Debe indicar si tiene hijos.")
 	private Boolean hasChildren;

@@ -4,6 +4,7 @@ import org.springframework.stereotype.Component;
 
 import com.promaty.rrhh.entity.Afp;
 import com.promaty.rrhh.entity.Bank;
+import com.promaty.rrhh.entity.Comuna;
 import com.promaty.rrhh.entity.EducationLevel;
 import com.promaty.rrhh.entity.HealthSystem;
 import com.promaty.rrhh.entity.MaritalStatus;
@@ -12,6 +13,7 @@ import com.promaty.rrhh.entity.RegisteredSex;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.AfpRepository;
 import com.promaty.rrhh.repository.BankRepository;
+import com.promaty.rrhh.repository.ComunaRepository;
 import com.promaty.rrhh.repository.EducationLevelRepository;
 import com.promaty.rrhh.repository.HealthSystemRepository;
 import com.promaty.rrhh.repository.MaritalStatusRepository;
@@ -19,7 +21,7 @@ import com.promaty.rrhh.repository.NationalityRepository;
 import com.promaty.rrhh.repository.RegisteredSexRepository;
 
 /**
- * StaffValidation ya confirma que las 7 FK existen antes de llegar acá; el orElseThrow es una
+ * StaffValidation ya confirma que las 8 FK existen antes de llegar acá; el orElseThrow es una
  * defensa ante la carrera entre esa validación y este guardado, no una repetición de esa validación.
  */
 @Component
@@ -32,6 +34,7 @@ public class StaffRelationsResolver {
 	private final AfpRepository afpRepository;
 	private final HealthSystemRepository healthSystemRepository;
 	private final BankRepository bankRepository;
+	private final ComunaRepository comunaRepository;
 
 	public StaffRelationsResolver(
 		RegisteredSexRepository registeredSexRepository,
@@ -40,7 +43,8 @@ public class StaffRelationsResolver {
 		EducationLevelRepository educationLevelRepository,
 		AfpRepository afpRepository,
 		HealthSystemRepository healthSystemRepository,
-		BankRepository bankRepository
+		BankRepository bankRepository,
+		ComunaRepository comunaRepository
 	) {
 		this.registeredSexRepository = registeredSexRepository;
 		this.maritalStatusRepository = maritalStatusRepository;
@@ -49,6 +53,7 @@ public class StaffRelationsResolver {
 		this.afpRepository = afpRepository;
 		this.healthSystemRepository = healthSystemRepository;
 		this.bankRepository = bankRepository;
+		this.comunaRepository = comunaRepository;
 	}
 
 	public RegisteredSex resolveRegisteredSex(Long registeredSexId) {
@@ -84,5 +89,10 @@ public class StaffRelationsResolver {
 	public Bank resolveBank(Long bankId) {
 		return bankRepository.findById(bankId)
 			.orElseThrow(() -> new ResourceNotFoundException("El banco indicado no existe."));
+	}
+
+	public Comuna resolveComuna(Long comunaId) {
+		return comunaRepository.findById(comunaId)
+			.orElseThrow(() -> new ResourceNotFoundException("La comuna indicada no existe."));
 	}
 }

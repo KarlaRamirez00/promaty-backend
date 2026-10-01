@@ -29,7 +29,7 @@ public class CreateStaffBuilder {
 		staff.setEmergencyPhone(dto.getEmergencyPhone());
 		staff.setEmergencyContactName(dto.getEmergencyContactName());
 		staff.setAddress(dto.getAddress());
-		staff.setCity(dto.getCity());
+		staff.setComuna(relationsResolver.resolveComuna(dto.getComunaId()));
 		staff.setHasChildren(dto.getHasChildren());
 		staff.setChildrenCount(dto.getChildrenCount());
 		staff.setPersonalEmail(dto.getPersonalEmail());

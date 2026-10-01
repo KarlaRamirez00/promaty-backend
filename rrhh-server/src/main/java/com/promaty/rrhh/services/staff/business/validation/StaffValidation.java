@@ -15,6 +15,7 @@ import com.promaty.rrhh.entity.IdentificationType;
 import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.repository.AfpRepository;
 import com.promaty.rrhh.repository.BankRepository;
+import com.promaty.rrhh.repository.ComunaRepository;
 import com.promaty.rrhh.repository.EducationLevelRepository;
 import com.promaty.rrhh.repository.HealthSystemRepository;
 import com.promaty.rrhh.repository.MaritalStatusRepository;
@@ -37,6 +38,7 @@ public class StaffValidation {
 	private final AfpRepository afpRepository;
 	private final HealthSystemRepository healthSystemRepository;
 	private final BankRepository bankRepository;
+	private final ComunaRepository comunaRepository;
 
 	public StaffValidation(
 		StaffRepository staffRepository,
@@ -46,7 +48,8 @@ public class StaffValidation {
 		EducationLevelRepository educationLevelRepository,
 		AfpRepository afpRepository,
 		HealthSystemRepository healthSystemRepository,
-		BankRepository bankRepository
+		BankRepository bankRepository,
+		ComunaRepository comunaRepository
 	) {
 		this.staffRepository = staffRepository;
 		this.registeredSexRepository = registeredSexRepository;
@@ -56,6 +59,7 @@ public class StaffValidation {
 		this.afpRepository = afpRepository;
 		this.healthSystemRepository = healthSystemRepository;
 		this.bankRepository = bankRepository;
+		this.comunaRepository = comunaRepository;
 	}
 
 	public void validateCreate(CreateStaffDto dto) {
@@ -77,7 +81,8 @@ public class StaffValidation {
 			dto.getEducationLevelId(),
 			dto.getAfpId(),
 			dto.getHealthSystemId(),
-			dto.getBankId()
+			dto.getBankId(),
+			dto.getComunaId()
 		);
 		validarHijos(errores, dto.getHasChildren(), dto.getChildrenCount());
 		validarTipoCuenta(errores, dto.getAccountType(), dto.getBankId());
@@ -97,7 +102,8 @@ public class StaffValidation {
 			dto.getEducationLevelId(),
 			dto.getAfpId(),
 			dto.getHealthSystemId(),
-			dto.getBankId()
+			dto.getBankId(),
+			dto.getComunaId()
 		);
 		validarHijos(errores, dto.getHasChildren(), dto.getChildrenCount());
 		validarTipoCuenta(errores, dto.getAccountType(), dto.getBankId());
@@ -119,7 +125,8 @@ public class StaffValidation {
 		Long educationLevelId,
 		Long afpId,
 		Long healthSystemId,
-		Long bankId
+		Long bankId,
+		Long comunaId
 	) {
 		if (registeredSexId != null && !registeredSexRepository.existsById(registeredSexId)) {
 			errores.put("registeredSexId", "El sexo registral indicado no existe.");
@@ -141,6 +148,9 @@ public class StaffValidation {
 		}
 		if (bankId != null && !bankRepository.existsById(bankId)) {
 			errores.put("bankId", "El banco indicado no existe.");
+		}
+		if (comunaId != null && !comunaRepository.existsById(comunaId)) {
+			errores.put("comunaId", "La comuna indicada no existe.");
 		}
 	}
 

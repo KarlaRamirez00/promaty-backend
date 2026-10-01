@@ -5,10 +5,13 @@ import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffListDto;
 import com.promaty.rrhh.entity.Afp;
 import com.promaty.rrhh.entity.Bank;
+import com.promaty.rrhh.entity.Comuna;
 import com.promaty.rrhh.entity.EducationLevel;
 import com.promaty.rrhh.entity.HealthSystem;
 import com.promaty.rrhh.entity.MaritalStatus;
 import com.promaty.rrhh.entity.Nationality;
+import com.promaty.rrhh.entity.Provincia;
+import com.promaty.rrhh.entity.Region;
 import com.promaty.rrhh.entity.RegisteredSex;
 import com.promaty.rrhh.entity.Staff;
 
@@ -49,7 +52,9 @@ public final class StaffMapper {
 			staff.getEmergencyPhone(),
 			staff.getEmergencyContactName(),
 			staff.getAddress(),
-			staff.getCity(),
+			toRelationSummary(staff.getComuna().getProvincia().getRegion()),
+			toRelationSummary(staff.getComuna().getProvincia()),
+			toRelationSummary(staff.getComuna()),
 			staff.getHasChildren(),
 			staff.getChildrenCount(),
 			staff.getPersonalEmail(),
@@ -95,5 +100,17 @@ public final class StaffMapper {
 
 	private static RelationSummaryDto toRelationSummary(Bank bank) {
 		return new RelationSummaryDto(bank.getId(), bank.getName(), bank.getCode());
+	}
+
+	private static RelationSummaryDto toRelationSummary(Region region) {
+		return new RelationSummaryDto(region.getId(), region.getName(), region.getCode());
+	}
+
+	private static RelationSummaryDto toRelationSummary(Provincia provincia) {
+		return new RelationSummaryDto(provincia.getId(), provincia.getName(), provincia.getCode());
+	}
+
+	private static RelationSummaryDto toRelationSummary(Comuna comuna) {
+		return new RelationSummaryDto(comuna.getId(), comuna.getName(), comuna.getCode());
 	}
 }

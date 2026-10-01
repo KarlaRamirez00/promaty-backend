@@ -19,11 +19,14 @@ import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
 import com.promaty.rrhh.entity.Afp;
 import com.promaty.rrhh.entity.Bank;
+import com.promaty.rrhh.entity.Comuna;
 import com.promaty.rrhh.entity.EducationLevel;
 import com.promaty.rrhh.entity.HealthSystem;
 import com.promaty.rrhh.entity.IdentificationType;
 import com.promaty.rrhh.entity.MaritalStatus;
 import com.promaty.rrhh.entity.Nationality;
+import com.promaty.rrhh.entity.Provincia;
+import com.promaty.rrhh.entity.Region;
 import com.promaty.rrhh.entity.RegisteredSex;
 import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
@@ -163,6 +166,24 @@ class StaffServiceImplTest {
 		bank.setName("BancoEstado");
 		bank.setCode("BANCO_ESTADO");
 		staff.setBank(bank);
+
+		Region region = new Region();
+		region.setId(8L);
+		region.setName("Región Metropolitana de Santiago");
+		region.setCode("CL-RM");
+
+		Provincia provincia = new Provincia();
+		provincia.setId(9L);
+		provincia.setName("Santiago");
+		provincia.setCode("rm01");
+		provincia.setRegion(region);
+
+		Comuna comuna = new Comuna();
+		comuna.setId(10L);
+		comuna.setName("Santiago");
+		comuna.setCode("rm0101");
+		comuna.setProvincia(provincia);
+		staff.setComuna(comuna);
 
 		return staff;
 	}

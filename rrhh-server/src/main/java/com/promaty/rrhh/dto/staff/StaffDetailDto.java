@@ -34,7 +34,9 @@ public class StaffDetailDto {
 	private String emergencyPhone;
 	private String emergencyContactName;
 	private String address;
-	private String city;
+	private RelationSummaryDto region;
+	private RelationSummaryDto provincia;
+	private RelationSummaryDto comuna;
 	private Boolean hasChildren;
 	private Integer childrenCount;
 	private String personalEmail;

@@ -66,8 +66,9 @@ public class Staff extends BaseDatedEntity {
 	@Column(name = "address", nullable = false, length = 200)
 	private String address;
 
-	@Column(name = "city", nullable = false, length = 100)
-	private String city;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "comuna_id", nullable = false)
+	private Comuna comuna;
 
 	@Column(name = "has_children", nullable = false)
 	private Boolean hasChildren = false;

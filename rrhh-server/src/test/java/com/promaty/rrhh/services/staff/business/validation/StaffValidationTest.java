@@ -25,6 +25,7 @@ import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.repository.AfpRepository;
 import com.promaty.rrhh.repository.BankRepository;
+import com.promaty.rrhh.repository.ComunaRepository;
 import com.promaty.rrhh.repository.EducationLevelRepository;
 import com.promaty.rrhh.repository.HealthSystemRepository;
 import com.promaty.rrhh.repository.MaritalStatusRepository;
@@ -54,6 +55,8 @@ class StaffValidationTest {
 	private HealthSystemRepository healthSystemRepository;
 	@Mock
 	private BankRepository bankRepository;
+	@Mock
+	private ComunaRepository comunaRepository;
 
 	@InjectMocks
 	private StaffValidation staffValidation;
@@ -122,7 +125,7 @@ class StaffValidationTest {
 			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
 				.containsKeys(
 					"registeredSexId", "maritalStatusId", "nationalityId",
-					"educationLevelId", "afpId", "healthSystemId", "bankId"
+					"educationLevelId", "afpId", "healthSystemId", "bankId", "comunaId"
 				));
 	}
 
@@ -194,6 +197,7 @@ class StaffValidationTest {
 		lenient().when(afpRepository.existsById(5L)).thenReturn(true);
 		lenient().when(healthSystemRepository.existsById(6L)).thenReturn(true);
 		lenient().when(bankRepository.existsById(BANK_ID)).thenReturn(true);
+		lenient().when(comunaRepository.existsById(7L)).thenReturn(true);
 	}
 
 	private CreateStaffDto createDto(String identificationNumber) {
@@ -211,7 +215,7 @@ class StaffValidationTest {
 		dto.setEmergencyPhone("987654321");
 		dto.setEmergencyContactName("Maria Perez");
 		dto.setAddress("Calle Falsa 123");
-		dto.setCity("Santiago");
+		dto.setComunaId(7L);
 		dto.setHasChildren(false);
 		dto.setPersonalEmail("juan.perez@example.com");
 		dto.setShoeSize(42);
@@ -238,7 +242,7 @@ class StaffValidationTest {
 		dto.setEmergencyPhone("987654321");
 		dto.setEmergencyContactName("Maria Perez");
 		dto.setAddress("Calle Falsa 123");
-		dto.setCity("Santiago");
+		dto.setComunaId(7L);
 		dto.setHasChildren(false);
 		dto.setPersonalEmail("juan.perez@example.com");
 		dto.setShoeSize(42);

@@ -40,7 +40,10 @@ public class GatewayRoutesConfig {
 				.or(path("/educationLevels/**"))
 				.or(path("/afps/**"))
 				.or(path("/healthSystems/**"))
-				.or(path("/banks/**")), http())
+				.or(path("/banks/**"))
+				.or(path("/regions/**"))
+				.or(path("/provincias/**"))
+				.or(path("/comunas/**")), http())
 			.filter(lb("rrhh-server"));
 	}
 }
