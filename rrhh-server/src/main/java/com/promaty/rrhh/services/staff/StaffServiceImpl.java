@@ -15,8 +15,11 @@ import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffFilterParams;
 import com.promaty.rrhh.dto.staff.StaffListDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
+import com.promaty.rrhh.entity.Contract;
+import com.promaty.rrhh.entity.Project;
 import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
+import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.services.shared.ActionsResolver;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
@@ -30,12 +33,14 @@ import com.promaty.rrhh.services.staff.business.validation.StaffValidation;
 public class StaffServiceImpl implements StaffService {
 
 	private static final String NO_ENCONTRADO = "Colaborador no encontrado.";
+	private static final String ESTADO_ACTIVO = "ACTIVE";
 
 	private static final Map<String, Action> REGLAS_ACCIONES = Map.of(
 		"staff.update", Action.UPDATE
 	);
 
 	private final StaffRepository staffRepository;
+	private final ContractRepository contractRepository;
 	private final StaffValidation staffValidation;
 	private final CreateStaffBuilder createStaffBuilder;
 	private final UpdateStaffBuilder updateStaffBuilder;
@@ -43,12 +48,14 @@ public class StaffServiceImpl implements StaffService {
 
 	public StaffServiceImpl(
 		StaffRepository staffRepository,
+		ContractRepository contractRepository,
 		StaffValidation staffValidation,
 		CreateStaffBuilder createStaffBuilder,
 		UpdateStaffBuilder updateStaffBuilder,
 		ActionsResolver actionsResolver
 	) {
 		this.staffRepository = staffRepository;
+		this.contractRepository = contractRepository;
 		this.staffValidation = staffValidation;
 		this.createStaffBuilder = createStaffBuilder;
 		this.updateStaffBuilder = updateStaffBuilder;
@@ -78,14 +85,22 @@ public class StaffServiceImpl implements StaffService {
 		Specification<Staff> especificacion = StaffQueryBuilder.fromFilters(filters);
 		List<Action> actions = actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES);
 		return staffRepository.findAll(especificacion, pageable)
-			.map(StaffMapper::toListDto)
+			.map(staff -> StaffMapper.toListDto(staff, resolverCentroCosto(staff.getId())))
 			.map(dto -> conAcciones(dto, actions));
 	}
 
 	@Override
 	@Transactional(readOnly = true)
 	public StaffDetailDto getStaffDetail(Long id) {
-		return conAcciones(StaffMapper.toDetailDto(buscarPorId(id)));
+		Staff staff = buscarPorId(id);
+		return conAcciones(StaffMapper.toDetailDto(staff, resolverCentroCosto(id)));
+	}
+
+	private String resolverCentroCosto(Long staffId) {
+		return contractRepository.findByStaffIdAndStatus_Code(staffId, ESTADO_ACTIVO)
+			.map(Contract::getProject)
+			.map(Project::getCostCenterCode)
+			.orElse(null);
 	}
 
 	private Staff buscarPorId(Long id) {

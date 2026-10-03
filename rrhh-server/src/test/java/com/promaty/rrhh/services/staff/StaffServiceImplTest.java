@@ -20,16 +20,19 @@ import com.promaty.rrhh.dto.staff.UpdateStaffDto;
 import com.promaty.rrhh.entity.Afp;
 import com.promaty.rrhh.entity.Bank;
 import com.promaty.rrhh.entity.Comuna;
+import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.EducationLevel;
 import com.promaty.rrhh.entity.HealthSystem;
 import com.promaty.rrhh.entity.IdentificationType;
 import com.promaty.rrhh.entity.MaritalStatus;
 import com.promaty.rrhh.entity.Nationality;
+import com.promaty.rrhh.entity.Project;
 import com.promaty.rrhh.entity.Provincia;
 import com.promaty.rrhh.entity.Region;
 import com.promaty.rrhh.entity.RegisteredSex;
 import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
+import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.services.shared.ActionsResolver;
 import com.promaty.rrhh.services.staff.business.builder.CreateStaffBuilder;
@@ -41,6 +44,8 @@ class StaffServiceImplTest {
 
 	@Mock
 	private StaffRepository staffRepository;
+	@Mock
+	private ContractRepository contractRepository;
 	@Mock
 	private StaffValidation staffValidation;
 	@Mock
@@ -98,14 +103,30 @@ class StaffServiceImplTest {
 	}
 
 	@Test
-	void getStaffDetail_registroExiste_retornaDetalleMapeadoConSusRelaciones() {
+	void getStaffDetail_sinContratoActivo_costCenterCodeEsNulo() {
 		when(staffRepository.findById(1L)).thenReturn(Optional.of(staffCompleto()));
+		when(contractRepository.findByStaffIdAndStatus_Code(1L, "ACTIVE")).thenReturn(Optional.empty());
 
 		StaffDetailDto detalle = service.getStaffDetail(1L);
 
 		assertThat(detalle.getIdentificationNumber()).isEqualTo("12345678-5");
 		assertThat(detalle.getRegisteredSex().getCode()).isEqualTo("MALE");
 		assertThat(detalle.getBank().getCode()).isEqualTo("BANCO_ESTADO");
+		assertThat(detalle.getCostCenterCode()).isNull();
+	}
+
+	@Test
+	void getStaffDetail_conContratoActivo_resuelveCostCenterCodeDelProyecto() {
+		when(staffRepository.findById(1L)).thenReturn(Optional.of(staffCompleto()));
+		Project project = new Project();
+		project.setCostCenterCode("00824");
+		Contract contrato = new Contract();
+		contrato.setProject(project);
+		when(contractRepository.findByStaffIdAndStatus_Code(1L, "ACTIVE")).thenReturn(Optional.of(contrato));
+
+		StaffDetailDto detalle = service.getStaffDetail(1L);
+
+		assertThat(detalle.getCostCenterCode()).isEqualTo("00824");
 	}
 
 	private Staff staffConId(Long id) {

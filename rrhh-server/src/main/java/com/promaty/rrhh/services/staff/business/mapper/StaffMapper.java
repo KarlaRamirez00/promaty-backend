@@ -20,7 +20,7 @@ public final class StaffMapper {
 	private StaffMapper() {
 	}
 
-	public static StaffListDto toListDto(Staff staff) {
+	public static StaffListDto toListDto(Staff staff, String costCenterCode) {
 		return new StaffListDto(
 			staff.getId(),
 			staff.getIdentificationType(),
@@ -28,6 +28,7 @@ public final class StaffMapper {
 			staff.getFirstName(),
 			staff.getPaternalLastName(),
 			staff.getMaternalLastName(),
+			costCenterCode,
 			staff.getCreatedAt(),
 			staff.getUpdatedAt(),
 			staff.getCreatedBy(),
@@ -36,7 +37,7 @@ public final class StaffMapper {
 		);
 	}
 
-	public static StaffDetailDto toDetailDto(Staff staff) {
+	public static StaffDetailDto toDetailDto(Staff staff, String costCenterCode) {
 		return new StaffDetailDto(
 			staff.getId(),
 			staff.getIdentificationType(),
@@ -44,6 +45,7 @@ public final class StaffMapper {
 			staff.getFirstName(),
 			staff.getPaternalLastName(),
 			staff.getMaternalLastName(),
+			costCenterCode,
 			staff.getBirthDate(),
 			toRelationSummary(staff.getRegisteredSex()),
 			toRelationSummary(staff.getMaritalStatus()),

@@ -16,7 +16,14 @@ VALUES
 	('Pendiente de aprobación', 'PENDING_APPROVAL',  'Esperando aprobación de jefatura.',        1, 'request', true, now(), now(), 'system', 'system'),
 	('Pendiente de validación', 'PENDING_VALIDATION', 'Aprobada por jefatura, esperando validación de RRHH.', 2, 'request', true, now(), now(), 'system', 'system'),
 	('Aprobada',                'APPROVED',           'Validada por RRHH, cambios ya aplicados.', 3, 'request', true, now(), now(), 'system', 'system'),
-	('Rechazada',               'REJECTED',           'Rechazada en algún nivel de aprobación.',  4, 'request', true, now(), now(), 'system', 'system')
+	('Rechazada',               'REJECTED',           'Rechazada en algún nivel de aprobación.',  4, 'request', true, now(), now(), 'system', 'system'),
+	('Pendiente de aprobación', 'PENDING_APPROVAL',   'Esperando aprobación de jefatura.',                    1, 'contract', true, now(), now(), 'system', 'system'),
+	('Pendiente de validación', 'PENDING_VALIDATION', 'Aprobado por jefatura, esperando validación de RRHH.', 2, 'contract', true, now(), now(), 'system', 'system'),
+	('Activo',                  'ACTIVE',              'Validado por RRHH, colaborador activo bajo este contrato.', 3, 'contract', true, now(), now(), 'system', 'system'),
+	('Rechazado',               'REJECTED',            'Rechazado en algún nivel de aprobación.',              4, 'contract', true, now(), now(), 'system', 'system'),
+	('Vencido',                 'EXPIRED',             'Llegó a su fecha de término sin renovarse.',           5, 'contract', true, now(), now(), 'system', 'system'),
+	('Anulado',                 'ANNULLED',            'Anulado manualmente tras estar activo.',               6, 'contract', true, now(), now(), 'system', 'system'),
+	('Error de sincronización', 'SYNC_ERROR',          'Falló la sincronización con el ERP de RRHH.',          7, 'contract', true, now(), now(), 'system', 'system')
 ON CONFLICT (sub_module, code) DO NOTHING;
 
 -- Catálogos de solo lectura para la ficha de Staff (HU-B23, extensión legal). Valores editables por
@@ -523,4 +530,71 @@ FROM (VALUES
 	('Peñaflor', 'rm0605', 'rm06')
 ) AS v(name, code, provincia_code)
 JOIN provincia p ON p.code = v.provincia_code
+ON CONFLICT (code) DO NOTHING;
+
+-- Catálogos de solo lectura para Contract (sin CRUD). Valores editables por Karla; JobTitle viene del
+-- clasificador oficial CIUO-08-CL (INE), filtrado a ocupaciones de construcción/instalaciones.
+INSERT INTO company (name, code, active, created_at, updated_at, created_by, updated_by)
+VALUES
+	('Constructora Promaty S.A.', 'PROMATY', true, now(), now(), 'system', 'system')
+ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO contract_type (name, code, active, created_at, updated_at, created_by, updated_by)
+VALUES
+	('Contrato indefinido',       'INDEFINIDO', true, now(), now(), 'system', 'system'),
+	('Contrato a plazo fijo',     'FIJO',       true, now(), now(), 'system', 'system'),
+	('Contrato por obra o faena', 'F',          true, now(), now(), 'system', 'system')
+ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO site (name, code, active, created_at, updated_at, created_by, updated_by)
+VALUES
+	('Casa matriz', 'MATRIZ', true, now(), now(), 'system', 'system')
+ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO meal_type (name, code, active, created_at, updated_at, created_by, updated_by)
+VALUES
+	('Colación en efectivo', 'CASH',    true, now(), now(), 'system', 'system'),
+	('Colación en especie',  'IN_KIND', true, now(), now(), 'system', 'system')
+ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO transport_type (name, code, active, created_at, updated_at, created_by, updated_by)
+VALUES
+	('Movilización en efectivo',        'CASH',    true, now(), now(), 'system', 'system'),
+	('Movilización pagada por la empresa', 'COMPANY_PAID', true, now(), now(), 'system', 'system'),
+	('Sin movilización',                'NONE',    true, now(), now(), 'system', 'system')
+ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO job_title (name, code, active, created_at, updated_at, created_by, updated_by)
+VALUES
+	('Ingenieros civiles, ingenieros en construcción y constructores civiles', '2142', true, now(), now(), 'system', 'system'),
+	('Ingenieros en prevención de riesgos y otros profesionales de la seguridad e higiene laboral y ambiental', '2243', true, now(), now(), 'system', 'system'),
+	('Técnicos en construcción y topógrafos', '3112', true, now(), now(), 'system', 'system'),
+	('Técnicos en electricidad', '3113', true, now(), now(), 'system', 'system'),
+	('Supervisores de la construcción', '3123', true, now(), now(), 'system', 'system'),
+	('Inspectores de la salud y técnicos en prevención de riesgos', '3257', true, now(), now(), 'system', 'system'),
+	('Empleados encargados del control de abastecimiento e inventario', '4321', true, now(), now(), 'system', 'system'),
+	('Albañiles', '7112', true, now(), now(), 'system', 'system'),
+	('Tronzadores, labrantes y grabadores de piedra', '7113', true, now(), now(), 'system', 'system'),
+	('Operarios en cemento armado', '7114', true, now(), now(), 'system', 'system'),
+	('Carpinteros de obra', '7115', true, now(), now(), 'system', 'system'),
+	('Otros operarios de la construcción (obra gruesa) no clasificados previamente', '7119', true, now(), now(), 'system', 'system'),
+	('Instaladores o reparadores de techos', '7121', true, now(), now(), 'system', 'system'),
+	('Instaladores de parqué, cerámicas, baldosas y alfombras', '7122', true, now(), now(), 'system', 'system'),
+	('Yeseros, estucadores y revocadores', '7123', true, now(), now(), 'system', 'system'),
+	('Instaladores de material aislante y de insonorización', '7124', true, now(), now(), 'system', 'system'),
+	('Cristaleros', '7125', true, now(), now(), 'system', 'system'),
+	('Gásfiter e instaladores de tuberías', '7126', true, now(), now(), 'system', 'system'),
+	('Mecánicos de instalaciones de refrigeración y aire acondicionado', '7127', true, now(), now(), 'system', 'system'),
+	('Pintores y empapeladores de paredes', '7131', true, now(), now(), 'system', 'system'),
+	('Barnizadores y pulverizadores de productos manufacturados', '7132', true, now(), now(), 'system', 'system'),
+	('Limpiadores de fachadas y deshollinadores', '7133', true, now(), now(), 'system', 'system'),
+	('Moldeadores y macheros', '7211', true, now(), now(), 'system', 'system'),
+	('Soldadores y oxicortadores', '7212', true, now(), now(), 'system', 'system'),
+	('Chapistas y caldereros', '7213', true, now(), now(), 'system', 'system'),
+	('Montadores de estructuras metálicas', '7214', true, now(), now(), 'system', 'system'),
+	('Aparejadores y empalmadores de cables no eléctricos', '7215', true, now(), now(), 'system', 'system'),
+	('Electricistas de obras', '7411', true, now(), now(), 'system', 'system'),
+	('Mecánicos y ajustadores electricistas', '7412', true, now(), now(), 'system', 'system'),
+	('Conductores de camiones pesados y de alto tonelaje', '8332', true, now(), now(), 'system', 'system'),
+	('Operadores de grúas y aparatos elevadores', '8343', true, now(), now(), 'system', 'system')
 ON CONFLICT (code) DO NOTHING;

@@ -43,7 +43,13 @@ public class GatewayRoutesConfig {
 				.or(path("/banks/**"))
 				.or(path("/regions/**"))
 				.or(path("/provincias/**"))
-				.or(path("/comunas/**")), http())
+				.or(path("/comunas/**"))
+				.or(path("/companies/**"))
+				.or(path("/contractTypes/**"))
+				.or(path("/jobTitles/**"))
+				.or(path("/sites/**"))
+				.or(path("/mealTypes/**"))
+				.or(path("/transportTypes/**")), http())
 			.filter(lb("rrhh-server"));
 	}
 }

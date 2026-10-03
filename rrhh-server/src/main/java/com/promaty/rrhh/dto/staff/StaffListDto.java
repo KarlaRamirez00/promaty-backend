@@ -23,6 +23,7 @@ public class StaffListDto {
 	private String firstName;
 	private String paternalLastName;
 	private String maternalLastName;
+	private String costCenterCode;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
 	private String createdBy;
