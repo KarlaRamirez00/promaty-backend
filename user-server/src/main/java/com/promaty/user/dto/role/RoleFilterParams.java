@@ -9,4 +9,5 @@ public class RoleFilterParams {
 
 	private Boolean active;
 	private String search;
+	private Long subModuleId;
 }

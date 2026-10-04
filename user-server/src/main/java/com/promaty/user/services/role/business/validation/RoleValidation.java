@@ -13,7 +13,6 @@ import com.promaty.user.entity.Role;
 import com.promaty.user.exception.BusinessValidationException;
 import com.promaty.user.repository.PermissionRepository;
 import com.promaty.user.repository.RoleRepository;
-import com.promaty.user.repository.SubModuleRepository;
 
 @Component
 public class RoleValidation {
@@ -22,16 +21,13 @@ public class RoleValidation {
 
 	private final RoleRepository roleRepository;
 	private final PermissionRepository permissionRepository;
-	private final SubModuleRepository subModuleRepository;
 
 	public RoleValidation(
 		RoleRepository roleRepository,
-		PermissionRepository permissionRepository,
-		SubModuleRepository subModuleRepository
+		PermissionRepository permissionRepository
 	) {
 		this.roleRepository = roleRepository;
 		this.permissionRepository = permissionRepository;
-		this.subModuleRepository = subModuleRepository;
 	}
 
 	public void validateCreate(CreateRoleDto dto) {
@@ -40,7 +36,7 @@ public class RoleValidation {
 		if (roleRepository.existsByName(dto.getName())) {
 			errores.put("name", "Ya existe un rol con este nombre.");
 		}
-		validarRelaciones(dto.getPermissionIds(), dto.getSubModuleIds(), errores);
+		validarRelaciones(dto.getPermissionIds(), errores);
 
 		lanzarSiHayErrores(errores);
 	}
@@ -52,19 +48,15 @@ public class RoleValidation {
 		if (rolConMismoNombre.isPresent() && !rolConMismoNombre.get().getId().equals(id)) {
 			errores.put("name", "Ya existe un rol con este nombre.");
 		}
-		validarRelaciones(dto.getPermissionIds(), dto.getSubModuleIds(), errores);
+		validarRelaciones(dto.getPermissionIds(), errores);
 
 		lanzarSiHayErrores(errores);
 	}
 
-	private void validarRelaciones(List<Long> permissionIds, List<Long> subModuleIds, Map<String, String> errores) {
+	private void validarRelaciones(List<Long> permissionIds, Map<String, String> errores) {
 		if (permissionIds != null && !permissionIds.isEmpty()
 			&& permissionRepository.findByIdIn(permissionIds).size() != permissionIds.size()) {
 			errores.put("permissionIds", "Uno o mas permisos indicados no existen.");
-		}
-		if (subModuleIds != null && !subModuleIds.isEmpty()
-			&& subModuleRepository.findByIdIn(subModuleIds).size() != subModuleIds.size()) {
-			errores.put("subModuleIds", "Uno o mas submodulos indicados no existen.");
 		}
 	}
 

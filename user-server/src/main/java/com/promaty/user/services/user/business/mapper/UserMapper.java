@@ -1,5 +1,7 @@
 package com.promaty.user.services.user.business.mapper;
 
+import java.util.List;
+
 import com.promaty.user.dto.user.UserDetailDto;
 import com.promaty.user.dto.user.UserListDto;
 import com.promaty.user.entity.User;
@@ -25,7 +27,7 @@ public final class UserMapper {
 		);
 	}
 
-	public static UserDetailDto toDetailDto(User user) {
+	public static UserDetailDto toDetailDto(User user, List<Long> projectIds) {
 		return new UserDetailDto(
 			user.getId(),
 			user.getFirstName(),
@@ -34,6 +36,7 @@ public final class UserMapper {
 			user.getPhoneNumber(),
 			user.getActive(),
 			RoleMapper.toSummaryDto(user.getRole()),
+			projectIds,
 			user.getCreatedAt(),
 			user.getUpdatedAt(),
 			user.getCreatedBy(),

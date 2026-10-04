@@ -32,12 +32,11 @@ class CreateRoleBuilderTest {
 		dto.setName("Editor");
 		dto.setDescription("Rol editor");
 		dto.setPermissionIds(List.of(1L));
-		dto.setSubModuleIds(List.of(2L));
 
 		Set<Permission> permisos = Set.of(new Permission());
 		Set<SubModule> subModulos = Set.of(new SubModule());
 		when(relationsResolver.resolvePermissions(List.of(1L))).thenReturn(permisos);
-		when(relationsResolver.resolveSubModules(List.of(2L))).thenReturn(subModulos);
+		when(relationsResolver.deriveSubModules(permisos)).thenReturn(subModulos);
 
 		Role role = createRoleBuilder.build(dto);
 

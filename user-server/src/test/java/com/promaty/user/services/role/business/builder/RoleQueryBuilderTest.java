@@ -11,10 +11,12 @@ import org.springframework.data.jpa.domain.Specification;
 
 import com.promaty.user.dto.role.RoleFilterParams;
 import com.promaty.user.entity.Role;
+import com.promaty.user.entity.SubModule;
 
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
@@ -130,5 +132,26 @@ class RoleQueryBuilderTest {
 
 		assertThat(resultado).isEqualTo(combinado);
 		assertThat(captor.getValue()).containsExactly(activePredicate, orPredicate);
+	}
+
+	@Test
+	void fromFilters_conSubModuleId_agregaPredicadoDeIgualdadSobreElJoin() {
+		RoleFilterParams filtros = new RoleFilterParams();
+		filtros.setSubModuleId(10L);
+
+		Join<Role, SubModule> subModulesJoin = mock(Join.class);
+		Path<Long> subModuleIdPath = mock(Path.class);
+		Predicate subModulePredicate = mock(Predicate.class);
+		Predicate combinado = mock(Predicate.class);
+		when(root.<Role, SubModule>join("subModules")).thenReturn(subModulesJoin);
+		when(subModulesJoin.<Long>get("id")).thenReturn(subModuleIdPath);
+		when(cb.equal(subModuleIdPath, 10L)).thenReturn(subModulePredicate);
+		ArgumentCaptor<Predicate[]> captor = ArgumentCaptor.forClass(Predicate[].class);
+		when(cb.and(captor.capture())).thenReturn(combinado);
+
+		Predicate resultado = RoleQueryBuilder.fromFilters(filtros).toPredicate(root, query, cb);
+
+		assertThat(resultado).isEqualTo(combinado);
+		assertThat(captor.getValue()).containsExactly(subModulePredicate);
 	}
 }

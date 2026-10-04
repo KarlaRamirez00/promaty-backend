@@ -31,8 +31,9 @@ import com.promaty.rrhh.support.TestJwt;
 @TestPropertySource(properties = "jwt.secret=" + TestJwt.SECRET)
 class PlatformStatusControllerTest {
 
-	// Token con el permiso de platformStatus para los tests de flujo; la autorizacion por permiso se prueba aparte.
-	private static final String TOKEN = TestJwt.bearer("platformStatus.read");
+	// project.read protege este selector (platformStatus.read se elimino del catalogo, 2026-10-04):
+	// ver el estado de un registro va implicito en poder ver ese registro.
+	private static final String TOKEN = TestJwt.bearer("project.read");
 
 	private static final String SIN_PERMISOS = TestJwt.bearer();
 

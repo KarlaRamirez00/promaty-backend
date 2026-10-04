@@ -30,6 +30,9 @@ public final class RoleQueryBuilder {
 					cb.like(SearchNormalizer.unaccent(cb, cb.lower(root.get("description"))), pattern)
 				));
 			}
+			if (filters.getSubModuleId() != null) {
+				predicates.add(cb.equal(root.join("subModules").get("id"), filters.getSubModuleId()));
+			}
 
 			return cb.and(predicates.toArray(new Predicate[0]));
 		};

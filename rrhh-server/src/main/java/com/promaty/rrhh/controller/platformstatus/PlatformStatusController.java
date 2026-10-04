@@ -22,7 +22,7 @@ public class PlatformStatusController {
 	}
 
 	@GetMapping
-	@PreAuthorize("hasAuthority('platformStatus.read')")
+	@PreAuthorize("hasAuthority('project.read')")
 	public ResponseEntity<BaseListData<PlatformStatusOptionDto>> list(@RequestParam String subModule) {
 		return ResponseEntity.ok(BaseListData.of(platformStatusService.listOptionsBySubModule(subModule)));
 	}

@@ -1,6 +1,7 @@
 package com.promaty.user.dto.user;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.promaty.user.dto.role.RoleSummaryDto;
 
@@ -22,6 +23,7 @@ public class UserDetailDto {
 	private String phoneNumber;
 	private Boolean active;
 	private RoleSummaryDto role;
+	private List<Long> projectIds;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
 	private String createdBy;

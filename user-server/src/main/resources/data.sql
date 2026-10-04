@@ -53,7 +53,7 @@ FROM (VALUES
   ('project.create', 'Crear proyectos', 'projects'),
   ('project.update', 'Editar proyectos', 'projects'),
   ('project.status', 'Cambiar estado de proyecto', 'projects'),
-  ('platformStatus.read', 'Ver estados de plataforma', 'platformStatuses'),
+  ('rrhh.AllowedAll', 'Ver todos los centros de costo', 'projects'),
   ('staff.read', 'Ver colaboradores', 'staff'),
   ('staff.create', 'Crear colaboradores', 'staff'),
   ('staff.update', 'Editar colaboradores', 'staff'),

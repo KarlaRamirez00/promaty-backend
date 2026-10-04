@@ -82,7 +82,7 @@ class UserControllerTest {
 
 	private UserDetailDto detalle() {
 		return new UserDetailDto(1L, "Ana", "Perez", "ana.perez@promaty.cl", null, true,
-			new RoleSummaryDto(1L, "Editor"), null, null, "system", null);
+			new RoleSummaryDto(1L, "Editor"), List.of(1L, 2L), null, null, "system", null);
 	}
 
 	@Test

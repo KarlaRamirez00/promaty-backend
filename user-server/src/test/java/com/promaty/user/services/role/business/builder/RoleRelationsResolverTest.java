@@ -16,16 +16,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.promaty.user.entity.Permission;
 import com.promaty.user.entity.SubModule;
 import com.promaty.user.repository.PermissionRepository;
-import com.promaty.user.repository.SubModuleRepository;
 
 @ExtendWith(MockitoExtension.class)
 class RoleRelationsResolverTest {
 
 	@Mock
 	private PermissionRepository permissionRepository;
-
-	@Mock
-	private SubModuleRepository subModuleRepository;
 
 	@InjectMocks
 	private RoleRelationsResolver relationsResolver;
@@ -57,20 +53,23 @@ class RoleRelationsResolverTest {
 	}
 
 	@Test
-	void resolveSubModules_conIdsNulos_retornaSetVacioSinConsultarRepo() {
-		Set<SubModule> resultado = relationsResolver.resolveSubModules(null);
+	void deriveSubModules_conPermisosDeDistintosSubmodulos_retornaSubModulosSinDuplicar() {
+		SubModule staffSubModule = new SubModule();
+		staffSubModule.setId(10L);
+		Permission staffRead = new Permission();
+		staffRead.setSubModule(staffSubModule);
+		Permission staffCreate = new Permission();
+		staffCreate.setSubModule(staffSubModule);
 
-		assertThat(resultado).isEmpty();
-		verifyNoInteractions(subModuleRepository);
+		Set<SubModule> resultado = relationsResolver.deriveSubModules(Set.of(staffRead, staffCreate));
+
+		assertThat(resultado).containsExactly(staffSubModule);
 	}
 
 	@Test
-	void resolveSubModules_conIds_retornaLosSubModulosDelRepo() {
-		SubModule subModulo = new SubModule();
-		when(subModuleRepository.findByIdIn(List.of(2L))).thenReturn(List.of(subModulo));
+	void deriveSubModules_sinPermisos_retornaSetVacio() {
+		Set<SubModule> resultado = relationsResolver.deriveSubModules(Set.of());
 
-		Set<SubModule> resultado = relationsResolver.resolveSubModules(List.of(2L));
-
-		assertThat(resultado).containsExactly(subModulo);
+		assertThat(resultado).isEmpty();
 	}
 }

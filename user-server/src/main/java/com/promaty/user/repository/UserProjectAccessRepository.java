@@ -11,4 +11,6 @@ public interface UserProjectAccessRepository extends JpaRepository<UserProjectAc
 
 	@Query("SELECT upa.projectId FROM UserProjectAccess upa WHERE upa.user.id = :userId")
 	List<Long> findProjectIdsByUserId(Long userId);
+
+	void deleteByUser_Id(Long userId);
 }

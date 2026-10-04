@@ -87,7 +87,7 @@ public class RoleServiceImpl implements RoleService {
 		rechazarSiEsDeSistema(existente);
 		roleValidation.validateUpdate(id, dto);
 		Set<Permission> permisos = relationsResolver.resolvePermissions(dto.getPermissionIds());
-		Set<SubModule> subModulos = relationsResolver.resolveSubModules(dto.getSubModuleIds());
+		Set<SubModule> subModulos = relationsResolver.deriveSubModules(permisos);
 		UpdateRoleBuilder.apply(existente, dto, permisos, subModulos);
 		roleRepository.save(existente);
 	}

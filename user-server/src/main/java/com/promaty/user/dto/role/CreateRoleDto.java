@@ -16,6 +16,4 @@ public class CreateRoleDto {
 	private String description;
 
 	private List<Long> permissionIds;
-
-	private List<Long> subModuleIds;
 }

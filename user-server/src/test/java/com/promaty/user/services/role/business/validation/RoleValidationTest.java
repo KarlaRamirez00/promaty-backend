@@ -3,7 +3,6 @@ package com.promaty.user.services.role.business.validation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -19,11 +18,9 @@ import com.promaty.user.dto.role.CreateRoleDto;
 import com.promaty.user.dto.role.UpdateRoleDto;
 import com.promaty.user.entity.Permission;
 import com.promaty.user.entity.Role;
-import com.promaty.user.entity.SubModule;
 import com.promaty.user.exception.BusinessValidationException;
 import com.promaty.user.repository.PermissionRepository;
 import com.promaty.user.repository.RoleRepository;
-import com.promaty.user.repository.SubModuleRepository;
 
 @ExtendWith(MockitoExtension.class)
 class RoleValidationTest {
@@ -34,15 +31,12 @@ class RoleValidationTest {
 	@Mock
 	private PermissionRepository permissionRepository;
 
-	@Mock
-	private SubModuleRepository subModuleRepository;
-
 	@InjectMocks
 	private RoleValidation roleValidation;
 
 	@Test
 	void validateCreate_conNombreDuplicado_lanzaErrorEnName() {
-		CreateRoleDto dto = createDto("Administrador", null, null);
+		CreateRoleDto dto = createDto("Administrador", null);
 		when(roleRepository.existsByName("Administrador")).thenReturn(true);
 
 		assertThatThrownBy(() -> roleValidation.validateCreate(dto))
@@ -53,7 +47,7 @@ class RoleValidationTest {
 
 	@Test
 	void validateCreate_conPermisoInexistente_lanzaErrorEnPermissionIds() {
-		CreateRoleDto dto = createDto("Editor", List.of(1L, 2L), null);
+		CreateRoleDto dto = createDto("Editor", List.of(1L, 2L));
 		when(roleRepository.existsByName("Editor")).thenReturn(false);
 		when(permissionRepository.findByIdIn(List.of(1L, 2L))).thenReturn(List.of(new Permission()));
 
@@ -64,43 +58,29 @@ class RoleValidationTest {
 	}
 
 	@Test
-	void validateCreate_conSubModuloInexistente_lanzaErrorEnSubModuleIds() {
-		CreateRoleDto dto = createDto("Editor", null, List.of(1L, 2L));
-		when(roleRepository.existsByName("Editor")).thenReturn(false);
-		when(subModuleRepository.findByIdIn(List.of(1L, 2L))).thenReturn(List.of(new SubModule()));
-
-		assertThatThrownBy(() -> roleValidation.validateCreate(dto))
-			.isInstanceOf(BusinessValidationException.class)
-			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
-				.containsKey("subModuleIds"));
-	}
-
-	@Test
 	void validateCreate_conDatosValidos_noLanzaExcepcion() {
-		CreateRoleDto dto = createDto("Editor", List.of(1L), List.of(2L));
+		CreateRoleDto dto = createDto("Editor", List.of(1L));
 		when(roleRepository.existsByName("Editor")).thenReturn(false);
 		when(permissionRepository.findByIdIn(List.of(1L))).thenReturn(List.of(new Permission()));
-		when(subModuleRepository.findByIdIn(List.of(2L))).thenReturn(List.of(new SubModule()));
 
 		assertThatCode(() -> roleValidation.validateCreate(dto)).doesNotThrowAnyException();
 	}
 
 	@Test
 	void validateCreate_conVariosErrores_losAcumulaTodos() {
-		CreateRoleDto dto = createDto("Administrador", List.of(1L), List.of(2L));
+		CreateRoleDto dto = createDto("Administrador", List.of(1L));
 		when(roleRepository.existsByName("Administrador")).thenReturn(true);
-		when(permissionRepository.findByIdIn(anyList())).thenReturn(List.of());
-		when(subModuleRepository.findByIdIn(anyList())).thenReturn(List.of());
+		when(permissionRepository.findByIdIn(List.of(1L))).thenReturn(List.of());
 
 		assertThatThrownBy(() -> roleValidation.validateCreate(dto))
 			.isInstanceOf(BusinessValidationException.class)
 			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
-				.containsKeys("name", "permissionIds", "subModuleIds"));
+				.containsKeys("name", "permissionIds"));
 	}
 
 	@Test
 	void validateUpdate_conNombreDuplicadoDeOtroRol_lanzaErrorEnName() {
-		UpdateRoleDto dto = updateDto("Administrador", null, null);
+		UpdateRoleDto dto = updateDto("Administrador", null);
 		Role otroRol = new Role();
 		otroRol.setId(99L);
 		when(roleRepository.findByName("Administrador")).thenReturn(Optional.of(otroRol));
@@ -113,7 +93,7 @@ class RoleValidationTest {
 
 	@Test
 	void validateUpdate_conNombreDuplicadoDelMismoRol_noLanzaExcepcion() {
-		UpdateRoleDto dto = updateDto("Administrador", null, null);
+		UpdateRoleDto dto = updateDto("Administrador", null);
 		Role mismoRol = new Role();
 		mismoRol.setId(1L);
 		when(roleRepository.findByName("Administrador")).thenReturn(Optional.of(mismoRol));
@@ -121,19 +101,17 @@ class RoleValidationTest {
 		assertThatCode(() -> roleValidation.validateUpdate(1L, dto)).doesNotThrowAnyException();
 	}
 
-	private CreateRoleDto createDto(String name, List<Long> permissionIds, List<Long> subModuleIds) {
+	private CreateRoleDto createDto(String name, List<Long> permissionIds) {
 		CreateRoleDto dto = new CreateRoleDto();
 		dto.setName(name);
 		dto.setPermissionIds(permissionIds);
-		dto.setSubModuleIds(subModuleIds);
 		return dto;
 	}
 
-	private UpdateRoleDto updateDto(String name, List<Long> permissionIds, List<Long> subModuleIds) {
+	private UpdateRoleDto updateDto(String name, List<Long> permissionIds) {
 		UpdateRoleDto dto = new UpdateRoleDto();
 		dto.setName(name);
 		dto.setPermissionIds(permissionIds);
-		dto.setSubModuleIds(subModuleIds);
 		return dto;
 	}
 }

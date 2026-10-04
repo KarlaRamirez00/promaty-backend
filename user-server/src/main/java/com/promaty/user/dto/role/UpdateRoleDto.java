@@ -16,6 +16,4 @@ public class UpdateRoleDto {
 	private String description;
 
 	private List<Long> permissionIds;
-
-	private List<Long> subModuleIds;
 }
