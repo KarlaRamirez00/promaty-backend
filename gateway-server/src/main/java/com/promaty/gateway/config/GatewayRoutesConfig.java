@@ -49,7 +49,8 @@ public class GatewayRoutesConfig {
 				.or(path("/jobTitles/**"))
 				.or(path("/sites/**"))
 				.or(path("/mealTypes/**"))
-				.or(path("/transportTypes/**")), http())
+				.or(path("/transportTypes/**"))
+				.or(path("/contracts/**")), http())
 			.filter(lb("rrhh-server"));
 	}
 }

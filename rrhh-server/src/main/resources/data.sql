@@ -548,7 +548,9 @@ ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO site (name, code, active, created_at, updated_at, created_by, updated_by)
 VALUES
-	('Casa matriz', 'MATRIZ', true, now(), now(), 'system', 'system')
+	('Casa matriz (Santiago)',          'MATRIZ', true, now(), now(), 'system', 'system'),
+	('Sucursal — Región de Valparaíso', 'VALPO',  true, now(), now(), 'system', 'system'),
+	('Sucursal — Región de Antofagasta', 'ANTOFA', true, now(), now(), 'system', 'system')
 ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO meal_type (name, code, active, created_at, updated_at, created_by, updated_by)
