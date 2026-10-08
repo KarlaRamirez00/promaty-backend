@@ -83,7 +83,7 @@ class RequestApprovalIntegrationTest {
 		Approval approval = new Approval();
 		approval.setRequest(saved);
 		approval.setApproverUserId(2L);
-		approval.setLevel(ApprovalLevel.SUPERVISOR);
+		approval.setLevel(ApprovalLevel.PROJECT_MANAGER);
 		approval.setDecision(ApprovalDecision.APPROVED);
 		approvalRepository.save(approval);
 

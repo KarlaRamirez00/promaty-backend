@@ -1,6 +1,6 @@
 package com.promaty.rrhh.entity;
 
 public enum ApprovalLevel {
-	SUPERVISOR,
+	PROJECT_MANAGER,
 	HR
 }
