@@ -1,7 +1,10 @@
 package com.promaty.rrhh.controller.request;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -28,7 +31,14 @@ import com.promaty.rrhh.support.TestJwt;
 class RequestControllerTest {
 
 	private static final String TOKEN = TestJwt.bearer("contract.create");
+	private static final String TOKEN_APROBAR = TestJwt.bearer("contract.approve");
 	private static final String SIN_PERMISOS = TestJwt.bearer();
+
+	private static final String DECIDE_JSON = """
+		{
+		  "decision": "APPROVED"
+		}
+		""";
 
 	private static final String REQUEST_JSON = """
 		{
@@ -83,5 +93,34 @@ class RequestControllerTest {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(REQUEST_JSON))
 			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void decide_conPermisoDeAprobar_retorna200() throws Exception {
+		doNothing().when(requestService).decideRequest(eq(1L), any());
+
+		mockMvc.perform(patch("/requests/1/decide")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN_APROBAR)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(DECIDE_JSON))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void decide_sinPermisoDeDecision_retorna403() throws Exception {
+		mockMvc.perform(patch("/requests/1/decide")
+				.header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(DECIDE_JSON))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void decide_sinDecision_retorna400() throws Exception {
+		mockMvc.perform(patch("/requests/1/decide")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN_APROBAR)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{}"))
+			.andExpect(status().isBadRequest());
 	}
 }

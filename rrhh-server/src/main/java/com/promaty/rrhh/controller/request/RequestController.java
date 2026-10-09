@@ -3,12 +3,15 @@ package com.promaty.rrhh.controller.request;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.promaty.rrhh.dto.request.CreateRequestDto;
+import com.promaty.rrhh.dto.request.DecideRequestDto;
 import com.promaty.rrhh.dto.response.BaseData;
 import com.promaty.rrhh.services.request.RequestService;
 
@@ -29,5 +32,12 @@ public class RequestController {
 	public ResponseEntity<BaseData<Long>> create(@Valid @RequestBody CreateRequestDto dto) {
 		Long id = requestService.createRequest(dto);
 		return ResponseEntity.status(HttpStatus.CREATED).body(BaseData.success(id));
+	}
+
+	@PatchMapping("/{id}/decide")
+	@PreAuthorize("hasAnyAuthority('contract.approve', 'contract.validate')")
+	public ResponseEntity<BaseData<Void>> decide(@PathVariable Long id, @Valid @RequestBody DecideRequestDto dto) {
+		requestService.decideRequest(id, dto);
+		return ResponseEntity.ok(BaseData.success(null));
 	}
 }

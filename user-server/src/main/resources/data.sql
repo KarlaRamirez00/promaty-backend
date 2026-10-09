@@ -59,7 +59,9 @@ FROM (VALUES
   ('staff.update', 'Editar colaboradores', 'staff'),
   ('contract.read', 'Ver contratos', 'contracts'),
   ('contract.create', 'Crear contratos', 'contracts'),
-  ('contract.update', 'Editar contratos', 'contracts')
+  ('contract.update', 'Editar contratos', 'contracts'),
+  ('contract.approve', 'Aprobar solicitud de contrato (gerente de obra)', 'contracts'),
+  ('contract.validate', 'Validar solicitud de contrato (RRHH)', 'contracts')
 ) AS p(name, alias, sub)
 JOIN sub_modules sm ON sm.name = p.sub
 WHERE NOT EXISTS (SELECT 1 FROM permissions pe WHERE pe.name = p.name);
