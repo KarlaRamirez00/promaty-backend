@@ -1,11 +1,14 @@
 package com.promaty.rrhh.services.request;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -13,14 +16,24 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import com.promaty.rrhh.dto.request.CreateRequestDto;
 import com.promaty.rrhh.dto.request.DecideRequestDto;
+import com.promaty.rrhh.dto.request.RequestDetailDto;
+import com.promaty.rrhh.dto.request.RequestFilterParams;
+import com.promaty.rrhh.dto.request.RequestListDto;
+import com.promaty.rrhh.entity.Approval;
 import com.promaty.rrhh.entity.ApprovalDecision;
 import com.promaty.rrhh.entity.ApprovalLevel;
 import com.promaty.rrhh.entity.PlatformStatus;
+import com.promaty.rrhh.entity.Project;
 import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.RequestEntityType;
+import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ApprovalRepository;
 import com.promaty.rrhh.repository.RequestRepository;
 import com.promaty.rrhh.services.request.business.builder.CreateRequestBuilder;
@@ -121,6 +134,54 @@ class RequestServiceImplTest {
 
 		assertThat(request.getStatus()).isEqualTo(rejected);
 		verify(handlerRegistry, never()).get(any());
+	}
+
+	@Test
+	void listRequests_retornaPaginaMapeada() {
+		Request request = requestConId(4L, RequestEntityType.CONTRACT);
+		request.setProject(proyectoConNombre("Edificio Centro"));
+		request.setStatus(statusConCodigo("PENDING_APPROVAL"));
+		RequestFilterParams filtros = new RequestFilterParams();
+		Pageable pageable = PageRequest.of(0, 20);
+		when(requestRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(new PageImpl<>(List.of(request)));
+
+		List<RequestListDto> resultado = requestService.listRequests(filtros, pageable).getContent();
+
+		assertThat(resultado).hasSize(1);
+		assertThat(resultado.get(0).getId()).isEqualTo(4L);
+		assertThat(resultado.get(0).getProjectName()).isEqualTo("Edificio Centro");
+	}
+
+	@Test
+	void getRequestDetail_conIdExistente_retornaDetalleConHistorialDeApprovals() {
+		Request request = requestConId(5L, RequestEntityType.CONTRACT);
+		request.setProject(proyectoConNombre("Edificio Centro"));
+		request.setStatus(statusConCodigo("APPROVED"));
+		when(requestRepository.findById(5L)).thenReturn(Optional.of(request));
+		Approval approval = new Approval();
+		approval.setLevel(ApprovalLevel.PROJECT_MANAGER);
+		approval.setDecision(ApprovalDecision.APPROVED);
+		when(approvalRepository.findByRequest_IdOrderByCreatedAtAsc(5L)).thenReturn(List.of(approval));
+
+		RequestDetailDto detalle = requestService.getRequestDetail(5L);
+
+		assertThat(detalle.getId()).isEqualTo(5L);
+		assertThat(detalle.getApprovals()).hasSize(1);
+		assertThat(detalle.getApprovals().get(0).getLevel()).isEqualTo(ApprovalLevel.PROJECT_MANAGER);
+	}
+
+	@Test
+	void getRequestDetail_conIdInexistente_lanzaResourceNotFound() {
+		when(requestRepository.findById(99L)).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> requestService.getRequestDetail(99L))
+			.isInstanceOf(ResourceNotFoundException.class);
+	}
+
+	private Project proyectoConNombre(String name) {
+		Project project = new Project();
+		project.setName(name);
+		return project;
 	}
 
 	private Request requestConId(Long id, RequestEntityType entityType) {

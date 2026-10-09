@@ -16,6 +16,7 @@ import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.services.contract.business.builder.ContractQueryBuilder;
 import com.promaty.rrhh.services.contract.business.mapper.ContractMapper;
+import com.promaty.rrhh.services.shared.ProjectAccessSpecification;
 
 @Service
 public class ContractServiceImpl implements ContractService {
@@ -31,7 +32,8 @@ public class ContractServiceImpl implements ContractService {
 	@Override
 	@Transactional(readOnly = true)
 	public Page<ContractListDto> listContracts(ContractFilterParams filters, Pageable pageable) {
-		Specification<Contract> especificacion = ContractQueryBuilder.fromFilters(filters);
+		Specification<Contract> especificacion = ContractQueryBuilder.fromFilters(filters)
+			.and(ProjectAccessSpecification.onProject());
 		return contractRepository.findAll(especificacion, pageable)
 			.map(ContractMapper::toListDto)
 			.map(dto -> conAcciones(dto));

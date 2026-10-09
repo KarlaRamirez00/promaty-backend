@@ -27,6 +27,7 @@ import com.promaty.rrhh.services.project.business.mapper.ProjectMapper;
 import com.promaty.rrhh.services.project.business.validation.ProjectValidation;
 import com.promaty.rrhh.services.shared.ActionsResolver;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
+import com.promaty.rrhh.services.shared.ProjectAccessSpecification;
 
 @Service
 public class ProjectServiceImpl implements ProjectService {
@@ -90,7 +91,8 @@ public class ProjectServiceImpl implements ProjectService {
 	@Override
 	@Transactional(readOnly = true)
 	public Page<ProjectListDto> listProjects(ProjectFilterParams filters, Pageable pageable) {
-		Specification<Project> especificacion = ProjectQueryBuilder.fromFilters(filters);
+		Specification<Project> especificacion = ProjectQueryBuilder.fromFilters(filters)
+			.and(ProjectAccessSpecification.onProjectId());
 		List<Action> actions = actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES);
 		return projectRepository.findAll(especificacion, pageable)
 			.map(ProjectMapper::toListDto)
