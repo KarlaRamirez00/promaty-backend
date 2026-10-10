@@ -19,6 +19,8 @@ import com.promaty.rrhh.repository.PlatformStatusRepository;
 import com.promaty.rrhh.repository.SiteRepository;
 import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.repository.TransportTypeRepository;
+import com.promaty.rrhh.services.rexplus.RexPlusClient;
+import com.promaty.rrhh.services.rexplus.RexSyncResult;
 
 /**
  * RequestValidation ya confirmó que las FK de contractData existen al crear la Request; para cuando
@@ -30,6 +32,7 @@ public class ContractRequestHandler implements RequestHandler {
 
 	private static final String SUBMODULE_CONTRACT = "contract";
 	private static final String CODE_ACTIVE = "ACTIVE";
+	private static final String CODE_SYNC_ERROR = "SYNC_ERROR";
 
 	private final ObjectMapper objectMapper;
 	private final ContractRepository contractRepository;
@@ -41,6 +44,7 @@ public class ContractRequestHandler implements RequestHandler {
 	private final MealTypeRepository mealTypeRepository;
 	private final TransportTypeRepository transportTypeRepository;
 	private final PlatformStatusRepository platformStatusRepository;
+	private final RexPlusClient rexPlusClient;
 
 	public ContractRequestHandler(
 		ObjectMapper objectMapper,
@@ -52,7 +56,8 @@ public class ContractRequestHandler implements RequestHandler {
 		SiteRepository siteRepository,
 		MealTypeRepository mealTypeRepository,
 		TransportTypeRepository transportTypeRepository,
-		PlatformStatusRepository platformStatusRepository
+		PlatformStatusRepository platformStatusRepository,
+		RexPlusClient rexPlusClient
 	) {
 		this.objectMapper = objectMapper;
 		this.contractRepository = contractRepository;
@@ -64,6 +69,7 @@ public class ContractRequestHandler implements RequestHandler {
 		this.mealTypeRepository = mealTypeRepository;
 		this.transportTypeRepository = transportTypeRepository;
 		this.platformStatusRepository = platformStatusRepository;
+		this.rexPlusClient = rexPlusClient;
 	}
 
 	@Override
@@ -102,14 +108,20 @@ public class ContractRequestHandler implements RequestHandler {
 			contract.setTransportType(transportTypeRepository.findById(datos.getTransportTypeId())
 				.orElseThrow(() -> new ResourceNotFoundException("El tipo de movilizacion indicado no existe.")));
 		}
-		contract.setStatus(resolveEstadoActivo());
+		RexSyncResult sincronizacion = rexPlusClient.syncContract(contract);
+		if (sincronizacion.success()) {
+			contract.setContractNumber(sincronizacion.externalContractNumber());
+			contract.setStatus(resolveEstado(CODE_ACTIVE));
+		} else {
+			contract.setStatus(resolveEstado(CODE_SYNC_ERROR));
+		}
 
 		return contractRepository.save(contract).getId();
 	}
 
-	private PlatformStatus resolveEstadoActivo() {
-		return platformStatusRepository.findBySubModuleAndCode(SUBMODULE_CONTRACT, CODE_ACTIVE)
-			.orElseThrow(() -> new ResourceNotFoundException("El estado ACTIVE de contrato no está sembrado."));
+	private PlatformStatus resolveEstado(String code) {
+		return platformStatusRepository.findBySubModuleAndCode(SUBMODULE_CONTRACT, code)
+			.orElseThrow(() -> new ResourceNotFoundException("El estado " + code + " de contrato no está sembrado."));
 	}
 
 	private ContractPendingDataDto deserializar(String pendingData) {
