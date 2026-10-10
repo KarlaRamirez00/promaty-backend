@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Optional;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,18 +21,24 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.promaty.rrhh.dto.request.CreateRequestDto;
 import com.promaty.rrhh.dto.request.DecideRequestDto;
+import com.promaty.rrhh.dto.request.RequestCountersDto;
 import com.promaty.rrhh.dto.request.RequestDetailDto;
 import com.promaty.rrhh.dto.request.RequestFilterParams;
 import com.promaty.rrhh.dto.request.RequestListDto;
+import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.entity.Approval;
 import com.promaty.rrhh.entity.ApprovalDecision;
 import com.promaty.rrhh.entity.ApprovalLevel;
 import com.promaty.rrhh.entity.PlatformStatus;
 import com.promaty.rrhh.entity.Project;
 import com.promaty.rrhh.entity.Request;
+import com.promaty.rrhh.entity.RequestAction;
 import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ApprovalRepository;
@@ -65,6 +72,11 @@ class RequestServiceImplTest {
 	private RequestHandlerRegistry handlerRegistry;
 	@Mock
 	private RequestHandler contractRequestHandler;
+
+	@AfterEach
+	void limpiarContextoDeSeguridad() {
+		SecurityContextHolder.clearContext();
+	}
 
 	@InjectMocks
 	private RequestServiceImpl requestService;
@@ -156,6 +168,44 @@ class RequestServiceImplTest {
 	}
 
 	@Test
+	void listRequests_conPermisoDeAprobarYStatusPendingApproval_actionsIncluyeApprove() {
+		autenticarCon("contract.approve");
+		Request request = requestConId(6L, RequestEntityType.CONTRACT);
+		request.setProject(proyectoConNombre("Edificio Centro"));
+		request.setStatus(statusConCodigo("PENDING_APPROVAL"));
+		Pageable pageable = PageRequest.of(0, 20);
+		when(requestRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(new PageImpl<>(List.of(request)));
+
+		List<RequestListDto> resultado = requestService.listRequests(new RequestFilterParams(), pageable).getContent();
+
+		assertThat(resultado.get(0).getActions()).containsExactly(Action.APPROVE);
+	}
+
+	@Test
+	void listRequests_sinPermisoDeAprobar_actionsQuedaVacio() {
+		autenticarCon("contract.validate");
+		Request request = requestConId(7L, RequestEntityType.CONTRACT);
+		request.setProject(proyectoConNombre("Edificio Centro"));
+		request.setStatus(statusConCodigo("PENDING_APPROVAL"));
+		Pageable pageable = PageRequest.of(0, 20);
+		when(requestRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(new PageImpl<>(List.of(request)));
+
+		List<RequestListDto> resultado = requestService.listRequests(new RequestFilterParams(), pageable).getContent();
+
+		assertThat(resultado.get(0).getActions()).isEmpty();
+	}
+
+	@Test
+	void getCounters_delegaEnRepositoryConteoPorStatus() {
+		when(requestRepository.count(any(Specification.class))).thenReturn(3L, 5L);
+
+		RequestCountersDto contadores = requestService.getCounters(RequestEntityType.CONTRACT);
+
+		assertThat(contadores.getPendingApproval()).isEqualTo(3L);
+		assertThat(contadores.getPendingValidation()).isEqualTo(5L);
+	}
+
+	@Test
 	void getRequestDetail_conIdExistente_retornaDetalleConHistorialDeApprovals() {
 		Request request = requestConId(5L, RequestEntityType.CONTRACT);
 		request.setProject(proyectoConNombre("Edificio Centro"));
@@ -181,6 +231,11 @@ class RequestServiceImplTest {
 			.isInstanceOf(ResourceNotFoundException.class);
 	}
 
+	private void autenticarCon(String autoridad) {
+		SecurityContextHolder.getContext().setAuthentication(
+			new UsernamePasswordAuthenticationToken("usuario", null, List.of(new SimpleGrantedAuthority(autoridad))));
+	}
+
 	private Project proyectoConNombre(String name) {
 		Project project = new Project();
 		project.setName(name);
@@ -191,6 +246,7 @@ class RequestServiceImplTest {
 		Request request = new Request();
 		request.setId(id);
 		request.setEntityType(entityType);
+		request.setAction(RequestAction.CREATE);
 		return request;
 	}
 

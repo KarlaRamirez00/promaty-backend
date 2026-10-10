@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.promaty.rrhh.dto.request.CreateRequestDto;
 import com.promaty.rrhh.dto.request.DecideRequestDto;
+import com.promaty.rrhh.dto.request.RequestCountersDto;
 import com.promaty.rrhh.dto.request.RequestDetailDto;
 import com.promaty.rrhh.dto.request.RequestFilterParams;
 import com.promaty.rrhh.dto.request.RequestListDto;
@@ -56,7 +57,8 @@ public class RequestController {
 		@ModelAttribute RequestFilterParams filters,
 		@PageableDefault(sort = {"createdAt", "id"}, direction = Sort.Direction.DESC) Pageable pageable
 	) {
-		return ResponseEntity.ok(BaseListData.of(requestService.listRequests(filters, pageable)));
+		RequestCountersDto counters = requestService.getCounters(filters.getEntityType());
+		return ResponseEntity.ok(BaseListData.of(requestService.listRequests(filters, pageable), counters));
 	}
 
 	@GetMapping("/{id}")

@@ -15,12 +15,17 @@ import lombok.Setter;
 public class Meta {
 
 	private Pagination pagination;
+	private Object otherData;
 
 	public static Meta empty() {
-		return new Meta(null);
+		return new Meta(null, null);
 	}
 
 	public static Meta of(Pagination pagination) {
-		return new Meta(pagination);
+		return new Meta(pagination, null);
+	}
+
+	public static Meta of(Pagination pagination, Object otherData) {
+		return new Meta(pagination, otherData);
 	}
 }

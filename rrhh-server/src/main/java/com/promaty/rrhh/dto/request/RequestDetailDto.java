@@ -22,11 +22,14 @@ public class RequestDetailDto {
 	private Long id;
 	private RequestEntityType entityType;
 	private RequestAction action;
+	private String typeName;
 	private Long entityId;
 	private String pendingData;
 	private Long projectId;
 	private String projectName;
+	private String costCenterCode;
 	private Long requesterUserId;
+	private String requesterName;
 	private PlatformStatusOptionDto status;
 	private List<ApprovalSummaryDto> approvals;
 	private LocalDateTime createdAt;

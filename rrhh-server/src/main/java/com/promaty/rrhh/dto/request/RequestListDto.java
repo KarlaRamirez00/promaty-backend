@@ -3,6 +3,7 @@ package com.promaty.rrhh.dto.request;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.promaty.rrhh.dto.platformstatus.PlatformStatusOptionDto;
 import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.entity.RequestAction;
 import com.promaty.rrhh.entity.RequestEntityType;
@@ -21,10 +22,13 @@ public class RequestListDto {
 	private Long id;
 	private RequestEntityType entityType;
 	private RequestAction action;
+	private String typeName;
 	private Long entityId;
 	private String projectName;
+	private String costCenterCode;
 	private Long requesterUserId;
-	private String statusName;
+	private String requesterName;
+	private PlatformStatusOptionDto status;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
 	private String createdBy;

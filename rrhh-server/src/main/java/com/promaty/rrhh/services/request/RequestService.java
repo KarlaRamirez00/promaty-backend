@@ -5,9 +5,11 @@ import org.springframework.data.domain.Pageable;
 
 import com.promaty.rrhh.dto.request.CreateRequestDto;
 import com.promaty.rrhh.dto.request.DecideRequestDto;
+import com.promaty.rrhh.dto.request.RequestCountersDto;
 import com.promaty.rrhh.dto.request.RequestDetailDto;
 import com.promaty.rrhh.dto.request.RequestFilterParams;
 import com.promaty.rrhh.dto.request.RequestListDto;
+import com.promaty.rrhh.entity.RequestEntityType;
 
 public interface RequestService {
 
@@ -18,4 +20,6 @@ public interface RequestService {
 	Page<RequestListDto> listRequests(RequestFilterParams filters, Pageable pageable);
 
 	RequestDetailDto getRequestDetail(Long id);
+
+	RequestCountersDto getCounters(RequestEntityType entityType);
 }

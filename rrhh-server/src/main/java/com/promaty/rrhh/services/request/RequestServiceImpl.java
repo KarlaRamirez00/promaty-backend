@@ -1,6 +1,8 @@
 package com.promaty.rrhh.services.request;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,15 +12,18 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.promaty.rrhh.dto.request.CreateRequestDto;
 import com.promaty.rrhh.dto.request.DecideRequestDto;
+import com.promaty.rrhh.dto.request.RequestCountersDto;
 import com.promaty.rrhh.dto.request.RequestDetailDto;
 import com.promaty.rrhh.dto.request.RequestFilterParams;
 import com.promaty.rrhh.dto.request.RequestListDto;
+import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.entity.Approval;
 import com.promaty.rrhh.entity.ApprovalLevel;
 import com.promaty.rrhh.entity.PlatformStatus;
 import com.promaty.rrhh.entity.Request;
-import com.promaty.rrhh.exception.ResourceNotFoundException;
+import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.entity.RequestRejectionReason;
+import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ApprovalRepository;
 import com.promaty.rrhh.repository.RequestRejectionReasonRepository;
 import com.promaty.rrhh.repository.RequestRepository;
@@ -29,6 +34,7 @@ import com.promaty.rrhh.services.request.business.mapper.RequestMapper;
 import com.promaty.rrhh.services.request.business.validation.RequestDecisionValidation;
 import com.promaty.rrhh.services.request.business.validation.RequestValidation;
 import com.promaty.rrhh.services.request.handler.RequestHandlerRegistry;
+import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
 import com.promaty.rrhh.services.shared.CurrentUserId;
 import com.promaty.rrhh.services.shared.ProjectAccessSpecification;
 
@@ -36,6 +42,10 @@ import com.promaty.rrhh.services.shared.ProjectAccessSpecification;
 public class RequestServiceImpl implements RequestService {
 
 	private static final String CODE_APPROVED = "APPROVED";
+	private static final String CODE_PENDING_APPROVAL = "PENDING_APPROVAL";
+	private static final String CODE_PENDING_VALIDATION = "PENDING_VALIDATION";
+	private static final String PERMISO_APROBAR = "contract.approve";
+	private static final String PERMISO_VALIDAR = "contract.validate";
 	private static final String NO_ENCONTRADA = "La solicitud indicada no existe.";
 
 	private final RequestRepository requestRepository;
@@ -97,9 +107,10 @@ public class RequestServiceImpl implements RequestService {
 	public Page<RequestListDto> listRequests(RequestFilterParams filters, Pageable pageable) {
 		Specification<Request> especificacion = RequestQueryBuilder.fromFilters(filters)
 			.and(ProjectAccessSpecification.onProject());
+		Set<String> autoridades = CurrentUserAuthorities.get();
 		return requestRepository.findAll(especificacion, pageable)
 			.map(RequestMapper::toListDto)
-			.map(this::conAcciones);
+			.map(dto -> conAcciones(dto, autoridades));
 	}
 
 	@Override
@@ -108,8 +119,26 @@ public class RequestServiceImpl implements RequestService {
 		Request request = buscarPorId(id);
 		List<Approval> approvals = approvalRepository.findByRequest_IdOrderByCreatedAtAsc(id);
 		RequestDetailDto dto = RequestMapper.toDetailDto(request, approvals);
-		dto.setActions(List.of());
+		dto.setActions(resolveRowActions(dto.getStatus().getCode(), CurrentUserAuthorities.get()));
 		return dto;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public RequestCountersDto getCounters(RequestEntityType entityType) {
+		return new RequestCountersDto(
+			contarPorStatus(CODE_PENDING_APPROVAL, entityType),
+			contarPorStatus(CODE_PENDING_VALIDATION, entityType)
+		);
+	}
+
+	private long contarPorStatus(String statusCode, RequestEntityType entityType) {
+		Specification<Request> especificacion = ProjectAccessSpecification.<Request>onProject()
+			.and((root, query, cb) -> cb.equal(root.get("status").get("code"), statusCode));
+		if (entityType != null) {
+			especificacion = especificacion.and((root, query, cb) -> cb.equal(root.get("entityType"), entityType));
+		}
+		return requestRepository.count(especificacion);
 	}
 
 	private Request buscarPorId(Long id) {
@@ -117,9 +146,19 @@ public class RequestServiceImpl implements RequestService {
 			.orElseThrow(() -> new ResourceNotFoundException(NO_ENCONTRADA));
 	}
 
-	private RequestListDto conAcciones(RequestListDto dto) {
-		dto.setActions(List.of());
+	private RequestListDto conAcciones(RequestListDto dto, Set<String> autoridades) {
+		dto.setActions(resolveRowActions(dto.getStatus().getCode(), autoridades));
 		return dto;
+	}
+
+	private List<Action> resolveRowActions(String statusCode, Set<String> autoridades) {
+		List<Action> actions = new ArrayList<>();
+		if (CODE_PENDING_APPROVAL.equals(statusCode) && autoridades.contains(PERMISO_APROBAR)) {
+			actions.add(Action.APPROVE);
+		} else if (CODE_PENDING_VALIDATION.equals(statusCode) && autoridades.contains(PERMISO_VALIDAR)) {
+			actions.add(Action.VALIDATE);
+		}
+		return actions;
 	}
 
 	private void registrarApproval(Request request, DecideRequestDto dto, ApprovalLevel nivelDecidido) {

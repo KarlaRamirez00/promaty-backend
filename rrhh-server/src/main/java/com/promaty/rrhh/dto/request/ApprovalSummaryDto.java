@@ -23,5 +23,6 @@ public class ApprovalSummaryDto {
 	private String rejectionReasonName;
 	private String comment;
 	private Long approverUserId;
+	private String approverName;
 	private LocalDateTime createdAt;
 }

@@ -136,8 +136,8 @@ class RequestControllerTest {
 	@Test
 	void list_conPermisoDeLectura_retorna200ConLista() throws Exception {
 		RequestListDto dto = new RequestListDto(
-			1L, RequestEntityType.CONTRACT, RequestAction.CREATE, null, "Edificio Centro",
-			7L, "Pendiente de aprobación", null, null, null, null, List.of()
+			1L, RequestEntityType.CONTRACT, RequestAction.CREATE, "Nuevo contrato", null, "Edificio Centro",
+			"CC-01", 7L, "Juan Pérez", null, null, null, null, null, List.of()
 		);
 		when(requestService.listRequests(any(), any())).thenReturn(new PageImpl<>(List.of(dto)));
 
@@ -158,8 +158,8 @@ class RequestControllerTest {
 	@Test
 	void detail_conPermisoDeLectura_retorna200ConDetalle() throws Exception {
 		RequestDetailDto dto = new RequestDetailDto(
-			1L, RequestEntityType.CONTRACT, RequestAction.CREATE, null, "{}", 7L, "Edificio Centro",
-			7L, null, List.of(), null, null, null, null, List.of()
+			1L, RequestEntityType.CONTRACT, RequestAction.CREATE, "Nuevo contrato", null, "{}", 7L, "Edificio Centro",
+			"CC-01", 7L, "Juan Pérez", null, List.of(), null, null, null, null, List.of()
 		);
 		when(requestService.getRequestDetail(1L)).thenReturn(dto);
 

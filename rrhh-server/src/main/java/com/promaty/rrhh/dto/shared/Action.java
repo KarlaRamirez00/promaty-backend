@@ -5,5 +5,7 @@ public enum Action {
 	CREATE,
 	UPDATE,
 	ACTIVE,
-	STATUS
+	STATUS,
+	APPROVE,
+	VALIDATE
 }

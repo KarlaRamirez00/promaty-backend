@@ -19,13 +19,20 @@ public class BaseListData<T> {
 	private Meta meta;
 
 	public static <T> BaseListData<T> of(Page<T> page) {
-		Pagination pagination = new Pagination(
+		return new BaseListData<>(page.getContent(), Meta.of(paginationDe(page)));
+	}
+
+	public static <T> BaseListData<T> of(Page<T> page, Object otherData) {
+		return new BaseListData<>(page.getContent(), Meta.of(paginationDe(page), otherData));
+	}
+
+	private static Pagination paginationDe(Page<?> page) {
+		return new Pagination(
 			page.getNumber(),
 			page.getSize(),
 			page.getTotalElements(),
 			page.getTotalPages()
 		);
-		return new BaseListData<>(page.getContent(), Meta.of(pagination));
 	}
 
 	// Lista sin paginar (ej. un selector). Meta.empty() + @JsonInclude(NON_NULL) en Meta serializa

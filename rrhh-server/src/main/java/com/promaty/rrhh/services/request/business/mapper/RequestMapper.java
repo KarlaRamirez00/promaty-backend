@@ -19,15 +19,18 @@ public final class RequestMapper {
 			request.getId(),
 			request.getEntityType(),
 			request.getAction(),
+			RequestTypeLabelResolver.resolve(request.getEntityType(), request.getAction()),
 			request.getEntityId(),
 			request.getProject().getName(),
+			request.getProject().getCostCenterCode(),
 			request.getRequesterUserId(),
-			request.getStatus().getName(),
+			request.getCreatedBy(),
+			new PlatformStatusOptionDto(request.getStatus().getId(), request.getStatus().getCode(), request.getStatus().getName()),
 			request.getCreatedAt(),
 			request.getUpdatedAt(),
 			request.getCreatedBy(),
 			request.getUpdatedBy(),
-			null // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
+			null // actions depende del status de la fila y de los permisos del usuario: lo completa el service
 		);
 	}
 
@@ -36,18 +39,21 @@ public final class RequestMapper {
 			request.getId(),
 			request.getEntityType(),
 			request.getAction(),
+			RequestTypeLabelResolver.resolve(request.getEntityType(), request.getAction()),
 			request.getEntityId(),
 			request.getPendingData(),
 			request.getProject().getId(),
 			request.getProject().getName(),
+			request.getProject().getCostCenterCode(),
 			request.getRequesterUserId(),
+			request.getCreatedBy(),
 			new PlatformStatusOptionDto(request.getStatus().getId(), request.getStatus().getCode(), request.getStatus().getName()),
 			approvals.stream().map(RequestMapper::toApprovalSummary).toList(),
 			request.getCreatedAt(),
 			request.getUpdatedAt(),
 			request.getCreatedBy(),
 			request.getUpdatedBy(),
-			null // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
+			null // actions depende del status de la fila y de los permisos del usuario: lo completa el service
 		);
 	}
 
@@ -60,6 +66,7 @@ public final class RequestMapper {
 			approval.getRejectionReason() != null ? approval.getRejectionReason().getName() : null,
 			approval.getComment(),
 			approval.getApproverUserId(),
+			approval.getCreatedBy(),
 			approval.getCreatedAt()
 		);
 	}
