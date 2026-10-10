@@ -21,7 +21,8 @@ FROM (VALUES
   ('projects', 'Proyectos', '/proyectos'),
   ('platformStatuses', 'Estados', '/estados'),
   ('staff', 'Colaboradores', '/colaboradores'),
-  ('contracts', 'Contratos', '/contratos')
+  ('contracts', 'Contratos', '/contratos'),
+  ('requestRejectionReasons', 'Motivos de rechazo', '/motivos-rechazo')
 ) AS s(name, alias, path)
 CROSS JOIN (SELECT id FROM modules WHERE name = 'sistema') m
 WHERE NOT EXISTS (SELECT 1 FROM sub_modules sm WHERE sm.name = s.name);
@@ -61,7 +62,11 @@ FROM (VALUES
   ('contract.create', 'Crear contratos', 'contracts'),
   ('contract.update', 'Editar contratos', 'contracts'),
   ('contract.approve', 'Aprobar solicitud de contrato (gerente de obra)', 'contracts'),
-  ('contract.validate', 'Validar solicitud de contrato (RRHH)', 'contracts')
+  ('contract.validate', 'Validar solicitud de contrato (RRHH)', 'contracts'),
+  ('requestRejectionReason.read', 'Ver motivos de rechazo', 'requestRejectionReasons'),
+  ('requestRejectionReason.create', 'Crear motivos de rechazo', 'requestRejectionReasons'),
+  ('requestRejectionReason.update', 'Editar motivos de rechazo', 'requestRejectionReasons'),
+  ('requestRejectionReason.active', 'Activar motivos de rechazo', 'requestRejectionReasons')
 ) AS p(name, alias, sub)
 JOIN sub_modules sm ON sm.name = p.sub
 WHERE NOT EXISTS (SELECT 1 FROM permissions pe WHERE pe.name = p.name);

@@ -12,6 +12,7 @@ import com.promaty.rrhh.entity.ApprovalDecision;
 import com.promaty.rrhh.entity.ApprovalLevel;
 import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.exception.BusinessValidationException;
+import com.promaty.rrhh.repository.RequestRejectionReasonRepository;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
 
 @Component
@@ -20,6 +21,12 @@ public class RequestDecisionValidation {
 	private static final String MENSAJE_VALIDACION = "La validacion fallo para uno o mas campos.";
 	private static final String PERMISO_APROBAR = "contract.approve";
 	private static final String PERMISO_VALIDAR = "contract.validate";
+
+	private final RequestRejectionReasonRepository requestRejectionReasonRepository;
+
+	public RequestDecisionValidation(RequestRejectionReasonRepository requestRejectionReasonRepository) {
+		this.requestRejectionReasonRepository = requestRejectionReasonRepository;
+	}
 
 	public ApprovalLevel validateDecision(Request request, DecideRequestDto dto) {
 		ApprovalLevel nivelEsperado = resolveNivelEsperado(request);
@@ -49,10 +56,14 @@ public class RequestDecisionValidation {
 	}
 
 	private void validarMotivoDeRechazo(DecideRequestDto dto) {
+		if (dto.getDecision() != ApprovalDecision.REJECTED) {
+			return;
+		}
 		Map<String, String> errores = new LinkedHashMap<>();
-		if (dto.getDecision() == ApprovalDecision.REJECTED
-			&& (dto.getRejectionReason() == null || dto.getRejectionReason().isBlank())) {
-			errores.put("rejectionReason", "El motivo de rechazo es obligatorio al rechazar.");
+		if (dto.getRejectionReasonId() == null) {
+			errores.put("rejectionReasonId", "El motivo de rechazo es obligatorio al rechazar.");
+		} else if (!requestRejectionReasonRepository.existsById(dto.getRejectionReasonId())) {
+			errores.put("rejectionReasonId", "El motivo de rechazo indicado no existe.");
 		}
 		if (!errores.isEmpty()) {
 			throw new BusinessValidationException(MENSAJE_VALIDACION, errores);

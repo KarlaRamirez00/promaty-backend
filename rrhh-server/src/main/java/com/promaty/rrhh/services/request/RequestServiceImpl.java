@@ -18,7 +18,9 @@ import com.promaty.rrhh.entity.ApprovalLevel;
 import com.promaty.rrhh.entity.PlatformStatus;
 import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
+import com.promaty.rrhh.entity.RequestRejectionReason;
 import com.promaty.rrhh.repository.ApprovalRepository;
+import com.promaty.rrhh.repository.RequestRejectionReasonRepository;
 import com.promaty.rrhh.repository.RequestRepository;
 import com.promaty.rrhh.services.request.business.builder.CreateRequestBuilder;
 import com.promaty.rrhh.services.request.business.builder.RequestQueryBuilder;
@@ -38,6 +40,7 @@ public class RequestServiceImpl implements RequestService {
 
 	private final RequestRepository requestRepository;
 	private final ApprovalRepository approvalRepository;
+	private final RequestRejectionReasonRepository requestRejectionReasonRepository;
 	private final RequestValidation requestValidation;
 	private final RequestDecisionValidation requestDecisionValidation;
 	private final CreateRequestBuilder createRequestBuilder;
@@ -47,6 +50,7 @@ public class RequestServiceImpl implements RequestService {
 	public RequestServiceImpl(
 		RequestRepository requestRepository,
 		ApprovalRepository approvalRepository,
+		RequestRejectionReasonRepository requestRejectionReasonRepository,
 		RequestValidation requestValidation,
 		RequestDecisionValidation requestDecisionValidation,
 		CreateRequestBuilder createRequestBuilder,
@@ -55,6 +59,7 @@ public class RequestServiceImpl implements RequestService {
 	) {
 		this.requestRepository = requestRepository;
 		this.approvalRepository = approvalRepository;
+		this.requestRejectionReasonRepository = requestRejectionReasonRepository;
 		this.requestValidation = requestValidation;
 		this.requestDecisionValidation = requestDecisionValidation;
 		this.createRequestBuilder = createRequestBuilder;
@@ -123,8 +128,12 @@ public class RequestServiceImpl implements RequestService {
 		approval.setApproverUserId(CurrentUserId.get());
 		approval.setLevel(nivelDecidido);
 		approval.setDecision(dto.getDecision());
-		approval.setRejectionReason(dto.getRejectionReason());
+		approval.setRejectionReason(resolveRejectionReason(dto.getRejectionReasonId()));
 		approval.setComment(dto.getComment());
 		approvalRepository.save(approval);
+	}
+
+	private RequestRejectionReason resolveRejectionReason(Long rejectionReasonId) {
+		return rejectionReasonId == null ? null : requestRejectionReasonRepository.findById(rejectionReasonId).orElse(null);
 	}
 }

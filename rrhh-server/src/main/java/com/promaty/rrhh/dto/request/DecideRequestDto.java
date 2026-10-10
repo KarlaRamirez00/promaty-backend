@@ -13,7 +13,7 @@ public class DecideRequestDto {
 	@NotNull(message = "La decision es obligatoria.")
 	private ApprovalDecision decision;
 
-	private String rejectionReason;
+	private Long rejectionReasonId;
 
 	private String comment;
 }

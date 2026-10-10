@@ -56,7 +56,8 @@ public final class RequestMapper {
 			approval.getId(),
 			approval.getLevel(),
 			approval.getDecision(),
-			approval.getRejectionReason(),
+			approval.getRejectionReason() != null ? approval.getRejectionReason().getId() : null,
+			approval.getRejectionReason() != null ? approval.getRejectionReason().getName() : null,
 			approval.getComment(),
 			approval.getApproverUserId(),
 			approval.getCreatedAt()

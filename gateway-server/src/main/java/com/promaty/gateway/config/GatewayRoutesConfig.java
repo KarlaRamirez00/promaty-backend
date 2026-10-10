@@ -34,6 +34,7 @@ public class GatewayRoutesConfig {
 				.or(path("/platformStatuses/**"))
 				.or(path("/staff/**"))
 				.or(path("/requests/**"))
+				.or(path("/requestRejectionReasons/**"))
 				.or(path("/registeredSexes/**"))
 				.or(path("/maritalStatuses/**"))
 				.or(path("/nationalities/**"))

@@ -19,7 +19,8 @@ public class ApprovalSummaryDto {
 	private Long id;
 	private ApprovalLevel level;
 	private ApprovalDecision decision;
-	private String rejectionReason;
+	private Long rejectionReasonId;
+	private String rejectionReasonName;
 	private String comment;
 	private Long approverUserId;
 	private LocalDateTime createdAt;

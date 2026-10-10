@@ -3,6 +3,8 @@ package com.promaty.rrhh.services.request.business.validation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 
@@ -20,10 +22,13 @@ import com.promaty.rrhh.entity.ApprovalLevel;
 import com.promaty.rrhh.entity.PlatformStatus;
 import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.exception.BusinessValidationException;
+import com.promaty.rrhh.repository.RequestRejectionReasonRepository;
 
 class RequestDecisionValidationTest {
 
-	private final RequestDecisionValidation requestDecisionValidation = new RequestDecisionValidation();
+	private final RequestRejectionReasonRepository requestRejectionReasonRepository = mock(RequestRejectionReasonRepository.class);
+	private final RequestDecisionValidation requestDecisionValidation =
+		new RequestDecisionValidation(requestRejectionReasonRepository);
 
 	@AfterEach
 	void limpiarContextoDeSeguridad() {
@@ -81,17 +86,18 @@ class RequestDecisionValidationTest {
 		assertThatThrownBy(() -> requestDecisionValidation.validateDecision(request, dto))
 			.isInstanceOf(BusinessValidationException.class)
 			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
-				.containsKey("rejectionReason"));
+				.containsKey("rejectionReasonId"));
 	}
 
 	@Test
 	void validateDecision_rechazoConMotivo_noLanzaExcepcion() {
 		autenticarCon("contract.approve");
 		Request request = requestConStatus("PENDING_APPROVAL");
+		when(requestRejectionReasonRepository.existsById(1L)).thenReturn(true);
 
 		DecideRequestDto dto = new DecideRequestDto();
 		dto.setDecision(ApprovalDecision.REJECTED);
-		dto.setRejectionReason("Falta certificado AFP.");
+		dto.setRejectionReasonId(1L);
 
 		assertThatCode(() -> requestDecisionValidation.validateDecision(request, dto))
 			.doesNotThrowAnyException();

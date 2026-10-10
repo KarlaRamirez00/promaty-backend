@@ -37,8 +37,9 @@ public class Approval extends BaseDatedEntity {
 	@Column(nullable = false, length = 20)
 	private ApprovalDecision decision;
 
-	@Column(name = "rejection_reason")
-	private String rejectionReason;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "rejection_reason_id")
+	private RequestRejectionReason rejectionReason;
 
 	@Column
 	private String comment;

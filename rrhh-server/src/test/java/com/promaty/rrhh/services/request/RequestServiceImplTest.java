@@ -35,6 +35,7 @@ import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ApprovalRepository;
+import com.promaty.rrhh.repository.RequestRejectionReasonRepository;
 import com.promaty.rrhh.repository.RequestRepository;
 import com.promaty.rrhh.services.request.business.builder.CreateRequestBuilder;
 import com.promaty.rrhh.services.request.business.builder.RequestRelationsResolver;
@@ -50,6 +51,8 @@ class RequestServiceImplTest {
 	private RequestRepository requestRepository;
 	@Mock
 	private ApprovalRepository approvalRepository;
+	@Mock
+	private RequestRejectionReasonRepository requestRejectionReasonRepository;
 	@Mock
 	private RequestValidation requestValidation;
 	@Mock
@@ -123,7 +126,7 @@ class RequestServiceImplTest {
 		Request request = requestConId(3L, RequestEntityType.CONTRACT);
 		DecideRequestDto dto = new DecideRequestDto();
 		dto.setDecision(ApprovalDecision.REJECTED);
-		dto.setRejectionReason("Motivo");
+		dto.setRejectionReasonId(1L);
 		when(requestRepository.findById(3L)).thenReturn(Optional.of(request));
 		when(requestDecisionValidation.validateDecision(request, dto)).thenReturn(ApprovalLevel.PROJECT_MANAGER);
 		PlatformStatus rejected = statusConCodigo("REJECTED");
