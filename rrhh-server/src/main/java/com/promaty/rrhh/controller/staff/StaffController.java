@@ -21,6 +21,7 @@ import com.promaty.rrhh.dto.staff.CreateStaffDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffFilterParams;
 import com.promaty.rrhh.dto.staff.StaffListDto;
+import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
 import com.promaty.rrhh.services.staff.StaffService;
 
@@ -56,6 +57,12 @@ public class StaffController {
 	@PreAuthorize("hasAuthority('staff.read')")
 	public ResponseEntity<BaseData<StaffDetailDto>> detail(@PathVariable Long id) {
 		return ResponseEntity.ok(BaseData.success(staffService.getStaffDetail(id)));
+	}
+
+	@GetMapping("/selector")
+	@PreAuthorize("hasAuthority('contract.create')")
+	public ResponseEntity<BaseListData<StaffSelectorOptionDto>> selectorForContract() {
+		return ResponseEntity.ok(BaseListData.of(staffService.listSelectorOptionsForContract()));
 	}
 
 	@PutMapping("/{id}")

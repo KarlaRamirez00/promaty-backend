@@ -2,11 +2,16 @@ package com.promaty.rrhh.services.project;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.promaty.rrhh.dto.project.CreateProjectDto;
 import com.promaty.rrhh.dto.project.ProjectDetailDto;
+import com.promaty.rrhh.dto.project.ProjectSelectorOptionDto;
 import com.promaty.rrhh.dto.project.UpdateProjectDto;
 import com.promaty.rrhh.dto.project.UpdateProjectStatusDto;
 import com.promaty.rrhh.entity.Client;
@@ -133,6 +139,18 @@ class ProjectServiceImplTest {
 		assertThat(detalle.getType().getName()).isEqualTo("Obra gruesa");
 		assertThat(detalle.getClient().getName()).isEqualTo("Sodimac");
 		assertThat(detalle.getStatus().getCode()).isEqualTo("IN_PROGRESS");
+	}
+
+	@Test
+	void listSelectorOptionsForContract_mapeaIdYNombreConCodigoDeCentroDeCosto() {
+		Project project = projectCompleto();
+		when(projectRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of(project));
+
+		List<ProjectSelectorOptionDto> opciones = service.listSelectorOptionsForContract();
+
+		assertThat(opciones).hasSize(1);
+		assertThat(opciones.get(0).getId()).isEqualTo(1L);
+		assertThat(opciones.get(0).getName()).isEqualTo("00824 - Edificio Norte");
 	}
 
 	private Project projectConId(Long id) {

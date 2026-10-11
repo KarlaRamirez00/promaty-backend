@@ -42,6 +42,7 @@ public final class RequestMapper {
 			RequestTypeLabelResolver.resolve(request.getEntityType(), request.getAction()),
 			request.getEntityId(),
 			request.getPendingData(),
+			null, // contractPendingData: lo completa el service (necesita repositorios para resolver nombres)
 			request.getProject().getId(),
 			request.getProject().getName(),
 			request.getProject().getCostCenterCode(),

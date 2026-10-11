@@ -3,11 +3,13 @@ package com.promaty.rrhh.services.request.business.validation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,10 +19,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.promaty.rrhh.dto.request.ContractPendingDataDto;
 import com.promaty.rrhh.dto.request.CreateRequestDto;
+import com.promaty.rrhh.entity.Contract;
+import com.promaty.rrhh.entity.ContractType;
 import com.promaty.rrhh.entity.RequestAction;
 import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.repository.CompanyRepository;
+import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.ContractTypeRepository;
 import com.promaty.rrhh.repository.JobTitleRepository;
 import com.promaty.rrhh.repository.MealTypeRepository;
@@ -55,6 +60,8 @@ class RequestValidationTest {
 	private MealTypeRepository mealTypeRepository;
 	@Mock
 	private TransportTypeRepository transportTypeRepository;
+	@Mock
+	private ContractRepository contractRepository;
 
 	@InjectMocks
 	private RequestValidation requestValidation;
@@ -120,13 +127,58 @@ class RequestValidationTest {
 		todasLasFkExisten();
 
 		CreateRequestDto dto = dtoValido();
-		dto.getContractData().setStartDate(LocalDate.of(2026, 1, 10));
-		dto.getContractData().setEndDate(LocalDate.of(2026, 1, 1));
+		dto.getContractData().setStartDate(LocalDate.now().plusDays(10));
+		dto.getContractData().setEndDate(LocalDate.now().plusDays(1));
 
 		assertThatThrownBy(() -> requestValidation.validateCreate(dto))
 			.isInstanceOf(BusinessValidationException.class)
 			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
 				.containsKey("endDate"));
+	}
+
+	@Test
+	void validateCreate_conStartDateAnteriorAHoy_lanzaErrorEnStartDate() {
+		todasLasFkExisten();
+
+		CreateRequestDto dto = dtoValido();
+		dto.getContractData().setStartDate(LocalDate.now().minusDays(1));
+
+		assertThatThrownBy(() -> requestValidation.validateCreate(dto))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsKey("startDate"));
+	}
+
+	@Test
+	void validateCreate_conTipoPlazoFijoSinEndDate_lanzaErrorEnEndDate() {
+		todasLasFkExisten();
+		when(contractTypeRepository.findById(CONTRACT_TYPE_ID)).thenReturn(Optional.of(contractTypePlazoFijo()));
+
+		CreateRequestDto dto = dtoValido();
+		dto.getContractData().setEndDate(null);
+
+		assertThatThrownBy(() -> requestValidation.validateCreate(dto))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsKey("endDate"));
+	}
+
+	@Test
+	void validateCreate_conStaffConContratoActivo_lanzaErrorEnStaffId() {
+		todasLasFkExisten();
+		when(contractRepository.findByStaffIdAndStatus_Code(STAFF_ID, "ACTIVE"))
+			.thenReturn(Optional.of(new Contract()));
+
+		assertThatThrownBy(() -> requestValidation.validateCreate(dtoValido()))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsKey("staffId"));
+	}
+
+	private ContractType contractTypePlazoFijo() {
+		ContractType contractType = new ContractType();
+		contractType.setCode("F");
+		return contractType;
 	}
 
 	private void todasLasFkExisten() {
@@ -140,6 +192,15 @@ class RequestValidationTest {
 		lenient().when(contractTypeRepository.existsById(CONTRACT_TYPE_ID)).thenReturn(true);
 		lenient().when(jobTitleRepository.existsById(JOB_TITLE_ID)).thenReturn(true);
 		lenient().when(siteRepository.existsById(SITE_ID)).thenReturn(true);
+		lenient().when(contractTypeRepository.findById(CONTRACT_TYPE_ID))
+			.thenReturn(Optional.of(contractTypeIndefinido()));
+		lenient().when(contractRepository.findByStaffIdAndStatus_Code(any(), any())).thenReturn(Optional.empty());
+	}
+
+	private ContractType contractTypeIndefinido() {
+		ContractType contractType = new ContractType();
+		contractType.setCode("I");
+		return contractType;
 	}
 
 	private CreateRequestDto dtoValido() {
@@ -149,7 +210,7 @@ class RequestValidationTest {
 		contractData.setContractTypeId(CONTRACT_TYPE_ID);
 		contractData.setJobTitleId(JOB_TITLE_ID);
 		contractData.setSiteId(SITE_ID);
-		contractData.setStartDate(LocalDate.of(2026, 1, 1));
+		contractData.setStartDate(LocalDate.now().plusDays(1));
 		contractData.setBaseSalary(BigDecimal.valueOf(850000));
 		contractData.setWeeklyWorkHours(45);
 		contractData.setWorkDays(5);

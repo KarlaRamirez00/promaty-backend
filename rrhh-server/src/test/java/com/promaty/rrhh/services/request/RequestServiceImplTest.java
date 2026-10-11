@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,6 +26,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import com.promaty.rrhh.dto.request.ContractPendingDataResolvedDto;
 import com.promaty.rrhh.dto.request.CreateRequestDto;
 import com.promaty.rrhh.dto.request.DecideRequestDto;
 import com.promaty.rrhh.dto.request.RequestCountersDto;
@@ -46,6 +48,7 @@ import com.promaty.rrhh.repository.RequestRejectionReasonRepository;
 import com.promaty.rrhh.repository.RequestRepository;
 import com.promaty.rrhh.services.request.business.builder.CreateRequestBuilder;
 import com.promaty.rrhh.services.request.business.builder.RequestRelationsResolver;
+import com.promaty.rrhh.services.request.business.mapper.ContractPendingDataResolver;
 import com.promaty.rrhh.services.request.business.validation.RequestDecisionValidation;
 import com.promaty.rrhh.services.request.business.validation.RequestValidation;
 import com.promaty.rrhh.services.request.handler.RequestHandler;
@@ -72,6 +75,8 @@ class RequestServiceImplTest {
 	private RequestHandlerRegistry handlerRegistry;
 	@Mock
 	private RequestHandler contractRequestHandler;
+	@Mock
+	private ContractPendingDataResolver contractPendingDataResolver;
 
 	@AfterEach
 	void limpiarContextoDeSeguridad() {
@@ -221,6 +226,22 @@ class RequestServiceImplTest {
 		assertThat(detalle.getId()).isEqualTo(5L);
 		assertThat(detalle.getApprovals()).hasSize(1);
 		assertThat(detalle.getApprovals().get(0).getLevel()).isEqualTo(ApprovalLevel.PROJECT_MANAGER);
+	}
+
+	@Test
+	void getRequestDetail_entityTypeContract_resuelveContractPendingData() {
+		Request request = requestConId(6L, RequestEntityType.CONTRACT);
+		request.setProject(proyectoConNombre("Edificio Centro"));
+		request.setStatus(statusConCodigo("APPROVED"));
+		request.setPendingData("{}");
+		when(requestRepository.findById(6L)).thenReturn(Optional.of(request));
+		when(approvalRepository.findByRequest_IdOrderByCreatedAtAsc(6L)).thenReturn(List.of());
+		ContractPendingDataResolvedDto resuelto = mock(ContractPendingDataResolvedDto.class);
+		when(contractPendingDataResolver.resolve("{}")).thenReturn(resuelto);
+
+		RequestDetailDto detalle = requestService.getRequestDetail(6L);
+
+		assertThat(detalle.getContractPendingData()).isEqualTo(resuelto);
 	}
 
 	@Test

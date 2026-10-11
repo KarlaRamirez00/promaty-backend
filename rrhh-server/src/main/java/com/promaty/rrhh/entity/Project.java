@@ -48,4 +48,8 @@ public class Project extends BaseDatedEntity {
 
 	@Column(name = "end_date")
 	private LocalDate endDate;
+
+	public String getDisplayName() {
+		return costCenterCode + " - " + name;
+	}
 }

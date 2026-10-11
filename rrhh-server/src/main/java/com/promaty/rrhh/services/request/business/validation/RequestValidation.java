@@ -1,16 +1,20 @@
 package com.promaty.rrhh.services.request.business.validation;
 
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 
 import com.promaty.rrhh.dto.request.ContractPendingDataDto;
 import com.promaty.rrhh.dto.request.CreateRequestDto;
+import com.promaty.rrhh.entity.ContractType;
 import com.promaty.rrhh.entity.RequestAction;
 import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.repository.CompanyRepository;
+import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.ContractTypeRepository;
 import com.promaty.rrhh.repository.JobTitleRepository;
 import com.promaty.rrhh.repository.MealTypeRepository;
@@ -23,6 +27,8 @@ import com.promaty.rrhh.repository.TransportTypeRepository;
 public class RequestValidation {
 
 	private static final String MENSAJE_VALIDACION = "La validacion fallo para uno o mas campos.";
+	private static final String CODE_PLAZO_FIJO = "F";
+	private static final String CODE_CONTRACT_ACTIVE = "ACTIVE";
 
 	private final ProjectRepository projectRepository;
 	private final StaffRepository staffRepository;
@@ -32,6 +38,7 @@ public class RequestValidation {
 	private final SiteRepository siteRepository;
 	private final MealTypeRepository mealTypeRepository;
 	private final TransportTypeRepository transportTypeRepository;
+	private final ContractRepository contractRepository;
 
 	public RequestValidation(
 		ProjectRepository projectRepository,
@@ -41,7 +48,8 @@ public class RequestValidation {
 		JobTitleRepository jobTitleRepository,
 		SiteRepository siteRepository,
 		MealTypeRepository mealTypeRepository,
-		TransportTypeRepository transportTypeRepository
+		TransportTypeRepository transportTypeRepository,
+		ContractRepository contractRepository
 	) {
 		this.projectRepository = projectRepository;
 		this.staffRepository = staffRepository;
@@ -51,6 +59,7 @@ public class RequestValidation {
 		this.siteRepository = siteRepository;
 		this.mealTypeRepository = mealTypeRepository;
 		this.transportTypeRepository = transportTypeRepository;
+		this.contractRepository = contractRepository;
 	}
 
 	public void validateCreate(CreateRequestDto dto) {
@@ -80,6 +89,7 @@ public class RequestValidation {
 
 		validarRelaciones(errores, datos);
 		validarFechas(errores, datos);
+		validarStaffSinContratoActivo(errores, datos);
 	}
 
 	private void validarRelaciones(Map<String, String> errores, ContractPendingDataDto datos) {
@@ -107,9 +117,30 @@ public class RequestValidation {
 	}
 
 	private void validarFechas(Map<String, String> errores, ContractPendingDataDto datos) {
+		if (datos.getStartDate() != null && datos.getStartDate().isBefore(LocalDate.now())) {
+			errores.put("startDate", "La fecha de inicio no puede ser anterior a hoy.");
+		}
 		if (datos.getStartDate() != null && datos.getEndDate() != null
 			&& datos.getEndDate().isBefore(datos.getStartDate())) {
 			errores.put("endDate", "La fecha de termino no puede ser anterior a la fecha de inicio.");
+		}
+		if (datos.getEndDate() == null && requierePlazoFijo(datos.getContractTypeId())) {
+			errores.put("endDate", "La fecha de termino es obligatoria para un contrato a plazo fijo.");
+		}
+	}
+
+	private boolean requierePlazoFijo(Long contractTypeId) {
+		if (contractTypeId == null) {
+			return false;
+		}
+		Optional<ContractType> contractType = contractTypeRepository.findById(contractTypeId);
+		return contractType.isPresent() && CODE_PLAZO_FIJO.equals(contractType.get().getCode());
+	}
+
+	private void validarStaffSinContratoActivo(Map<String, String> errores, ContractPendingDataDto datos) {
+		if (datos.getStaffId() != null
+			&& contractRepository.findByStaffIdAndStatus_Code(datos.getStaffId(), CODE_CONTRACT_ACTIVE).isPresent()) {
+			errores.put("staffId", "El colaborador ya tiene un contrato activo.");
 		}
 	}
 

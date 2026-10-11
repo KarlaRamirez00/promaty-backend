@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +14,7 @@ import com.promaty.rrhh.dto.project.CreateProjectDto;
 import com.promaty.rrhh.dto.project.ProjectDetailDto;
 import com.promaty.rrhh.dto.project.ProjectFilterParams;
 import com.promaty.rrhh.dto.project.ProjectListDto;
+import com.promaty.rrhh.dto.project.ProjectSelectorOptionDto;
 import com.promaty.rrhh.dto.project.UpdateProjectDto;
 import com.promaty.rrhh.dto.project.UpdateProjectStatusDto;
 import com.promaty.rrhh.dto.shared.Action;
@@ -33,6 +35,7 @@ import com.promaty.rrhh.services.shared.ProjectAccessSpecification;
 public class ProjectServiceImpl implements ProjectService {
 
 	private static final String NO_ENCONTRADO = "Proyecto no encontrado.";
+	private static final List<String> CODES_NO_SELECCIONABLES = List.of("COMPLETED", "CANCELLED");
 
 	private static final Map<String, Action> REGLAS_ACCIONES = Map.of(
 		"project.update", Action.UPDATE,
@@ -103,6 +106,17 @@ public class ProjectServiceImpl implements ProjectService {
 	@Transactional(readOnly = true)
 	public ProjectDetailDto getProjectDetail(Long id) {
 		return conAcciones(ProjectMapper.toDetailDto(buscarPorId(id)));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<ProjectSelectorOptionDto> listSelectorOptionsForContract() {
+		Specification<Project> especificacion = ProjectAccessSpecification.<Project>onProjectId()
+			.and((root, query, cb) -> root.get("status").get("code").in(CODES_NO_SELECCIONABLES).not());
+		return projectRepository.findAll(especificacion, Sort.by("costCenterCode"))
+			.stream()
+			.map(project -> new ProjectSelectorOptionDto(project.getId(), project.getDisplayName()))
+			.toList();
 	}
 
 	private Project buscarPorId(Long id) {

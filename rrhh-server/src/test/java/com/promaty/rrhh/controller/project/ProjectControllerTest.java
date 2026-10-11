@@ -30,6 +30,7 @@ import com.promaty.rrhh.config.SecurityConfig;
 import com.promaty.rrhh.dto.platformstatus.PlatformStatusOptionDto;
 import com.promaty.rrhh.dto.project.ProjectDetailDto;
 import com.promaty.rrhh.dto.project.ProjectListDto;
+import com.promaty.rrhh.dto.project.ProjectSelectorOptionDto;
 import com.promaty.rrhh.dto.project.RelationSummaryDto;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.services.project.ProjectService;
@@ -52,6 +53,7 @@ class ProjectControllerTest {
 		TestJwt.bearer("project.read", "project.create", "project.update", "project.status");
 
 	private static final String SIN_PERMISOS = TestJwt.bearer();
+	private static final String TOKEN_CONTRACT_CREATE = TestJwt.bearer("contract.create");
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -70,6 +72,22 @@ class ProjectControllerTest {
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.data").value(10))
 			.andExpect(jsonPath("$.error").doesNotExist());
+	}
+
+	@Test
+	void selectorForContract_conPermiso_retorna200ConOpciones() throws Exception {
+		when(projectService.listSelectorOptionsForContract())
+			.thenReturn(List.of(new ProjectSelectorOptionDto(1L, "00824 - Edificio Norte")));
+
+		mockMvc.perform(get("/projects/selector").header(HttpHeaders.AUTHORIZATION, TOKEN_CONTRACT_CREATE))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data[0].name").value("00824 - Edificio Norte"));
+	}
+
+	@Test
+	void selectorForContract_sinPermiso_retorna403() throws Exception {
+		mockMvc.perform(get("/projects/selector").header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS))
+			.andExpect(status().isForbidden());
 	}
 
 	@Test

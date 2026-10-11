@@ -20,6 +20,7 @@ import com.promaty.rrhh.dto.project.CreateProjectDto;
 import com.promaty.rrhh.dto.project.ProjectDetailDto;
 import com.promaty.rrhh.dto.project.ProjectFilterParams;
 import com.promaty.rrhh.dto.project.ProjectListDto;
+import com.promaty.rrhh.dto.project.ProjectSelectorOptionDto;
 import com.promaty.rrhh.dto.project.UpdateProjectDto;
 import com.promaty.rrhh.dto.project.UpdateProjectStatusDto;
 import com.promaty.rrhh.dto.response.BaseData;
@@ -58,6 +59,12 @@ public class ProjectController {
 	@PreAuthorize("hasAuthority('project.read')")
 	public ResponseEntity<BaseData<ProjectDetailDto>> detail(@PathVariable Long id) {
 		return ResponseEntity.ok(BaseData.success(projectService.getProjectDetail(id)));
+	}
+
+	@GetMapping("/selector")
+	@PreAuthorize("hasAuthority('contract.create')")
+	public ResponseEntity<BaseListData<ProjectSelectorOptionDto>> selectorForContract() {
+		return ResponseEntity.ok(BaseListData.of(projectService.listSelectorOptionsForContract()));
 	}
 
 	@PutMapping("/{id}")

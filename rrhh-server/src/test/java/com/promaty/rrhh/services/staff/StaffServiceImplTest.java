@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.promaty.rrhh.dto.staff.CreateStaffDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
+import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
 import com.promaty.rrhh.entity.Afp;
 import com.promaty.rrhh.entity.Bank;
@@ -127,6 +129,18 @@ class StaffServiceImplTest {
 		StaffDetailDto detalle = service.getStaffDetail(1L);
 
 		assertThat(detalle.getCostCenterCode()).isEqualTo("00824");
+	}
+
+	@Test
+	void listSelectorOptionsForContract_delegaEnRepositoryYMapeaNombreCompleto() {
+		Staff staff = staffCompleto();
+		when(staffRepository.findAvailableForContractSelector("ACTIVE")).thenReturn(List.of(staff));
+
+		List<StaffSelectorOptionDto> opciones = service.listSelectorOptionsForContract();
+
+		assertThat(opciones).hasSize(1);
+		assertThat(opciones.get(0).getName()).isEqualTo("Juan Perez Soto");
+		assertThat(opciones.get(0).getIdentificationNumber()).isEqualTo("12345678-5");
 	}
 
 	private Staff staffConId(Long id) {

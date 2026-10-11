@@ -14,6 +14,7 @@ import com.promaty.rrhh.dto.staff.CreateStaffDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffFilterParams;
 import com.promaty.rrhh.dto.staff.StaffListDto;
+import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
 import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.Project;
@@ -94,6 +95,15 @@ public class StaffServiceImpl implements StaffService {
 	public StaffDetailDto getStaffDetail(Long id) {
 		Staff staff = buscarPorId(id);
 		return conAcciones(StaffMapper.toDetailDto(staff, resolverCentroCosto(id)));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<StaffSelectorOptionDto> listSelectorOptionsForContract() {
+		return staffRepository.findAvailableForContractSelector(ESTADO_ACTIVO)
+			.stream()
+			.map(StaffMapper::toSelectorOptionDto)
+			.toList();
 	}
 
 	private String resolverCentroCosto(Long staffId) {

@@ -108,4 +108,8 @@ public class Staff extends BaseDatedEntity {
 
 	@Column(name = "account_number", nullable = false, length = 30)
 	private String accountNumber;
+
+	public String getFullName() {
+		return firstName + " " + paternalLastName + " " + maternalLastName;
+	}
 }

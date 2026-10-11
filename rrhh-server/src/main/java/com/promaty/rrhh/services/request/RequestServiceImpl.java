@@ -30,6 +30,7 @@ import com.promaty.rrhh.repository.RequestRepository;
 import com.promaty.rrhh.services.request.business.builder.CreateRequestBuilder;
 import com.promaty.rrhh.services.request.business.builder.RequestQueryBuilder;
 import com.promaty.rrhh.services.request.business.builder.RequestRelationsResolver;
+import com.promaty.rrhh.services.request.business.mapper.ContractPendingDataResolver;
 import com.promaty.rrhh.services.request.business.mapper.RequestMapper;
 import com.promaty.rrhh.services.request.business.validation.RequestDecisionValidation;
 import com.promaty.rrhh.services.request.business.validation.RequestValidation;
@@ -56,6 +57,7 @@ public class RequestServiceImpl implements RequestService {
 	private final CreateRequestBuilder createRequestBuilder;
 	private final RequestRelationsResolver relationsResolver;
 	private final RequestHandlerRegistry handlerRegistry;
+	private final ContractPendingDataResolver contractPendingDataResolver;
 
 	public RequestServiceImpl(
 		RequestRepository requestRepository,
@@ -65,7 +67,8 @@ public class RequestServiceImpl implements RequestService {
 		RequestDecisionValidation requestDecisionValidation,
 		CreateRequestBuilder createRequestBuilder,
 		RequestRelationsResolver relationsResolver,
-		RequestHandlerRegistry handlerRegistry
+		RequestHandlerRegistry handlerRegistry,
+		ContractPendingDataResolver contractPendingDataResolver
 	) {
 		this.requestRepository = requestRepository;
 		this.approvalRepository = approvalRepository;
@@ -75,6 +78,7 @@ public class RequestServiceImpl implements RequestService {
 		this.createRequestBuilder = createRequestBuilder;
 		this.relationsResolver = relationsResolver;
 		this.handlerRegistry = handlerRegistry;
+		this.contractPendingDataResolver = contractPendingDataResolver;
 	}
 
 	@Override
@@ -119,6 +123,9 @@ public class RequestServiceImpl implements RequestService {
 		Request request = buscarPorId(id);
 		List<Approval> approvals = approvalRepository.findByRequest_IdOrderByCreatedAtAsc(id);
 		RequestDetailDto dto = RequestMapper.toDetailDto(request, approvals);
+		if (request.getEntityType() == RequestEntityType.CONTRACT) {
+			dto.setContractPendingData(contractPendingDataResolver.resolve(request.getPendingData()));
+		}
 		dto.setActions(resolveRowActions(dto.getStatus().getCode(), CurrentUserAuthorities.get()));
 		return dto;
 	}

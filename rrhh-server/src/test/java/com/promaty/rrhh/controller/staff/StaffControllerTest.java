@@ -29,6 +29,7 @@ import com.promaty.rrhh.config.SecurityConfig;
 import com.promaty.rrhh.dto.staff.RelationSummaryDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffListDto;
+import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
 import com.promaty.rrhh.entity.AccountType;
 import com.promaty.rrhh.entity.ClothingSize;
 import com.promaty.rrhh.entity.IdentificationType;
@@ -44,6 +45,7 @@ class StaffControllerTest {
 
 	private static final String TOKEN =
 		TestJwt.bearer("staff.read", "staff.create", "staff.update");
+	private static final String TOKEN_CONTRACT_CREATE = TestJwt.bearer("contract.create");
 	private static final String SIN_PERMISOS = TestJwt.bearer();
 
 	private static final String STAFF_JSON = """
@@ -170,6 +172,23 @@ class StaffControllerTest {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(UPDATE_STAFF_JSON))
 			.andExpect(status().isOk());
+	}
+
+	@Test
+	void selectorForContract_conPermiso_retorna200ConOpciones() throws Exception {
+		when(staffService.listSelectorOptionsForContract())
+			.thenReturn(List.of(new StaffSelectorOptionDto(1L, "Juan Perez Soto", "12345678-5")));
+
+		mockMvc.perform(get("/staff/selector").header(HttpHeaders.AUTHORIZATION, TOKEN_CONTRACT_CREATE))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data[0].name").value("Juan Perez Soto"))
+			.andExpect(jsonPath("$.data[0].identificationNumber").value("12345678-5"));
+	}
+
+	@Test
+	void selectorForContract_sinPermiso_retorna403() throws Exception {
+		mockMvc.perform(get("/staff/selector").header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS))
+			.andExpect(status().isForbidden());
 	}
 
 	@Test

@@ -1,11 +1,14 @@
 package com.promaty.rrhh.services.request.handler;
 
+import java.time.LocalDate;
+
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.promaty.rrhh.dto.request.ContractPendingDataDto;
 import com.promaty.rrhh.entity.Contract;
+import com.promaty.rrhh.entity.ContractType;
 import com.promaty.rrhh.entity.PlatformStatus;
 import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.RequestEntityType;
@@ -19,6 +22,7 @@ import com.promaty.rrhh.repository.PlatformStatusRepository;
 import com.promaty.rrhh.repository.SiteRepository;
 import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.repository.TransportTypeRepository;
+import com.promaty.rrhh.services.holidayprovider.BusinessDayCalculator;
 import com.promaty.rrhh.services.rexplus.RexPlusClient;
 import com.promaty.rrhh.services.rexplus.RexSyncResult;
 
@@ -33,6 +37,10 @@ public class ContractRequestHandler implements RequestHandler {
 	private static final String SUBMODULE_CONTRACT = "contract";
 	private static final String CODE_ACTIVE = "ACTIVE";
 	private static final String CODE_SYNC_ERROR = "SYNC_ERROR";
+	private static final String CODE_LATE_REGISTRATION = "LATE_REGISTRATION";
+	private static final String CODE_CONTRACT_TYPE_OBRA = "O";
+	private static final int PLAZO_HABIL_OBRA = 5;
+	private static final int PLAZO_HABIL_GENERAL = 15;
 
 	private final ObjectMapper objectMapper;
 	private final ContractRepository contractRepository;
@@ -45,6 +53,7 @@ public class ContractRequestHandler implements RequestHandler {
 	private final TransportTypeRepository transportTypeRepository;
 	private final PlatformStatusRepository platformStatusRepository;
 	private final RexPlusClient rexPlusClient;
+	private final BusinessDayCalculator businessDayCalculator;
 
 	public ContractRequestHandler(
 		ObjectMapper objectMapper,
@@ -57,7 +66,8 @@ public class ContractRequestHandler implements RequestHandler {
 		MealTypeRepository mealTypeRepository,
 		TransportTypeRepository transportTypeRepository,
 		PlatformStatusRepository platformStatusRepository,
-		RexPlusClient rexPlusClient
+		RexPlusClient rexPlusClient,
+		BusinessDayCalculator businessDayCalculator
 	) {
 		this.objectMapper = objectMapper;
 		this.contractRepository = contractRepository;
@@ -70,6 +80,7 @@ public class ContractRequestHandler implements RequestHandler {
 		this.transportTypeRepository = transportTypeRepository;
 		this.platformStatusRepository = platformStatusRepository;
 		this.rexPlusClient = rexPlusClient;
+		this.businessDayCalculator = businessDayCalculator;
 	}
 
 	@Override
@@ -86,8 +97,9 @@ public class ContractRequestHandler implements RequestHandler {
 			.orElseThrow(() -> new ResourceNotFoundException("El colaborador indicado no existe.")));
 		contract.setCompany(companyRepository.findById(datos.getCompanyId())
 			.orElseThrow(() -> new ResourceNotFoundException("La empresa indicada no existe.")));
-		contract.setContractType(contractTypeRepository.findById(datos.getContractTypeId())
-			.orElseThrow(() -> new ResourceNotFoundException("El tipo de contrato indicado no existe.")));
+		ContractType contractType = contractTypeRepository.findById(datos.getContractTypeId())
+			.orElseThrow(() -> new ResourceNotFoundException("El tipo de contrato indicado no existe."));
+		contract.setContractType(contractType);
 		contract.setJobTitle(jobTitleRepository.findById(datos.getJobTitleId())
 			.orElseThrow(() -> new ResourceNotFoundException("El cargo indicado no existe.")));
 		contract.setSite(siteRepository.findById(datos.getSiteId())
@@ -108,6 +120,11 @@ public class ContractRequestHandler implements RequestHandler {
 			contract.setTransportType(transportTypeRepository.findById(datos.getTransportTypeId())
 				.orElseThrow(() -> new ResourceNotFoundException("El tipo de movilizacion indicado no existe.")));
 		}
+		if (superoPlazoLegal(contract.getStartDate(), contractType)) {
+			contract.setStatus(resolveEstado(CODE_LATE_REGISTRATION));
+			return contractRepository.save(contract).getId();
+		}
+
 		RexSyncResult sincronizacion = rexPlusClient.syncContract(contract);
 		if (sincronizacion.success()) {
 			contract.setContractNumber(sincronizacion.externalContractNumber());
@@ -117,6 +134,12 @@ public class ContractRequestHandler implements RequestHandler {
 		}
 
 		return contractRepository.save(contract).getId();
+	}
+
+	private boolean superoPlazoLegal(LocalDate startDate, ContractType contractType) {
+		long diasHabilesTranscurridos = businessDayCalculator.countBusinessDaysBetween(startDate, LocalDate.now());
+		int plazoMaximo = CODE_CONTRACT_TYPE_OBRA.equals(contractType.getCode()) ? PLAZO_HABIL_OBRA : PLAZO_HABIL_GENERAL;
+		return diasHabilesTranscurridos > plazoMaximo;
 	}
 
 	private PlatformStatus resolveEstado(String code) {

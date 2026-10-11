@@ -3,6 +3,7 @@ package com.promaty.rrhh.services.staff.business.mapper;
 import com.promaty.rrhh.dto.staff.RelationSummaryDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffListDto;
+import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
 import com.promaty.rrhh.entity.Afp;
 import com.promaty.rrhh.entity.Bank;
 import com.promaty.rrhh.entity.Comuna;
@@ -74,6 +75,10 @@ public final class StaffMapper {
 			staff.getUpdatedBy(),
 			null // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
 		);
+	}
+
+	public static StaffSelectorOptionDto toSelectorOptionDto(Staff staff) {
+		return new StaffSelectorOptionDto(staff.getId(), staff.getFullName(), staff.getIdentificationNumber());
 	}
 
 	private static RelationSummaryDto toRelationSummary(RegisteredSex registeredSex) {
