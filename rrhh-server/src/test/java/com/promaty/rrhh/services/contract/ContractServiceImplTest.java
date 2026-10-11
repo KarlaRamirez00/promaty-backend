@@ -2,6 +2,7 @@ package com.promaty.rrhh.services.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
@@ -12,7 +13,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.jpa.domain.Specification;
 
+import com.promaty.rrhh.dto.contract.ContractCountersDto;
 import com.promaty.rrhh.dto.contract.ContractDetailDto;
 import com.promaty.rrhh.entity.Company;
 import com.promaty.rrhh.entity.Contract;
@@ -53,6 +56,16 @@ class ContractServiceImplTest {
 		assertThat(detalle.getCompany().getName()).isEqualTo("Constructora Promaty S.A.");
 		assertThat(detalle.getCostCenterCode()).isEqualTo("00824");
 		assertThat(detalle.getStatus().getCode()).isEqualTo("PENDING_APPROVAL");
+	}
+
+	@Test
+	void getCounters_delegaEnRepositoryConteoPorStatusYRangoDeFechas() {
+		when(contractRepository.count(any(Specification.class))).thenReturn(4L, 2L);
+
+		ContractCountersDto contadores = service.getCounters();
+
+		assertThat(contadores.getExpired()).isEqualTo(4L);
+		assertThat(contadores.getExpiringSoon()).isEqualTo(2L);
 	}
 
 	private Contract contratoCompleto() {

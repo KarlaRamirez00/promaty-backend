@@ -34,7 +34,7 @@ public class ContractController {
 		@ModelAttribute ContractFilterParams filters,
 		@PageableDefault(sort = {"createdAt", "id"}, direction = Sort.Direction.DESC) Pageable pageable
 	) {
-		return ResponseEntity.ok(BaseListData.of(contractService.listContracts(filters, pageable)));
+		return ResponseEntity.ok(BaseListData.of(contractService.listContracts(filters, pageable), contractService.getCounters()));
 	}
 
 	@GetMapping("/{id}")

@@ -22,6 +22,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.promaty.rrhh.config.SecurityConfig;
+import com.promaty.rrhh.dto.contract.ContractCountersDto;
 import com.promaty.rrhh.dto.contract.ContractDetailDto;
 import com.promaty.rrhh.dto.contract.ContractListDto;
 import com.promaty.rrhh.dto.contract.StaffSummaryDto;
@@ -48,14 +49,17 @@ class ContractControllerTest {
 	void list_retorna200ConData() throws Exception {
 		StaffSummaryDto staff = new StaffSummaryDto(1L, "Juan Perez Soto", "12345678-5");
 		Page<ContractListDto> pagina = new PageImpl<>(List.of(
-			new ContractListDto(1L, staff, null, null, "00824", "Contrato indefinido",
-				"Pendiente de aprobación", LocalDate.of(2026, 1, 1), null, null, null, "system", null, List.of())
+			new ContractListDto(1L, staff, null, null, "00824", "Contrato indefinido", "Albañil", "PENDING_APPROVAL",
+				"Pendiente de aprobación", LocalDate.of(2026, 1, 1), null, null, null, null, "system", null, List.of())
 		));
 		when(contractService.listContracts(any(), any())).thenReturn(pagina);
+		when(contractService.getCounters()).thenReturn(new ContractCountersDto(3, 1));
 
 		mockMvc.perform(get("/contracts").header(HttpHeaders.AUTHORIZATION, TOKEN))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.data[0].costCenterCode").value("00824"));
+			.andExpect(jsonPath("$.data[0].costCenterCode").value("00824"))
+			.andExpect(jsonPath("$.meta.otherData.expired").value(3))
+			.andExpect(jsonPath("$.meta.otherData.expiringSoon").value(1));
 	}
 
 	@Test

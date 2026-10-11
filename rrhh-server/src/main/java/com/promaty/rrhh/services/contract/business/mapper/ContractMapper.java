@@ -23,9 +23,12 @@ public final class ContractMapper {
 			contract.getContractNumber(),
 			contract.getProject().getCostCenterCode(),
 			contract.getContractType().getName(),
+			contract.getJobTitle().getName(),
+			contract.getStatus().getCode(),
 			contract.getStatus().getName(),
 			contract.getStartDate(),
 			contract.getEndDate(),
+			contract.getAgreedSalary(),
 			contract.getCreatedAt(),
 			contract.getUpdatedAt(),
 			contract.getCreatedBy(),
@@ -64,8 +67,7 @@ public final class ContractMapper {
 	}
 
 	private static StaffSummaryDto toStaffSummary(Staff staff) {
-		String fullName = staff.getFirstName() + " " + staff.getPaternalLastName() + " " + staff.getMaternalLastName();
-		return new StaffSummaryDto(staff.getId(), fullName, staff.getIdentificationNumber());
+		return new StaffSummaryDto(staff.getId(), staff.getFullName(), staff.getIdentificationNumber());
 	}
 
 	private static RelationSummaryDto toRelationSummary(MealType mealType) {
