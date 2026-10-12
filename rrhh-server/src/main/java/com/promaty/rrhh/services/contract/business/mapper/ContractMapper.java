@@ -19,8 +19,6 @@ public final class ContractMapper {
 		return new ContractListDto(
 			contract.getId(),
 			toStaffSummary(contract.getStaff()),
-			contract.getName(),
-			contract.getContractNumber(),
 			contract.getProject().getCostCenterCode(),
 			contract.getContractType().getName(),
 			contract.getJobTitle().getName(),
@@ -33,6 +31,7 @@ public final class ContractMapper {
 			contract.getUpdatedAt(),
 			contract.getCreatedBy(),
 			contract.getUpdatedBy(),
+			null, // requestId se resuelve por fuera: Contract no tiene FK hacia Request, es al revés
 			null // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
 		);
 	}
@@ -56,12 +55,12 @@ public final class ContractMapper {
 			toRelationSummary(contract.getMealType()),
 			toRelationSummary(contract.getTransportType()),
 			new PlatformStatusOptionDto(contract.getStatus().getId(), contract.getStatus().getCode(), contract.getStatus().getName()),
-			contract.getName(),
-			contract.getContractNumber(),
+			contract.getRexContractNumber(),
 			contract.getCreatedAt(),
 			contract.getUpdatedAt(),
 			contract.getCreatedBy(),
 			contract.getUpdatedBy(),
+			null, // requestId se resuelve por fuera: Contract no tiene FK hacia Request, es al revés
 			null // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
 		);
 	}

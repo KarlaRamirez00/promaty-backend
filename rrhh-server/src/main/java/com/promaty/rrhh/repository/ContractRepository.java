@@ -13,7 +13,7 @@ public interface ContractRepository extends JpaRepository<Contract, Long>, JpaSp
 
 	Optional<Contract> findByStaffIdAndStatus_Code(Long staffId, String statusCode);
 
-	Optional<Contract> findByContractNumber(String contractNumber);
+	Optional<Contract> findByRexContractNumber(String rexContractNumber);
 
 	List<Contract> findByStatus_CodeAndEndDateBefore(String statusCode, LocalDate date);
 }

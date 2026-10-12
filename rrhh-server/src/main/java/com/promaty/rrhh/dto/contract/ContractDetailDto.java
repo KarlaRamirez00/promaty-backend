@@ -36,11 +36,11 @@ public class ContractDetailDto {
 	private RelationSummaryDto mealType;
 	private RelationSummaryDto transportType;
 	private PlatformStatusOptionDto status;
-	private String name;
-	private String contractNumber;
+	private String rexContractNumber;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
 	private String createdBy;
 	private String updatedBy;
+	private Long requestId;
 	private List<Action> actions;
 }

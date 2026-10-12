@@ -79,9 +79,6 @@ public class Contract extends BaseDatedEntity {
 	@JoinColumn(name = "status_id", nullable = false)
 	private PlatformStatus status;
 
-	@Column(name = "name", length = 100)
-	private String name;
-
-	@Column(name = "contract_number", unique = true, length = 20)
-	private String contractNumber;
+	@Column(name = "rex_contract_number", unique = true, length = 20)
+	private String rexContractNumber;
 }

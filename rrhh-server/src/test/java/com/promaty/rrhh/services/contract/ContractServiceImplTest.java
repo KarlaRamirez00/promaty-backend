@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -28,12 +29,18 @@ import com.promaty.rrhh.entity.Site;
 import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ContractRepository;
+import com.promaty.rrhh.repository.RequestRepository;
+import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
 
 @ExtendWith(MockitoExtension.class)
 class ContractServiceImplTest {
 
 	@Mock
 	private ContractRepository contractRepository;
+	@Mock
+	private RequestRepository requestRepository;
+	@Spy
+	private RequestApprovalActionsResolver actionsResolver = new RequestApprovalActionsResolver();
 
 	@InjectMocks
 	private ContractServiceImpl service;

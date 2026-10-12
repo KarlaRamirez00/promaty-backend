@@ -20,8 +20,6 @@ public class ContractListDto {
 
 	private Long id;
 	private StaffSummaryDto staff;
-	private String name;
-	private String contractNumber;
 	private String costCenterCode;
 	private String contractTypeName;
 	private String jobTitleName;
@@ -34,5 +32,6 @@ public class ContractListDto {
 	private LocalDateTime updatedAt;
 	private String createdBy;
 	private String updatedBy;
+	private Long requestId;
 	private List<Action> actions;
 }

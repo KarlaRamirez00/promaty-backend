@@ -49,8 +49,8 @@ class ContractControllerTest {
 	void list_retorna200ConData() throws Exception {
 		StaffSummaryDto staff = new StaffSummaryDto(1L, "Juan Perez Soto", "12345678-5");
 		Page<ContractListDto> pagina = new PageImpl<>(List.of(
-			new ContractListDto(1L, staff, null, null, "00824", "Contrato indefinido", "Albañil", "PENDING_APPROVAL",
-				"Pendiente de aprobación", LocalDate.of(2026, 1, 1), null, null, null, null, "system", null, List.of())
+			new ContractListDto(1L, staff, "00824", "Contrato indefinido", "Albañil", "PENDING_APPROVAL",
+				"Pendiente de aprobación", LocalDate.of(2026, 1, 1), null, null, null, null, "system", null, null, List.of())
 		));
 		when(contractService.listContracts(any(), any())).thenReturn(pagina);
 		when(contractService.getCounters()).thenReturn(new ContractCountersDto(3, 1));
@@ -75,8 +75,8 @@ class ContractControllerTest {
 	void detail_registroExiste_retorna200() throws Exception {
 		StaffSummaryDto staff = new StaffSummaryDto(1L, "Juan Perez Soto", "12345678-5");
 		ContractDetailDto detalle = new ContractDetailDto(1L, staff, null, null, null, null, "00824",
-			LocalDate.of(2026, 1, 1), null, null, null, null, null, null, null, null, null, null,
-			null, null, null, "system", null, List.of());
+			LocalDate.of(2026, 1, 1), null, null, null, null, null, null, null, null, null,
+			null, null, null, "system", null, null, List.of());
 		when(contractService.getContractDetail(1L)).thenReturn(detalle);
 
 		mockMvc.perform(get("/contracts/1").header(HttpHeaders.AUTHORIZATION, TOKEN))
