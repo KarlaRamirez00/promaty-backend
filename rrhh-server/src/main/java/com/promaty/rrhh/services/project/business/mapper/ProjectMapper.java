@@ -19,6 +19,7 @@ public final class ProjectMapper {
 			project.getType().getName(),
 			project.getSpecialty().getName(),
 			project.getClient().getName(),
+			project.getStatus().getCode(),
 			project.getStatus().getName(),
 			project.getStartDate(),
 			project.getEndDate(),

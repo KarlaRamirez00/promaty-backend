@@ -22,6 +22,7 @@ public class ProjectListDto {
 	private String typeName;
 	private String specialtyName;
 	private String clientName;
+	private String statusCode;
 	private String statusName;
 	private LocalDate startDate;
 	private LocalDate endDate;
