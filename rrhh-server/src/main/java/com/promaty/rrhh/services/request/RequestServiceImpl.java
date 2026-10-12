@@ -1,8 +1,6 @@
 package com.promaty.rrhh.services.request;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,7 +14,6 @@ import com.promaty.rrhh.dto.request.RequestCountersDto;
 import com.promaty.rrhh.dto.request.RequestDetailDto;
 import com.promaty.rrhh.dto.request.RequestFilterParams;
 import com.promaty.rrhh.dto.request.RequestListDto;
-import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.entity.Approval;
 import com.promaty.rrhh.entity.ApprovalLevel;
 import com.promaty.rrhh.entity.PlatformStatus;
@@ -38,15 +35,13 @@ import com.promaty.rrhh.services.request.handler.RequestHandlerRegistry;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
 import com.promaty.rrhh.services.shared.CurrentUserId;
 import com.promaty.rrhh.services.shared.ProjectAccessSpecification;
+import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
 
 @Service
 public class RequestServiceImpl implements RequestService {
 
-	private static final String CODE_APPROVED = "APPROVED";
 	private static final String CODE_PENDING_APPROVAL = "PENDING_APPROVAL";
 	private static final String CODE_PENDING_VALIDATION = "PENDING_VALIDATION";
-	private static final String PERMISO_APROBAR = "contract.approve";
-	private static final String PERMISO_VALIDAR = "contract.validate";
 	private static final String NO_ENCONTRADA = "La solicitud indicada no existe.";
 
 	private final RequestRepository requestRepository;
@@ -58,6 +53,7 @@ public class RequestServiceImpl implements RequestService {
 	private final RequestRelationsResolver relationsResolver;
 	private final RequestHandlerRegistry handlerRegistry;
 	private final ContractPendingDataResolver contractPendingDataResolver;
+	private final RequestApprovalActionsResolver actionsResolver;
 
 	public RequestServiceImpl(
 		RequestRepository requestRepository,
@@ -68,7 +64,8 @@ public class RequestServiceImpl implements RequestService {
 		CreateRequestBuilder createRequestBuilder,
 		RequestRelationsResolver relationsResolver,
 		RequestHandlerRegistry handlerRegistry,
-		ContractPendingDataResolver contractPendingDataResolver
+		ContractPendingDataResolver contractPendingDataResolver,
+		RequestApprovalActionsResolver actionsResolver
 	) {
 		this.requestRepository = requestRepository;
 		this.approvalRepository = approvalRepository;
@@ -79,6 +76,7 @@ public class RequestServiceImpl implements RequestService {
 		this.relationsResolver = relationsResolver;
 		this.handlerRegistry = handlerRegistry;
 		this.contractPendingDataResolver = contractPendingDataResolver;
+		this.actionsResolver = actionsResolver;
 	}
 
 	@Override
@@ -86,6 +84,8 @@ public class RequestServiceImpl implements RequestService {
 	public Long createRequest(CreateRequestDto dto) {
 		requestValidation.validateCreate(dto);
 		Request request = createRequestBuilder.build(dto);
+		Long entityId = handlerRegistry.get(request.getEntityType()).create(request);
+		request.setEntityId(entityId);
 		return requestRepository.save(request).getId();
 	}
 
@@ -99,10 +99,7 @@ public class RequestServiceImpl implements RequestService {
 
 		PlatformStatus siguienteStatus = relationsResolver.resolveNextStatus(nivelDecidido, dto.getDecision());
 		request.setStatus(siguienteStatus);
-		if (CODE_APPROVED.equals(siguienteStatus.getCode())) {
-			Long entityId = handlerRegistry.get(request.getEntityType()).apply(request);
-			request.setEntityId(entityId);
-		}
+		handlerRegistry.get(request.getEntityType()).applyDecision(request, nivelDecidido, dto.getDecision());
 		requestRepository.save(request);
 	}
 
@@ -111,10 +108,9 @@ public class RequestServiceImpl implements RequestService {
 	public Page<RequestListDto> listRequests(RequestFilterParams filters, Pageable pageable) {
 		Specification<Request> especificacion = RequestQueryBuilder.fromFilters(filters)
 			.and(ProjectAccessSpecification.onProject());
-		Set<String> autoridades = CurrentUserAuthorities.get();
 		return requestRepository.findAll(especificacion, pageable)
 			.map(RequestMapper::toListDto)
-			.map(dto -> conAcciones(dto, autoridades));
+			.map(this::sinAccionesDeDecision);
 	}
 
 	@Override
@@ -126,7 +122,7 @@ public class RequestServiceImpl implements RequestService {
 		if (request.getEntityType() == RequestEntityType.CONTRACT) {
 			dto.setContractPendingData(contractPendingDataResolver.resolve(request.getPendingData()));
 		}
-		dto.setActions(resolveRowActions(dto.getStatus().getCode(), CurrentUserAuthorities.get()));
+		dto.setActions(actionsResolver.resolve(dto.getStatus().getCode(), CurrentUserAuthorities.get()));
 		return dto;
 	}
 
@@ -153,19 +149,9 @@ public class RequestServiceImpl implements RequestService {
 			.orElseThrow(() -> new ResourceNotFoundException(NO_ENCONTRADA));
 	}
 
-	private RequestListDto conAcciones(RequestListDto dto, Set<String> autoridades) {
-		dto.setActions(resolveRowActions(dto.getStatus().getCode(), autoridades));
+	private RequestListDto sinAccionesDeDecision(RequestListDto dto) {
+		dto.setActions(List.of());
 		return dto;
-	}
-
-	private List<Action> resolveRowActions(String statusCode, Set<String> autoridades) {
-		List<Action> actions = new ArrayList<>();
-		if (CODE_PENDING_APPROVAL.equals(statusCode) && autoridades.contains(PERMISO_APROBAR)) {
-			actions.add(Action.APPROVE);
-		} else if (CODE_PENDING_VALIDATION.equals(statusCode) && autoridades.contains(PERMISO_VALIDAR)) {
-			actions.add(Action.VALIDATE);
-		}
-		return actions;
 	}
 
 	private void registrarApproval(Request request, DecideRequestDto dto, ApprovalLevel nivelDecidido) {

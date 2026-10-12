@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.jpa.domain.Specification;
@@ -33,7 +33,6 @@ import com.promaty.rrhh.dto.request.RequestCountersDto;
 import com.promaty.rrhh.dto.request.RequestDetailDto;
 import com.promaty.rrhh.dto.request.RequestFilterParams;
 import com.promaty.rrhh.dto.request.RequestListDto;
-import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.entity.Approval;
 import com.promaty.rrhh.entity.ApprovalDecision;
 import com.promaty.rrhh.entity.ApprovalLevel;
@@ -53,6 +52,7 @@ import com.promaty.rrhh.services.request.business.validation.RequestDecisionVali
 import com.promaty.rrhh.services.request.business.validation.RequestValidation;
 import com.promaty.rrhh.services.request.handler.RequestHandler;
 import com.promaty.rrhh.services.request.handler.RequestHandlerRegistry;
+import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
 
 @ExtendWith(MockitoExtension.class)
 class RequestServiceImplTest {
@@ -77,6 +77,8 @@ class RequestServiceImplTest {
 	private RequestHandler contractRequestHandler;
 	@Mock
 	private ContractPendingDataResolver contractPendingDataResolver;
+	@Spy
+	private RequestApprovalActionsResolver actionsResolver = new RequestApprovalActionsResolver();
 
 	@AfterEach
 	void limpiarContextoDeSeguridad() {
@@ -87,60 +89,67 @@ class RequestServiceImplTest {
 	private RequestServiceImpl requestService;
 
 	@Test
-	void createRequest_validaArmaYGuarda_retornaIdGenerado() {
+	void createRequest_validaArmaCreaLaEntidadYGuarda_retornaIdGenerado() {
 		CreateRequestDto dto = new CreateRequestDto();
+		dto.setEntityType(RequestEntityType.CONTRACT);
 		Request request = new Request();
+		request.setEntityType(RequestEntityType.CONTRACT);
 		Request guardado = new Request();
 		guardado.setId(10L);
 
 		when(createRequestBuilder.build(dto)).thenReturn(request);
+		when(handlerRegistry.get(RequestEntityType.CONTRACT)).thenReturn(contractRequestHandler);
+		when(contractRequestHandler.create(request)).thenReturn(77L);
 		when(requestRepository.save(request)).thenReturn(guardado);
 
 		Long id = requestService.createRequest(dto);
 
 		assertThat(id).isEqualTo(10L);
+		assertThat(request.getEntityId()).isEqualTo(77L);
 		verify(requestValidation).validateCreate(dto);
 	}
 
 	@Test
-	void decideRequest_aprobarEnPendingApproval_avanzaAPendingValidationSinInvocarHandler() {
+	void decideRequest_aprobarEnPendingApproval_avanzaAPendingValidationYAplicaDecisionEnHandler() {
 		Request request = requestConId(1L, RequestEntityType.CONTRACT);
+		request.setEntityId(200L);
 		DecideRequestDto dto = decisionAprobada();
 		when(requestRepository.findById(1L)).thenReturn(Optional.of(request));
 		when(requestDecisionValidation.validateDecision(request, dto)).thenReturn(ApprovalLevel.PROJECT_MANAGER);
 		PlatformStatus pendingValidation = statusConCodigo("PENDING_VALIDATION");
 		when(relationsResolver.resolveNextStatus(ApprovalLevel.PROJECT_MANAGER, ApprovalDecision.APPROVED))
 			.thenReturn(pendingValidation);
+		when(handlerRegistry.get(RequestEntityType.CONTRACT)).thenReturn(contractRequestHandler);
 
 		requestService.decideRequest(1L, dto);
 
 		assertThat(request.getStatus()).isEqualTo(pendingValidation);
-		assertThat(request.getEntityId()).isNull();
-		verify(handlerRegistry, never()).get(any());
+		verify(contractRequestHandler).applyDecision(request, ApprovalLevel.PROJECT_MANAGER, ApprovalDecision.APPROVED);
 		verify(approvalRepository).save(any());
 		verify(requestRepository).save(request);
 	}
 
 	@Test
-	void decideRequest_aprobarEnPendingValidation_invocaHandlerYGuardaEntityId() {
+	void decideRequest_aprobarEnPendingValidation_invocaHandlerConNivelHr() {
 		Request request = requestConId(2L, RequestEntityType.CONTRACT);
+		request.setEntityId(201L);
 		DecideRequestDto dto = decisionAprobada();
 		when(requestRepository.findById(2L)).thenReturn(Optional.of(request));
 		when(requestDecisionValidation.validateDecision(request, dto)).thenReturn(ApprovalLevel.HR);
 		PlatformStatus approved = statusConCodigo("APPROVED");
 		when(relationsResolver.resolveNextStatus(ApprovalLevel.HR, ApprovalDecision.APPROVED)).thenReturn(approved);
 		when(handlerRegistry.get(RequestEntityType.CONTRACT)).thenReturn(contractRequestHandler);
-		when(contractRequestHandler.apply(request)).thenReturn(55L);
 
 		requestService.decideRequest(2L, dto);
 
 		assertThat(request.getStatus()).isEqualTo(approved);
-		assertThat(request.getEntityId()).isEqualTo(55L);
+		verify(contractRequestHandler).applyDecision(request, ApprovalLevel.HR, ApprovalDecision.APPROVED);
 	}
 
 	@Test
-	void decideRequest_rechazar_noInvocaHandler() {
+	void decideRequest_rechazar_invocaHandlerConDecisionRejected() {
 		Request request = requestConId(3L, RequestEntityType.CONTRACT);
+		request.setEntityId(202L);
 		DecideRequestDto dto = new DecideRequestDto();
 		dto.setDecision(ApprovalDecision.REJECTED);
 		dto.setRejectionReasonId(1L);
@@ -149,11 +158,12 @@ class RequestServiceImplTest {
 		PlatformStatus rejected = statusConCodigo("REJECTED");
 		when(relationsResolver.resolveNextStatus(ApprovalLevel.PROJECT_MANAGER, ApprovalDecision.REJECTED))
 			.thenReturn(rejected);
+		when(handlerRegistry.get(RequestEntityType.CONTRACT)).thenReturn(contractRequestHandler);
 
 		requestService.decideRequest(3L, dto);
 
 		assertThat(request.getStatus()).isEqualTo(rejected);
-		verify(handlerRegistry, never()).get(any());
+		verify(contractRequestHandler).applyDecision(request, ApprovalLevel.PROJECT_MANAGER, ApprovalDecision.REJECTED);
 	}
 
 	@Test
@@ -173,23 +183,9 @@ class RequestServiceImplTest {
 	}
 
 	@Test
-	void listRequests_conPermisoDeAprobarYStatusPendingApproval_actionsIncluyeApprove() {
+	void listRequests_conPermisoDeAprobarYStatusPendingApproval_actionsQuedaVacio() {
 		autenticarCon("contract.approve");
 		Request request = requestConId(6L, RequestEntityType.CONTRACT);
-		request.setProject(proyectoConNombre("Edificio Centro"));
-		request.setStatus(statusConCodigo("PENDING_APPROVAL"));
-		Pageable pageable = PageRequest.of(0, 20);
-		when(requestRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(new PageImpl<>(List.of(request)));
-
-		List<RequestListDto> resultado = requestService.listRequests(new RequestFilterParams(), pageable).getContent();
-
-		assertThat(resultado.get(0).getActions()).containsExactly(Action.APPROVE);
-	}
-
-	@Test
-	void listRequests_sinPermisoDeAprobar_actionsQuedaVacio() {
-		autenticarCon("contract.validate");
-		Request request = requestConId(7L, RequestEntityType.CONTRACT);
 		request.setProject(proyectoConNombre("Edificio Centro"));
 		request.setStatus(statusConCodigo("PENDING_APPROVAL"));
 		Pageable pageable = PageRequest.of(0, 20);

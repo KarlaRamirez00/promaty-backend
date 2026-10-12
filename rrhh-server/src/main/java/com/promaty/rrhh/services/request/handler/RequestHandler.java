@@ -1,5 +1,7 @@
 package com.promaty.rrhh.services.request.handler;
 
+import com.promaty.rrhh.entity.ApprovalDecision;
+import com.promaty.rrhh.entity.ApprovalLevel;
 import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.RequestEntityType;
 
@@ -7,6 +9,9 @@ public interface RequestHandler {
 
 	RequestEntityType supports();
 
-	/** Aplica el pendingData sobre la entidad real y retorna su id (creada o editada). */
-	Long apply(Request request);
+	/** Crea la entidad real desde el pendingData, en su estado inicial pendiente, y retorna su id. */
+	Long create(Request request);
+
+	/** Aplica el efecto de una decisión de aprobación/rechazo sobre la entidad ya creada por create(). */
+	void applyDecision(Request request, ApprovalLevel level, ApprovalDecision decision);
 }
