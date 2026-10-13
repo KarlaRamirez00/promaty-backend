@@ -41,6 +41,7 @@ public class CreateStaffBuilder {
 		staff.setBank(relationsResolver.resolveBank(dto.getBankId()));
 		staff.setAccountType(dto.getAccountType());
 		staff.setAccountNumber(dto.getAccountNumber());
+		staff.setStatus(relationsResolver.resolveDefaultStatus());
 		return staff;
 	}
 }

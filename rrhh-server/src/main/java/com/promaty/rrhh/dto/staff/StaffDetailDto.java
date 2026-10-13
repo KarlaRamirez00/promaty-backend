@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.promaty.rrhh.dto.platformstatus.PlatformStatusOptionDto;
 import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.entity.AccountType;
 import com.promaty.rrhh.entity.ClothingSize;
@@ -49,6 +50,9 @@ public class StaffDetailDto {
 	private RelationSummaryDto bank;
 	private AccountType accountType;
 	private String accountNumber;
+	private PlatformStatusOptionDto status;
+	private String blockReason;
+	private Boolean rehireEligible;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
 	private String createdBy;

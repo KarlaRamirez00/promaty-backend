@@ -9,6 +9,7 @@ import com.promaty.rrhh.entity.EducationLevel;
 import com.promaty.rrhh.entity.HealthSystem;
 import com.promaty.rrhh.entity.MaritalStatus;
 import com.promaty.rrhh.entity.Nationality;
+import com.promaty.rrhh.entity.PlatformStatus;
 import com.promaty.rrhh.entity.RegisteredSex;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.AfpRepository;
@@ -18,6 +19,7 @@ import com.promaty.rrhh.repository.EducationLevelRepository;
 import com.promaty.rrhh.repository.HealthSystemRepository;
 import com.promaty.rrhh.repository.MaritalStatusRepository;
 import com.promaty.rrhh.repository.NationalityRepository;
+import com.promaty.rrhh.repository.PlatformStatusRepository;
 import com.promaty.rrhh.repository.RegisteredSexRepository;
 
 /**
@@ -27,6 +29,9 @@ import com.promaty.rrhh.repository.RegisteredSexRepository;
 @Component
 public class StaffRelationsResolver {
 
+	private static final String SUB_MODULE_PROFILE = "profile";
+	private static final String CODIGO_ESTADO_INICIAL = "PENDING_CONTRACT";
+
 	private final RegisteredSexRepository registeredSexRepository;
 	private final MaritalStatusRepository maritalStatusRepository;
 	private final NationalityRepository nationalityRepository;
@@ -35,6 +40,7 @@ public class StaffRelationsResolver {
 	private final HealthSystemRepository healthSystemRepository;
 	private final BankRepository bankRepository;
 	private final ComunaRepository comunaRepository;
+	private final PlatformStatusRepository platformStatusRepository;
 
 	public StaffRelationsResolver(
 		RegisteredSexRepository registeredSexRepository,
@@ -44,7 +50,8 @@ public class StaffRelationsResolver {
 		AfpRepository afpRepository,
 		HealthSystemRepository healthSystemRepository,
 		BankRepository bankRepository,
-		ComunaRepository comunaRepository
+		ComunaRepository comunaRepository,
+		PlatformStatusRepository platformStatusRepository
 	) {
 		this.registeredSexRepository = registeredSexRepository;
 		this.maritalStatusRepository = maritalStatusRepository;
@@ -54,6 +61,7 @@ public class StaffRelationsResolver {
 		this.healthSystemRepository = healthSystemRepository;
 		this.bankRepository = bankRepository;
 		this.comunaRepository = comunaRepository;
+		this.platformStatusRepository = platformStatusRepository;
 	}
 
 	public RegisteredSex resolveRegisteredSex(Long registeredSexId) {
@@ -94,5 +102,15 @@ public class StaffRelationsResolver {
 	public Comuna resolveComuna(Long comunaId) {
 		return comunaRepository.findById(comunaId)
 			.orElseThrow(() -> new ResourceNotFoundException("La comuna indicada no existe."));
+	}
+
+	public PlatformStatus resolveStatus(Long statusId) {
+		return platformStatusRepository.findById(statusId)
+			.orElseThrow(() -> new ResourceNotFoundException("El estado indicado no existe."));
+	}
+
+	public PlatformStatus resolveDefaultStatus() {
+		return platformStatusRepository.findBySubModuleAndCode(SUB_MODULE_PROFILE, CODIGO_ESTADO_INICIAL)
+			.orElseThrow(() -> new ResourceNotFoundException("No existe el estado inicial de colaborador (PENDING_CONTRACT)."));
 	}
 }

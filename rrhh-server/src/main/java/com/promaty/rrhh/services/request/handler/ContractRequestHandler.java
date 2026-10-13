@@ -14,6 +14,7 @@ import com.promaty.rrhh.entity.ContractType;
 import com.promaty.rrhh.entity.PlatformStatus;
 import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.RequestEntityType;
+import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.CompanyRepository;
 import com.promaty.rrhh.repository.ContractRepository;
@@ -37,12 +38,16 @@ import com.promaty.rrhh.services.rexplus.RexSyncResult;
 public class ContractRequestHandler implements RequestHandler {
 
 	private static final String SUBMODULE_CONTRACT = "contract";
+	private static final String SUBMODULE_PROFILE = "profile";
 	private static final String CODE_PENDING_APPROVAL = "PENDING_APPROVAL";
 	private static final String CODE_PENDING_VALIDATION = "PENDING_VALIDATION";
 	private static final String CODE_ACTIVE = "ACTIVE";
 	private static final String CODE_REJECTED = "REJECTED";
 	private static final String CODE_SYNC_ERROR = "SYNC_ERROR";
 	private static final String CODE_LATE_REGISTRATION = "LATE_REGISTRATION";
+	private static final String CODE_PENDING_CONTRACT = "PENDING_CONTRACT";
+	private static final String CODE_STAFF_BLOCKED = "BLOCKED";
+	private static final String CODE_STAFF_UNLINKED = "UNLINKED";
 	private static final String CODE_CONTRACT_TYPE_OBRA = "O";
 	private static final int PLAZO_HABIL_OBRA = 5;
 	private static final int PLAZO_HABIL_GENERAL = 15;
@@ -136,6 +141,7 @@ public class ContractRequestHandler implements RequestHandler {
 		if (decision == ApprovalDecision.REJECTED) {
 			contract.setStatus(resolveEstado(CODE_REJECTED));
 			contractRepository.save(contract);
+			actualizarEstadoStaffSiCorresponde(contract, CODE_PENDING_CONTRACT);
 			return;
 		}
 		if (level == ApprovalLevel.PROJECT_MANAGER) {
@@ -156,10 +162,27 @@ public class ContractRequestHandler implements RequestHandler {
 		if (sincronizacion.success()) {
 			contract.setRexContractNumber(sincronizacion.externalContractNumber());
 			contract.setStatus(resolveEstado(CODE_ACTIVE));
-		} else {
-			contract.setStatus(resolveEstado(CODE_SYNC_ERROR));
+			contractRepository.save(contract);
+			actualizarEstadoStaffSiCorresponde(contract, CODE_ACTIVE);
+			return;
 		}
+		contract.setStatus(resolveEstado(CODE_SYNC_ERROR));
 		contractRepository.save(contract);
+	}
+
+	private void actualizarEstadoStaffSiCorresponde(Contract contract, String nuevoCodigoEstadoStaff) {
+		Staff staff = contract.getStaff();
+		String estadoActual = staff.getStatus().getCode();
+		if (CODE_STAFF_BLOCKED.equals(estadoActual) || CODE_STAFF_UNLINKED.equals(estadoActual)) {
+			return;
+		}
+		staff.setStatus(resolveEstadoStaff(nuevoCodigoEstadoStaff));
+		staffRepository.save(staff);
+	}
+
+	private PlatformStatus resolveEstadoStaff(String code) {
+		return platformStatusRepository.findBySubModuleAndCode(SUBMODULE_PROFILE, code)
+			.orElseThrow(() -> new ResourceNotFoundException("El estado " + code + " de colaborador no está sembrado."));
 	}
 
 	private boolean superoPlazoLegal(LocalDate startDate, ContractType contractType) {

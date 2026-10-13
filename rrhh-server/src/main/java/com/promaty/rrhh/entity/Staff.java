@@ -109,6 +109,16 @@ public class Staff extends BaseDatedEntity {
 	@Column(name = "account_number", nullable = false, length = 30)
 	private String accountNumber;
 
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "status_id", nullable = false)
+	private PlatformStatus status;
+
+	@Column(name = "block_reason", length = 250)
+	private String blockReason;
+
+	@Column(name = "rehire_eligible")
+	private Boolean rehireEligible;
+
 	public String getFullName() {
 		return firstName + " " + paternalLastName + " " + maternalLastName;
 	}

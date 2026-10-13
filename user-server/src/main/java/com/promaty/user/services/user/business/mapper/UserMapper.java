@@ -23,7 +23,8 @@ public final class UserMapper {
 			user.getCreatedAt(),
 			user.getUpdatedAt(),
 			user.getCreatedBy(),
-			user.getUpdatedBy()
+			user.getUpdatedBy(),
+			null // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
 		);
 	}
 
@@ -40,7 +41,8 @@ public final class UserMapper {
 			user.getCreatedAt(),
 			user.getUpdatedAt(),
 			user.getCreatedBy(),
-			user.getUpdatedBy()
+			user.getUpdatedBy(),
+			null // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
 		);
 	}
 }

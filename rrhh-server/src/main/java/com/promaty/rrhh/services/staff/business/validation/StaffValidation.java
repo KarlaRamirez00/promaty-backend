@@ -9,9 +9,11 @@ import org.springframework.stereotype.Component;
 
 import com.promaty.rrhh.dto.staff.CreateStaffDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
+import com.promaty.rrhh.dto.staff.UpdateStaffStatusDto;
 import com.promaty.rrhh.entity.AccountType;
 import com.promaty.rrhh.entity.Bank;
 import com.promaty.rrhh.entity.IdentificationType;
+import com.promaty.rrhh.entity.PlatformStatus;
 import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.repository.AfpRepository;
 import com.promaty.rrhh.repository.BankRepository;
@@ -20,6 +22,7 @@ import com.promaty.rrhh.repository.EducationLevelRepository;
 import com.promaty.rrhh.repository.HealthSystemRepository;
 import com.promaty.rrhh.repository.MaritalStatusRepository;
 import com.promaty.rrhh.repository.NationalityRepository;
+import com.promaty.rrhh.repository.PlatformStatusRepository;
 import com.promaty.rrhh.repository.RegisteredSexRepository;
 import com.promaty.rrhh.repository.StaffRepository;
 
@@ -29,6 +32,8 @@ public class StaffValidation {
 	private static final String MENSAJE_VALIDACION = "La validacion fallo para uno o mas campos.";
 	private static final int EDAD_MINIMA = 18;
 	private static final String CODIGO_BANCO_ESTADO = "BANCO_ESTADO";
+	private static final String CODIGO_ESTADO_BLOCKED = "BLOCKED";
+	private static final String CODIGO_ESTADO_UNLINKED = "UNLINKED";
 
 	private final StaffRepository staffRepository;
 	private final RegisteredSexRepository registeredSexRepository;
@@ -39,6 +44,7 @@ public class StaffValidation {
 	private final HealthSystemRepository healthSystemRepository;
 	private final BankRepository bankRepository;
 	private final ComunaRepository comunaRepository;
+	private final PlatformStatusRepository platformStatusRepository;
 
 	public StaffValidation(
 		StaffRepository staffRepository,
@@ -49,7 +55,8 @@ public class StaffValidation {
 		AfpRepository afpRepository,
 		HealthSystemRepository healthSystemRepository,
 		BankRepository bankRepository,
-		ComunaRepository comunaRepository
+		ComunaRepository comunaRepository,
+		PlatformStatusRepository platformStatusRepository
 	) {
 		this.staffRepository = staffRepository;
 		this.registeredSexRepository = registeredSexRepository;
@@ -60,6 +67,7 @@ public class StaffValidation {
 		this.healthSystemRepository = healthSystemRepository;
 		this.bankRepository = bankRepository;
 		this.comunaRepository = comunaRepository;
+		this.platformStatusRepository = platformStatusRepository;
 	}
 
 	public void validateCreate(CreateStaffDto dto) {
@@ -107,6 +115,25 @@ public class StaffValidation {
 		);
 		validarHijos(errores, dto.getHasChildren(), dto.getChildrenCount());
 		validarTipoCuenta(errores, dto.getAccountType(), dto.getBankId());
+
+		lanzarSiHayErrores(errores);
+	}
+
+	public void validateStatusChange(UpdateStaffStatusDto dto) {
+		Map<String, String> errores = new LinkedHashMap<>();
+
+		if (dto.getStatusId() == null) {
+			lanzarSiHayErrores(errores);
+			return;
+		}
+		PlatformStatus estado = platformStatusRepository.findById(dto.getStatusId()).orElse(null);
+		if (estado == null) {
+			errores.put("statusId", "El estado indicado no existe.");
+		} else if (CODIGO_ESTADO_UNLINKED.equals(estado.getCode())) {
+			errores.put("statusId", "Este estado se asigna solo mediante el flujo de finiquito (no implementado aun).");
+		} else if (CODIGO_ESTADO_BLOCKED.equals(estado.getCode()) && (dto.getBlockReason() == null || dto.getBlockReason().isBlank())) {
+			errores.put("blockReason", "Debe indicar el motivo del bloqueo.");
+		}
 
 		lanzarSiHayErrores(errores);
 	}

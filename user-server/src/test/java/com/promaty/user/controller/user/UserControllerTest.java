@@ -82,7 +82,7 @@ class UserControllerTest {
 
 	private UserDetailDto detalle() {
 		return new UserDetailDto(1L, "Ana", "Perez", "ana.perez@promaty.cl", null, true,
-			new RoleSummaryDto(1L, "Editor"), List.of(1L, 2L), null, null, "system", null);
+			new RoleSummaryDto(1L, "Editor"), List.of(1L, 2L), null, null, "system", null, List.of());
 	}
 
 	@Test
@@ -114,7 +114,7 @@ class UserControllerTest {
 	@Test
 	void list_retorna200ConDataYPaginacion() throws Exception {
 		UserListDto usuario = new UserListDto(1L, "Ana", "Perez", "ana.perez@promaty.cl", true,
-			new RoleSummaryDto(1L, "Editor"), null, null, "system", null);
+			new RoleSummaryDto(1L, "Editor"), null, null, "system", null, List.of());
 		Page<UserListDto> pagina = new PageImpl<>(List.of(usuario), PageRequest.of(0, 20), 1);
 		when(userService.listUsers(any(), any())).thenReturn(pagina);
 

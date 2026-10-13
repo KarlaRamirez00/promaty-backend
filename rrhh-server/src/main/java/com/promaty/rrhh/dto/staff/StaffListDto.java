@@ -24,6 +24,8 @@ public class StaffListDto {
 	private String paternalLastName;
 	private String maternalLastName;
 	private String costCenterCode;
+	private String statusCode;
+	private String statusName;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
 	private String createdBy;

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,6 +24,7 @@ import com.promaty.rrhh.dto.staff.StaffFilterParams;
 import com.promaty.rrhh.dto.staff.StaffListDto;
 import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
+import com.promaty.rrhh.dto.staff.UpdateStaffStatusDto;
 import com.promaty.rrhh.services.staff.StaffService;
 
 import jakarta.validation.Valid;
@@ -73,5 +75,14 @@ public class StaffController {
 	) {
 		staffService.updateStaff(id, dto);
 		return ResponseEntity.ok(BaseData.success(staffService.getStaffDetail(id)));
+	}
+
+	@PatchMapping("/{id}/status")
+	@PreAuthorize("hasAuthority('staff.status')")
+	public ResponseEntity<BaseData<StaffDetailDto>> updateStatus(
+		@PathVariable Long id,
+		@Valid @RequestBody UpdateStaffStatusDto dto
+	) {
+		return ResponseEntity.ok(BaseData.success(staffService.updateStaffStatus(id, dto)));
 	}
 }

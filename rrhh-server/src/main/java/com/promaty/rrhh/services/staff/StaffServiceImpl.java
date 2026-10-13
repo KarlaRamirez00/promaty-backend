@@ -16,6 +16,7 @@ import com.promaty.rrhh.dto.staff.StaffFilterParams;
 import com.promaty.rrhh.dto.staff.StaffListDto;
 import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
+import com.promaty.rrhh.dto.staff.UpdateStaffStatusDto;
 import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.Project;
 import com.promaty.rrhh.entity.Staff;
@@ -26,6 +27,7 @@ import com.promaty.rrhh.services.shared.ActionsResolver;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
 import com.promaty.rrhh.services.staff.business.builder.CreateStaffBuilder;
 import com.promaty.rrhh.services.staff.business.builder.StaffQueryBuilder;
+import com.promaty.rrhh.services.staff.business.builder.StaffRelationsResolver;
 import com.promaty.rrhh.services.staff.business.builder.UpdateStaffBuilder;
 import com.promaty.rrhh.services.staff.business.mapper.StaffMapper;
 import com.promaty.rrhh.services.staff.business.validation.StaffValidation;
@@ -35,9 +37,11 @@ public class StaffServiceImpl implements StaffService {
 
 	private static final String NO_ENCONTRADO = "Colaborador no encontrado.";
 	private static final String ESTADO_ACTIVO = "ACTIVE";
+	private static final String CODIGO_ESTADO_BLOCKED = "BLOCKED";
 
 	private static final Map<String, Action> REGLAS_ACCIONES = Map.of(
-		"staff.update", Action.UPDATE
+		"staff.update", Action.UPDATE,
+		"staff.status", Action.STATUS
 	);
 
 	private final StaffRepository staffRepository;
@@ -45,6 +49,7 @@ public class StaffServiceImpl implements StaffService {
 	private final StaffValidation staffValidation;
 	private final CreateStaffBuilder createStaffBuilder;
 	private final UpdateStaffBuilder updateStaffBuilder;
+	private final StaffRelationsResolver relationsResolver;
 	private final ActionsResolver actionsResolver;
 
 	public StaffServiceImpl(
@@ -53,6 +58,7 @@ public class StaffServiceImpl implements StaffService {
 		StaffValidation staffValidation,
 		CreateStaffBuilder createStaffBuilder,
 		UpdateStaffBuilder updateStaffBuilder,
+		StaffRelationsResolver relationsResolver,
 		ActionsResolver actionsResolver
 	) {
 		this.staffRepository = staffRepository;
@@ -60,6 +66,7 @@ public class StaffServiceImpl implements StaffService {
 		this.staffValidation = staffValidation;
 		this.createStaffBuilder = createStaffBuilder;
 		this.updateStaffBuilder = updateStaffBuilder;
+		this.relationsResolver = relationsResolver;
 		this.actionsResolver = actionsResolver;
 	}
 
@@ -78,6 +85,16 @@ public class StaffServiceImpl implements StaffService {
 		Staff existente = buscarPorId(id);
 		updateStaffBuilder.apply(existente, dto);
 		staffRepository.save(existente);
+	}
+
+	@Override
+	@Transactional
+	public StaffDetailDto updateStaffStatus(Long id, UpdateStaffStatusDto dto) {
+		staffValidation.validateStatusChange(dto);
+		Staff existente = buscarPorId(id);
+		existente.setStatus(relationsResolver.resolveStatus(dto.getStatusId()));
+		existente.setBlockReason(CODIGO_ESTADO_BLOCKED.equals(existente.getStatus().getCode()) ? dto.getBlockReason() : null);
+		return conAcciones(StaffMapper.toDetailDto(staffRepository.save(existente), resolverCentroCosto(id)));
 	}
 
 	@Override
@@ -100,7 +117,7 @@ public class StaffServiceImpl implements StaffService {
 	@Override
 	@Transactional(readOnly = true)
 	public List<StaffSelectorOptionDto> listSelectorOptionsForContract() {
-		return staffRepository.findAvailableForContractSelector(ESTADO_ACTIVO)
+		return staffRepository.findAvailableForContractSelector(ESTADO_ACTIVO, CODIGO_ESTADO_BLOCKED)
 			.stream()
 			.map(StaffMapper::toSelectorOptionDto)
 			.toList();

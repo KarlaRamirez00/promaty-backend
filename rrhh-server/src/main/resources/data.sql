@@ -24,7 +24,11 @@ VALUES
 	('Vencido',                 'EXPIRED',             'Llegó a su fecha de término sin renovarse.',           5, 'contract', true, now(), now(), 'system', 'system'),
 	('Anulado',                 'ANNULLED',            'Anulado manualmente tras estar activo.',               6, 'contract', true, now(), now(), 'system', 'system'),
 	('Error de sincronización', 'SYNC_ERROR',          'Falló la sincronización con el ERP de RRHH.',          7, 'contract', true, now(), now(), 'system', 'system'),
-	('Fuera de plazo legal',    'LATE_REGISTRATION',  'Superó el plazo legal de escrituración (5 o 15 días hábiles).', 8, 'contract', true, now(), now(), 'system', 'system')
+	('Fuera de plazo legal',    'LATE_REGISTRATION',  'Superó el plazo legal de escrituración (5 o 15 días hábiles).', 8, 'contract', true, now(), now(), 'system', 'system'),
+	('Pendiente de contrato',   'PENDING_CONTRACT',   'Colaborador creado, aún sin contrato activo.',         1, 'profile', true, now(), now(), 'system', 'system'),
+	('Activo',                  'ACTIVE',             'Colaborador con un contrato activo.',                  2, 'profile', true, now(), now(), 'system', 'system'),
+	('Desvinculado',            'UNLINKED',           'Finiquitado; la elegibilidad para recontratar se evalúa por separado.', 3, 'profile', true, now(), now(), 'system', 'system'),
+	('Bloqueado',               'BLOCKED',            'Bloqueado manualmente por una causa administrativa o disciplinaria.', 4, 'profile', true, now(), now(), 'system', 'system')
 ON CONFLICT (sub_module, code) DO NOTHING;
 
 -- Catálogos de solo lectura para la ficha de Staff (HU-B23, extensión legal). Valores editables por
@@ -542,9 +546,9 @@ ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO contract_type (name, code, active, created_at, updated_at, created_by, updated_by)
 VALUES
-	('Contrato indefinido',       'I', true, now(), now(), 'system', 'system'),
-	('Contrato a plazo fijo',     'F', true, now(), now(), 'system', 'system'),
-	('Contrato por obra o faena', 'O', true, now(), now(), 'system', 'system')
+	('Indefinido',        'I', true, now(), now(), 'system', 'system'),
+	('Plazo fijo',        'F', true, now(), now(), 'system', 'system'),
+	('Por obra o faena',  'O', true, now(), now(), 'system', 'system')
 ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO site (name, code, active, created_at, updated_at, created_by, updated_by)

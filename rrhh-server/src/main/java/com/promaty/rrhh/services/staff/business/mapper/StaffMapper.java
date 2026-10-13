@@ -1,5 +1,6 @@
 package com.promaty.rrhh.services.staff.business.mapper;
 
+import com.promaty.rrhh.dto.platformstatus.PlatformStatusOptionDto;
 import com.promaty.rrhh.dto.staff.RelationSummaryDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffListDto;
@@ -30,6 +31,8 @@ public final class StaffMapper {
 			staff.getPaternalLastName(),
 			staff.getMaternalLastName(),
 			costCenterCode,
+			staff.getStatus().getCode(),
+			staff.getStatus().getName(),
 			staff.getCreatedAt(),
 			staff.getUpdatedAt(),
 			staff.getCreatedBy(),
@@ -69,6 +72,9 @@ public final class StaffMapper {
 			toRelationSummary(staff.getBank()),
 			staff.getAccountType(),
 			staff.getAccountNumber(),
+			new PlatformStatusOptionDto(staff.getStatus().getId(), staff.getStatus().getCode(), staff.getStatus().getName()),
+			staff.getBlockReason(),
+			staff.getRehireEligible(),
 			staff.getCreatedAt(),
 			staff.getUpdatedAt(),
 			staff.getCreatedBy(),

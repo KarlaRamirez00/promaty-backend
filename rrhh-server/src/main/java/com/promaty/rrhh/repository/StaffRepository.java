@@ -17,7 +17,11 @@ public interface StaffRepository extends JpaRepository<Staff, Long>, JpaSpecific
 	@Query("""
 		SELECT s FROM Staff s
 		WHERE s.id NOT IN (SELECT c.staff.id FROM Contract c WHERE c.status.code = :statusCodeActivo)
+		AND s.status.code <> :statusCodeBloqueado
 		ORDER BY s.firstName, s.paternalLastName
 		""")
-	List<Staff> findAvailableForContractSelector(@Param("statusCodeActivo") String statusCodeActivo);
+	List<Staff> findAvailableForContractSelector(
+		@Param("statusCodeActivo") String statusCodeActivo,
+		@Param("statusCodeBloqueado") String statusCodeBloqueado
+	);
 }
