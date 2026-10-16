@@ -26,6 +26,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.promaty.rrhh.config.SecurityConfig;
+import com.promaty.rrhh.dto.platformstatus.PlatformStatusOptionDto;
 import com.promaty.rrhh.dto.staff.RelationSummaryDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffListDto;
@@ -44,7 +45,7 @@ import com.promaty.rrhh.support.TestJwt;
 class StaffControllerTest {
 
 	private static final String TOKEN =
-		TestJwt.bearer("staff.read", "staff.create", "staff.update");
+		TestJwt.bearer("staff.read", "staff.create", "staff.update", "staff.status");
 	private static final String TOKEN_CONTRACT_CREATE = TestJwt.bearer("contract.create");
 	private static final String SIN_PERMISOS = TestJwt.bearer();
 
@@ -136,7 +137,7 @@ class StaffControllerTest {
 	void list_retorna200ConData() throws Exception {
 		Page<StaffListDto> pagina = new PageImpl<>(List.of(
 			new StaffListDto(1L, IdentificationType.RUT, "12345678-5", "Juan", "Perez", "Soto",
-				"00824", null, null, "system", null, List.of())
+				"00824", "ACTIVE", "Activo", null, null, "system", null, List.of())
 		));
 		when(staffService.listStaff(any(), any())).thenReturn(pagina);
 
@@ -172,6 +173,37 @@ class StaffControllerTest {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(UPDATE_STAFF_JSON))
 			.andExpect(status().isOk());
+	}
+
+	@Test
+	void updateStatus_conDatosValidos_retorna200ConDetalleActualizado() throws Exception {
+		when(staffService.updateStaffStatus(any(), any())).thenReturn(detalle());
+
+		mockMvc.perform(patch("/staff/1/status")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"statusId\":1,\"blockReason\":\"Agresión a un compañero.\"}"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.identificationNumber").value("12345678-5"));
+	}
+
+	@Test
+	void updateStatus_sinStatusId_retorna400ConErrorFields() throws Exception {
+		mockMvc.perform(patch("/staff/1/status")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{}"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.error.errorFields.statusId").exists());
+	}
+
+	@Test
+	void updateStatus_sinPermiso_retorna403() throws Exception {
+		mockMvc.perform(patch("/staff/1/status")
+				.header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"statusId\":1}"))
+			.andExpect(status().isForbidden());
 	}
 
 	@Test
@@ -221,6 +253,7 @@ class StaffControllerTest {
 			"00824", LocalDate.of(1990, 1, 1), registeredSex, maritalStatus, nationality, "912345678",
 			"987654321", "Maria Perez", "Calle Falsa 123", region, provincia, comuna, false, null,
 			"juan.perez@example.com", 42, ClothingSize.M, educationLevel, afp, healthSystem, bank,
-			AccountType.CHECKING, "00012345678", null, null, "system", null, List.of());
+			AccountType.CHECKING, "00012345678", new PlatformStatusOptionDto(1L, "ACTIVE", "Activo"), null, null,
+			null, null, "system", null, List.of());
 	}
 }

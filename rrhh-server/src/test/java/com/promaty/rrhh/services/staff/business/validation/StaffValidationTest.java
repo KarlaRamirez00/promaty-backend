@@ -17,10 +17,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.promaty.rrhh.dto.staff.CreateStaffDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
+import com.promaty.rrhh.dto.staff.UpdateStaffStatusDto;
 import com.promaty.rrhh.entity.AccountType;
 import com.promaty.rrhh.entity.Bank;
 import com.promaty.rrhh.entity.ClothingSize;
 import com.promaty.rrhh.entity.IdentificationType;
+import com.promaty.rrhh.entity.PlatformStatus;
 import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.repository.AfpRepository;
@@ -30,6 +32,7 @@ import com.promaty.rrhh.repository.EducationLevelRepository;
 import com.promaty.rrhh.repository.HealthSystemRepository;
 import com.promaty.rrhh.repository.MaritalStatusRepository;
 import com.promaty.rrhh.repository.NationalityRepository;
+import com.promaty.rrhh.repository.PlatformStatusRepository;
 import com.promaty.rrhh.repository.RegisteredSexRepository;
 import com.promaty.rrhh.repository.StaffRepository;
 
@@ -57,6 +60,8 @@ class StaffValidationTest {
 	private BankRepository bankRepository;
 	@Mock
 	private ComunaRepository comunaRepository;
+	@Mock
+	private PlatformStatusRepository platformStatusRepository;
 
 	@InjectMocks
 	private StaffValidation staffValidation;
@@ -187,6 +192,62 @@ class StaffValidationTest {
 	void validateUpdate_conDatosValidos_noLanzaExcepcion() {
 		todasLasFkExisten();
 		assertThatCode(() -> staffValidation.validateUpdate(updateDto())).doesNotThrowAnyException();
+	}
+
+	@Test
+	void validateStatusChange_aBlockedSinMotivo_lanzaErrorEnBlockReason() {
+		PlatformStatus bloqueado = estadoConCodigo(99L, "BLOCKED");
+		when(platformStatusRepository.findById(99L)).thenReturn(Optional.of(bloqueado));
+		UpdateStaffStatusDto dto = new UpdateStaffStatusDto();
+		dto.setStatusId(99L);
+
+		assertThatThrownBy(() -> staffValidation.validateStatusChange(dto))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsKey("blockReason"));
+	}
+
+	@Test
+	void validateStatusChange_aBlockedConMotivo_noLanzaExcepcion() {
+		PlatformStatus bloqueado = estadoConCodigo(99L, "BLOCKED");
+		when(platformStatusRepository.findById(99L)).thenReturn(Optional.of(bloqueado));
+		UpdateStaffStatusDto dto = new UpdateStaffStatusDto();
+		dto.setStatusId(99L);
+		dto.setBlockReason("Agresión a un compañero.");
+
+		assertThatCode(() -> staffValidation.validateStatusChange(dto)).doesNotThrowAnyException();
+	}
+
+	@Test
+	void validateStatusChange_aUnlinked_lanzaErrorPorFlujoNoImplementado() {
+		PlatformStatus desvinculado = estadoConCodigo(98L, "UNLINKED");
+		when(platformStatusRepository.findById(98L)).thenReturn(Optional.of(desvinculado));
+		UpdateStaffStatusDto dto = new UpdateStaffStatusDto();
+		dto.setStatusId(98L);
+
+		assertThatThrownBy(() -> staffValidation.validateStatusChange(dto))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsKey("statusId"));
+	}
+
+	@Test
+	void validateStatusChange_estadoInexistente_lanzaErrorEnStatusId() {
+		when(platformStatusRepository.findById(97L)).thenReturn(Optional.empty());
+		UpdateStaffStatusDto dto = new UpdateStaffStatusDto();
+		dto.setStatusId(97L);
+
+		assertThatThrownBy(() -> staffValidation.validateStatusChange(dto))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsKey("statusId"));
+	}
+
+	private PlatformStatus estadoConCodigo(Long id, String code) {
+		PlatformStatus estado = new PlatformStatus();
+		estado.setId(id);
+		estado.setCode(code);
+		return estado;
 	}
 
 	private void todasLasFkExisten() {

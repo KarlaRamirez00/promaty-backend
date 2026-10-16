@@ -22,9 +22,17 @@ public final class ContractQueryBuilder {
 
 			if (filters.getSearch() != null && !filters.getSearch().isBlank()) {
 				String unaccentedPattern = SearchNormalizer.likePattern(filters.getSearch());
-				String plainPattern = "%" + filters.getSearch().toLowerCase() + "%";
-				Predicate porNombre = cb.like(SearchNormalizer.unaccent(cb, cb.lower(root.get("name"))), unaccentedPattern);
-				Predicate porRut = cb.like(cb.lower(root.get("staff").get("identificationNumber")), plainPattern);
+				String rutPattern = "%" + SearchNormalizer.withoutRutPunctuation(filters.getSearch()) + "%";
+				var staff = root.get("staff");
+				Predicate porNombre = cb.or(
+					cb.like(SearchNormalizer.unaccent(cb, cb.lower(staff.get("firstName"))), unaccentedPattern),
+					cb.like(SearchNormalizer.unaccent(cb, cb.lower(staff.get("paternalLastName"))), unaccentedPattern),
+					cb.like(SearchNormalizer.unaccent(cb, cb.lower(staff.get("maternalLastName"))), unaccentedPattern)
+				);
+				Predicate porRut = cb.like(
+					SearchNormalizer.withoutRutPunctuation(cb, cb.lower(staff.get("identificationNumber"))),
+					rutPattern
+				);
 				predicates.add(cb.or(porNombre, porRut));
 			}
 			if (filters.getProjectId() != null) {

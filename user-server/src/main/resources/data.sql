@@ -58,6 +58,7 @@ FROM (VALUES
   ('staff.read', 'Ver colaboradores', 'staff'),
   ('staff.create', 'Crear colaboradores', 'staff'),
   ('staff.update', 'Editar colaboradores', 'staff'),
+  ('staff.status', 'Cambiar estado de colaborador', 'staff'),
   ('contract.read', 'Ver contratos', 'contracts'),
   ('contract.create', 'Crear contratos', 'contracts'),
   ('contract.update', 'Editar contratos', 'contracts'),

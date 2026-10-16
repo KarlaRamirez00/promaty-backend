@@ -8,4 +8,6 @@ import lombok.Setter;
 public class StaffFilterParams {
 
 	private String search;
+	private String statusCode;
+	private String costCenterCode;
 }

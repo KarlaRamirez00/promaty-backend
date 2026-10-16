@@ -25,10 +25,10 @@ VALUES
 	('Anulado',                 'ANNULLED',            'Anulado manualmente tras estar activo.',               6, 'contract', true, now(), now(), 'system', 'system'),
 	('Error de sincronización', 'SYNC_ERROR',          'Falló la sincronización con el ERP de RRHH.',          7, 'contract', true, now(), now(), 'system', 'system'),
 	('Fuera de plazo legal',    'LATE_REGISTRATION',  'Superó el plazo legal de escrituración (5 o 15 días hábiles).', 8, 'contract', true, now(), now(), 'system', 'system'),
-	('Pendiente de contrato',   'PENDING_CONTRACT',   'Colaborador creado, aún sin contrato activo.',         1, 'profile', true, now(), now(), 'system', 'system'),
-	('Activo',                  'ACTIVE',             'Colaborador con un contrato activo.',                  2, 'profile', true, now(), now(), 'system', 'system'),
-	('Desvinculado',            'UNLINKED',           'Finiquitado; la elegibilidad para recontratar se evalúa por separado.', 3, 'profile', true, now(), now(), 'system', 'system'),
-	('Bloqueado',               'BLOCKED',            'Bloqueado manualmente por una causa administrativa o disciplinaria.', 4, 'profile', true, now(), now(), 'system', 'system')
+	('Pendiente de contrato',   'PENDING_CONTRACT',   'Colaborador creado, aún sin contrato activo.',         1, 'staff', true, now(), now(), 'system', 'system'),
+	('Activo',                  'ACTIVE',             'Colaborador con un contrato activo.',                  2, 'staff', true, now(), now(), 'system', 'system'),
+	('Desvinculado',            'UNLINKED',           'Finiquitado; la elegibilidad para recontratar se evalúa por separado.', 3, 'staff', true, now(), now(), 'system', 'system'),
+	('Bloqueado',               'BLOCKED',            'Bloqueado manualmente por una causa administrativa o disciplinaria.', 4, 'staff', true, now(), now(), 'system', 'system')
 ON CONFLICT (sub_module, code) DO NOTHING;
 
 -- Catálogos de solo lectura para la ficha de Staff (HU-B23, extensión legal). Valores editables por

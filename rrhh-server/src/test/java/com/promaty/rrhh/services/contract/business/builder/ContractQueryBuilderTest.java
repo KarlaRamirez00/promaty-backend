@@ -40,29 +40,57 @@ class ContractQueryBuilderTest {
 	}
 
 	@Test
-	void fromFilters_conSearch_agregaPredicadoDeNombreORut() {
+	void fromFilters_conSearch_agregaPredicadoDeNombreDeColaboradorORut() {
 		ContractFilterParams filtros = new ContractFilterParams();
 		filtros.setSearch("Perez");
 
-		Path<String> namePath = mock(Path.class);
-		Expression<String> nameLower = mock(Expression.class);
-		Expression<String> nameNoAccent = mock(Expression.class);
 		Path<Object> staffPath = mock(Path.class);
+		Path<String> firstNamePath = mock(Path.class);
+		Path<String> paternalPath = mock(Path.class);
+		Path<String> maternalPath = mock(Path.class);
 		Path<String> idNumberPath = mock(Path.class);
+		Expression<String> firstNameLower = mock(Expression.class);
+		Expression<String> paternalLower = mock(Expression.class);
+		Expression<String> maternalLower = mock(Expression.class);
 		Expression<String> idNumberLower = mock(Expression.class);
-		Predicate namePredicate = mock(Predicate.class);
+		Expression<String> firstNameNoAccent = mock(Expression.class);
+		Expression<String> paternalNoAccent = mock(Expression.class);
+		Expression<String> maternalNoAccent = mock(Expression.class);
+		Expression<String> puntoLiteral = mock(Expression.class);
+		Expression<String> guionLiteral = mock(Expression.class);
+		Expression<String> vacioLiteral = mock(Expression.class);
+		Expression<String> idNumberSinPuntos = mock(Expression.class);
+		Expression<String> idNumberSinPuntosNiGuion = mock(Expression.class);
+		Predicate firstNamePredicate = mock(Predicate.class);
+		Predicate paternalPredicate = mock(Predicate.class);
+		Predicate maternalPredicate = mock(Predicate.class);
 		Predicate rutPredicate = mock(Predicate.class);
+		Predicate namePredicate = mock(Predicate.class);
 		Predicate orPredicate = mock(Predicate.class);
 		Predicate combinado = mock(Predicate.class);
 
-		when(root.<String>get("name")).thenReturn(namePath);
-		when(cb.lower(namePath)).thenReturn(nameLower);
-		when(cb.function("unaccent", String.class, nameLower)).thenReturn(nameNoAccent);
 		when(root.<Object>get("staff")).thenReturn(staffPath);
+		when(staffPath.<String>get("firstName")).thenReturn(firstNamePath);
+		when(staffPath.<String>get("paternalLastName")).thenReturn(paternalPath);
+		when(staffPath.<String>get("maternalLastName")).thenReturn(maternalPath);
 		when(staffPath.<String>get("identificationNumber")).thenReturn(idNumberPath);
+		when(cb.lower(firstNamePath)).thenReturn(firstNameLower);
+		when(cb.lower(paternalPath)).thenReturn(paternalLower);
+		when(cb.lower(maternalPath)).thenReturn(maternalLower);
 		when(cb.lower(idNumberPath)).thenReturn(idNumberLower);
-		when(cb.like(nameNoAccent, "%perez%")).thenReturn(namePredicate);
-		when(cb.like(idNumberLower, "%perez%")).thenReturn(rutPredicate);
+		when(cb.function("unaccent", String.class, firstNameLower)).thenReturn(firstNameNoAccent);
+		when(cb.function("unaccent", String.class, paternalLower)).thenReturn(paternalNoAccent);
+		when(cb.function("unaccent", String.class, maternalLower)).thenReturn(maternalNoAccent);
+		when(cb.like(firstNameNoAccent, "%perez%")).thenReturn(firstNamePredicate);
+		when(cb.like(paternalNoAccent, "%perez%")).thenReturn(paternalPredicate);
+		when(cb.like(maternalNoAccent, "%perez%")).thenReturn(maternalPredicate);
+		when(cb.<String>literal(".")).thenReturn(puntoLiteral);
+		when(cb.<String>literal("-")).thenReturn(guionLiteral);
+		when(cb.<String>literal("")).thenReturn(vacioLiteral);
+		when(cb.function("replace", String.class, idNumberLower, puntoLiteral, vacioLiteral)).thenReturn(idNumberSinPuntos);
+		when(cb.function("replace", String.class, idNumberSinPuntos, guionLiteral, vacioLiteral)).thenReturn(idNumberSinPuntosNiGuion);
+		when(cb.like(idNumberSinPuntosNiGuion, "%perez%")).thenReturn(rutPredicate);
+		when(cb.or(firstNamePredicate, paternalPredicate, maternalPredicate)).thenReturn(namePredicate);
 		when(cb.or(namePredicate, rutPredicate)).thenReturn(orPredicate);
 		ArgumentCaptor<Predicate[]> captor = ArgumentCaptor.forClass(Predicate[].class);
 		when(cb.and(captor.capture())).thenReturn(combinado);

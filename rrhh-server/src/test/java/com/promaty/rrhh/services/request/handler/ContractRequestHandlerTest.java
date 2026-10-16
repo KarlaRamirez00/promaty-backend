@@ -126,14 +126,19 @@ class ContractRequestHandlerTest {
 		Request request = new Request();
 		request.setEntityId(50L);
 		Contract contract = new Contract();
+		PlatformStatus pendienteContrato = estadoStaffConCodigo("PENDING_CONTRACT");
+		Staff staff = staffConEstado(pendienteContrato);
+		contract.setStaff(staff);
 		when(contractRepository.findById(50L)).thenReturn(Optional.of(contract));
 		PlatformStatus rechazado = new PlatformStatus();
 		rechazado.setCode("REJECTED");
 		when(platformStatusRepository.findBySubModuleAndCode("contract", "REJECTED")).thenReturn(Optional.of(rechazado));
+		when(platformStatusRepository.findBySubModuleAndCode("staff", "PENDING_CONTRACT")).thenReturn(Optional.of(pendienteContrato));
 
 		handler.applyDecision(request, ApprovalLevel.PROJECT_MANAGER, ApprovalDecision.REJECTED);
 
 		assertThat(contract.getStatus()).isEqualTo(rechazado);
+		assertThat(staff.getStatus()).isEqualTo(pendienteContrato);
 		verify(contractRepository).save(contract);
 		verify(rexPlusClient, never()).syncContract(any());
 	}
@@ -162,17 +167,35 @@ class ContractRequestHandlerTest {
 		Contract contract = new Contract();
 		contract.setStartDate(java.time.LocalDate.now());
 		contract.setContractType(new ContractType());
+		PlatformStatus pendienteContrato = estadoStaffConCodigo("PENDING_CONTRACT");
+		Staff staff = staffConEstado(pendienteContrato);
+		contract.setStaff(staff);
 		when(contractRepository.findById(52L)).thenReturn(Optional.of(contract));
 		when(businessDayCalculator.countBusinessDaysBetween(any(), any())).thenReturn(0L);
 		when(rexPlusClient.syncContract(contract)).thenReturn(RexSyncResult.success("REX-123"));
 		PlatformStatus activo = new PlatformStatus();
 		activo.setCode("ACTIVE");
 		when(platformStatusRepository.findBySubModuleAndCode("contract", "ACTIVE")).thenReturn(Optional.of(activo));
+		PlatformStatus activoStaff = estadoStaffConCodigo("ACTIVE");
+		when(platformStatusRepository.findBySubModuleAndCode("staff", "ACTIVE")).thenReturn(Optional.of(activoStaff));
 
 		handler.applyDecision(request, ApprovalLevel.HR, ApprovalDecision.APPROVED);
 
 		assertThat(contract.getStatus()).isEqualTo(activo);
 		assertThat(contract.getRexContractNumber()).isEqualTo("REX-123");
+		assertThat(staff.getStatus()).isEqualTo(activoStaff);
+	}
+
+	private PlatformStatus estadoStaffConCodigo(String code) {
+		PlatformStatus estado = new PlatformStatus();
+		estado.setCode(code);
+		return estado;
+	}
+
+	private Staff staffConEstado(PlatformStatus estado) {
+		Staff staff = new Staff();
+		staff.setStatus(estado);
+		return staff;
 	}
 
 	@Test

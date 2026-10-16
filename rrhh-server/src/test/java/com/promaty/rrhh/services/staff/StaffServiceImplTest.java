@@ -19,6 +19,7 @@ import com.promaty.rrhh.dto.staff.CreateStaffDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
+import com.promaty.rrhh.dto.staff.UpdateStaffStatusDto;
 import com.promaty.rrhh.entity.Afp;
 import com.promaty.rrhh.entity.Bank;
 import com.promaty.rrhh.entity.Comuna;
@@ -28,6 +29,7 @@ import com.promaty.rrhh.entity.HealthSystem;
 import com.promaty.rrhh.entity.IdentificationType;
 import com.promaty.rrhh.entity.MaritalStatus;
 import com.promaty.rrhh.entity.Nationality;
+import com.promaty.rrhh.entity.PlatformStatus;
 import com.promaty.rrhh.entity.Project;
 import com.promaty.rrhh.entity.Provincia;
 import com.promaty.rrhh.entity.Region;
@@ -38,6 +40,7 @@ import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.services.shared.ActionsResolver;
 import com.promaty.rrhh.services.staff.business.builder.CreateStaffBuilder;
+import com.promaty.rrhh.services.staff.business.builder.StaffRelationsResolver;
 import com.promaty.rrhh.services.staff.business.builder.UpdateStaffBuilder;
 import com.promaty.rrhh.services.staff.business.validation.StaffValidation;
 
@@ -54,6 +57,8 @@ class StaffServiceImplTest {
 	private CreateStaffBuilder createStaffBuilder;
 	@Mock
 	private UpdateStaffBuilder updateStaffBuilder;
+	@Mock
+	private StaffRelationsResolver relationsResolver;
 	@Mock
 	private ActionsResolver actionsResolver;
 
@@ -97,6 +102,48 @@ class StaffServiceImplTest {
 	}
 
 	@Test
+	void updateStaffStatus_aBlocked_guardaMotivoYEstado() {
+		Staff existente = staffCompleto();
+		UpdateStaffStatusDto dto = new UpdateStaffStatusDto();
+		dto.setStatusId(99L);
+		dto.setBlockReason("Agresión a un compañero de trabajo.");
+		PlatformStatus bloqueado = new PlatformStatus();
+		bloqueado.setId(99L);
+		bloqueado.setCode("BLOCKED");
+		bloqueado.setName("Bloqueado");
+		when(staffRepository.findById(1L)).thenReturn(Optional.of(existente));
+		when(relationsResolver.resolveStatus(99L)).thenReturn(bloqueado);
+		when(contractRepository.findByStaffIdAndStatus_Code(1L, "ACTIVE")).thenReturn(Optional.empty());
+		when(staffRepository.save(existente)).thenReturn(existente);
+
+		StaffDetailDto detalle = service.updateStaffStatus(1L, dto);
+
+		assertThat(detalle.getStatus().getCode()).isEqualTo("BLOCKED");
+		assertThat(detalle.getBlockReason()).isEqualTo("Agresión a un compañero de trabajo.");
+		verify(staffValidation).validateStatusChange(dto);
+	}
+
+	@Test
+	void updateStaffStatus_aActive_limpiaMotivoDeBloqueoAnterior() {
+		Staff existente = staffCompleto();
+		existente.setBlockReason("Motivo anterior.");
+		UpdateStaffStatusDto dto = new UpdateStaffStatusDto();
+		dto.setStatusId(11L);
+		PlatformStatus activo = new PlatformStatus();
+		activo.setId(11L);
+		activo.setCode("ACTIVE");
+		activo.setName("Activo");
+		when(staffRepository.findById(1L)).thenReturn(Optional.of(existente));
+		when(relationsResolver.resolveStatus(11L)).thenReturn(activo);
+		when(contractRepository.findByStaffIdAndStatus_Code(1L, "ACTIVE")).thenReturn(Optional.empty());
+		when(staffRepository.save(existente)).thenReturn(existente);
+
+		StaffDetailDto detalle = service.updateStaffStatus(1L, dto);
+
+		assertThat(detalle.getBlockReason()).isNull();
+	}
+
+	@Test
 	void getStaffDetail_registroNoExiste_lanzaResourceNotFoundException() {
 		when(staffRepository.findById(1L)).thenReturn(Optional.empty());
 
@@ -134,7 +181,7 @@ class StaffServiceImplTest {
 	@Test
 	void listSelectorOptionsForContract_delegaEnRepositoryYMapeaNombreCompleto() {
 		Staff staff = staffCompleto();
-		when(staffRepository.findAvailableForContractSelector("ACTIVE")).thenReturn(List.of(staff));
+		when(staffRepository.findAvailableForContractSelector("ACTIVE", "BLOCKED")).thenReturn(List.of(staff));
 
 		List<StaffSelectorOptionDto> opciones = service.listSelectorOptionsForContract();
 
@@ -219,6 +266,12 @@ class StaffServiceImplTest {
 		comuna.setCode("rm0101");
 		comuna.setProvincia(provincia);
 		staff.setComuna(comuna);
+
+		PlatformStatus status = new PlatformStatus();
+		status.setId(11L);
+		status.setCode("ACTIVE");
+		status.setName("Activo");
+		staff.setStatus(status);
 
 		return staff;
 	}

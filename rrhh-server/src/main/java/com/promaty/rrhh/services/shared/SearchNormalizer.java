@@ -26,4 +26,14 @@ public final class SearchNormalizer {
 		String normalized = Normalizer.normalize(term.toLowerCase(), Normalizer.Form.NFD);
 		return "%" + DIACRITIC_MARKS.matcher(normalized).replaceAll("") + "%";
 	}
+
+	// replace() nativo de Postgres, sin depender de una extensión como unaccent
+	public static Expression<String> withoutRutPunctuation(CriteriaBuilder cb, Expression<String> text) {
+		Expression<String> sinPuntos = cb.function("replace", String.class, text, cb.literal("."), cb.literal(""));
+		return cb.function("replace", String.class, sinPuntos, cb.literal("-"), cb.literal(""));
+	}
+
+	public static String withoutRutPunctuation(String term) {
+		return term.toLowerCase().replace(".", "").replace("-", "");
+	}
 }

@@ -29,7 +29,7 @@ import com.promaty.rrhh.repository.RegisteredSexRepository;
 @Component
 public class StaffRelationsResolver {
 
-	private static final String SUB_MODULE_PROFILE = "profile";
+	private static final String SUB_MODULE_STAFF = "staff";
 	private static final String CODIGO_ESTADO_INICIAL = "PENDING_CONTRACT";
 
 	private final RegisteredSexRepository registeredSexRepository;
@@ -110,7 +110,7 @@ public class StaffRelationsResolver {
 	}
 
 	public PlatformStatus resolveDefaultStatus() {
-		return platformStatusRepository.findBySubModuleAndCode(SUB_MODULE_PROFILE, CODIGO_ESTADO_INICIAL)
+		return platformStatusRepository.findBySubModuleAndCode(SUB_MODULE_STAFF, CODIGO_ESTADO_INICIAL)
 			.orElseThrow(() -> new ResourceNotFoundException("No existe el estado inicial de colaborador (PENDING_CONTRACT)."));
 	}
 }

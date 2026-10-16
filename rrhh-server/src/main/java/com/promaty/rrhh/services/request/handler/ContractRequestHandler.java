@@ -38,7 +38,7 @@ import com.promaty.rrhh.services.rexplus.RexSyncResult;
 public class ContractRequestHandler implements RequestHandler {
 
 	private static final String SUBMODULE_CONTRACT = "contract";
-	private static final String SUBMODULE_PROFILE = "profile";
+	private static final String SUBMODULE_STAFF = "staff";
 	private static final String CODE_PENDING_APPROVAL = "PENDING_APPROVAL";
 	private static final String CODE_PENDING_VALIDATION = "PENDING_VALIDATION";
 	private static final String CODE_ACTIVE = "ACTIVE";
@@ -181,7 +181,7 @@ public class ContractRequestHandler implements RequestHandler {
 	}
 
 	private PlatformStatus resolveEstadoStaff(String code) {
-		return platformStatusRepository.findBySubModuleAndCode(SUBMODULE_PROFILE, code)
+		return platformStatusRepository.findBySubModuleAndCode(SUBMODULE_STAFF, code)
 			.orElseThrow(() -> new ResourceNotFoundException("El estado " + code + " de colaborador no está sembrado."));
 	}
 
