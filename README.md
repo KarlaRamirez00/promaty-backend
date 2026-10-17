@@ -56,6 +56,33 @@ Desde cada módulo:
 ./mvnw spring-boot:run
 ```
 
+## Ejecución con Docker
+
+Requiere Docker Desktop. Levanta los 5 servicios y su propia instancia de PostgreSQL (con las 2 bases
+de datos ya creadas) en un solo comando, sin instalar JDK/Maven/Postgres en la máquina.
+
+1. Copiar la plantilla de variables de entorno y completar los secretos:
+
+   ```powershell
+   Copy-Item .env.example .env
+   notepad .env
+   ```
+
+   Reemplazar `DB_PASSWORD` y `JWT_SECRET` por valores propios — `.env` nunca se versiona
+   (ver `.gitignore`).
+
+2. Levantar todo:
+
+   ```powershell
+   docker compose up --build
+   ```
+
+3. El frontend (y cualquier cliente externo) accede solo a través de `gateway-server`, en
+   `http://localhost:${GATEWAY_PORT}` (por defecto `8083`).
+
+Cada servicio tiene su propio `Dockerfile` (multi-stage: compila con Maven, corre con el JRE), y
+`docker-compose.yml` los conecta entre sí por nombre de servicio (no por `localhost`).
+
 ## Integrante
 
 | Nombre | Rol |
