@@ -74,7 +74,6 @@ public final class StaffMapper {
 			staff.getAccountNumber(),
 			new PlatformStatusOptionDto(staff.getStatus().getId(), staff.getStatus().getCode(), staff.getStatus().getName()),
 			staff.getBlockReason(),
-			staff.getRehireEligible(),
 			staff.getCreatedAt(),
 			staff.getUpdatedAt(),
 			staff.getCreatedBy(),

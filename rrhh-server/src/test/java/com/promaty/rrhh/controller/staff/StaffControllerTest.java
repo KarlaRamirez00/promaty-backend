@@ -253,7 +253,7 @@ class StaffControllerTest {
 			"00824", LocalDate.of(1990, 1, 1), registeredSex, maritalStatus, nationality, "912345678",
 			"987654321", "Maria Perez", "Calle Falsa 123", region, provincia, comuna, false, null,
 			"juan.perez@example.com", 42, ClothingSize.M, educationLevel, afp, healthSystem, bank,
-			AccountType.CHECKING, "00012345678", new PlatformStatusOptionDto(1L, "ACTIVE", "Activo"), null, null,
+			AccountType.CHECKING, "00012345678", new PlatformStatusOptionDto(1L, "ACTIVE", "Activo"), null,
 			null, null, "system", null, List.of());
 	}
 }

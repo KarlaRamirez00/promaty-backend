@@ -116,9 +116,6 @@ public class Staff extends BaseDatedEntity {
 	@Column(name = "block_reason", length = 250)
 	private String blockReason;
 
-	@Column(name = "rehire_eligible")
-	private Boolean rehireEligible;
-
 	public String getFullName() {
 		return firstName + " " + paternalLastName + " " + maternalLastName;
 	}

@@ -52,7 +52,6 @@ public class StaffDetailDto {
 	private String accountNumber;
 	private PlatformStatusOptionDto status;
 	private String blockReason;
-	private Boolean rehireEligible;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
 	private String createdBy;
