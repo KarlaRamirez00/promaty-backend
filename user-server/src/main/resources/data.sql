@@ -38,6 +38,7 @@ FROM (VALUES
   ('user.create', 'Crear usuarios', 'users'),
   ('user.update', 'Editar usuarios', 'users'),
   ('user.active', 'Activar usuarios', 'users'),
+  ('user.assignSystemRole', 'Asignar un rol de sistema a un usuario', 'users'),
   ('client.read', 'Ver mandantes', 'clients'),
   ('client.create', 'Crear mandantes', 'clients'),
   ('client.update', 'Editar mandantes', 'clients'),
@@ -72,15 +73,23 @@ FROM (VALUES
 JOIN sub_modules sm ON sm.name = p.sub
 WHERE NOT EXISTS (SELECT 1 FROM permissions pe WHERE pe.name = p.name);
 
+-- 'Editor' pasa a ser 'Tester' (rol de pruebas, permisos ajustables manualmente), ya no es el rol
+-- semilla de acceso total: ese rol ahora es 'Superadmin' directamente, sembrado mas abajo.
+UPDATE roles SET name = 'Tester' WHERE name = 'Editor';
+
 INSERT INTO roles (name, description, active, is_system, created_at, updated_at, created_by, updated_by)
-SELECT 'Editor', 'Rol con acceso completo', true, false, localtimestamp, localtimestamp, 'seed', 'seed'
-WHERE NOT EXISTS (SELECT 1 FROM roles WHERE name = 'Editor');
+SELECT 'Tester', 'Rol de pruebas, permisos ajustables manualmente', true, false, localtimestamp, localtimestamp, 'seed', 'seed'
+WHERE NOT EXISTS (SELECT 1 FROM roles WHERE name = 'Tester');
+
+INSERT INTO roles (name, description, active, is_system, created_at, updated_at, created_by, updated_by)
+SELECT 'Superadmin', 'Rol con acceso completo', true, true, localtimestamp, localtimestamp, 'seed', 'seed'
+WHERE NOT EXISTS (SELECT 1 FROM roles WHERE name = 'Superadmin');
 
 INSERT INTO role_permission (role_id, permission_id)
 SELECT r.id, pe.id
 FROM roles r
 CROSS JOIN permissions pe
-WHERE r.name IN ('Editor', 'Superadmin')
+WHERE r.name = 'Superadmin'
   AND NOT EXISTS (
     SELECT 1 FROM role_permission rp WHERE rp.role_id = r.id AND rp.permission_id = pe.id
   );
@@ -91,7 +100,7 @@ INSERT INTO role_submodule (role_id, submodule_id)
 SELECT r.id, sm.id
 FROM roles r
 CROSS JOIN sub_modules sm
-WHERE r.name = 'Editor'
+WHERE r.name = 'Superadmin'
   AND NOT EXISTS (
     SELECT 1 FROM role_submodule rs WHERE rs.role_id = r.id AND rs.submodule_id = sm.id
   );
@@ -101,5 +110,5 @@ WHERE r.name = 'Editor'
 INSERT INTO users (first_name, last_name, email, password, active, role_id, created_at, updated_at, created_by, updated_by)
 SELECT 'Test', 'Promaty', 'test@promaty.cl', '$2b$12$dnc1wqi6mbvwSrwdVhYRFu6jf9/SINDoGTDVQzuV5DHvHWF7wy.xy', true, r.id, localtimestamp, localtimestamp, 'seed', 'seed'
 FROM roles r
-WHERE r.name = 'Editor'
+WHERE r.name = 'Superadmin'
   AND NOT EXISTS (SELECT 1 FROM users WHERE email = 'test@promaty.cl');
