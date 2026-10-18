@@ -10,6 +10,7 @@ import com.promaty.rrhh.dto.requestrejectionreason.RequestRejectionReasonDetailD
 import com.promaty.rrhh.dto.requestrejectionreason.RequestRejectionReasonFilterParams;
 import com.promaty.rrhh.dto.requestrejectionreason.RequestRejectionReasonListDto;
 import com.promaty.rrhh.dto.requestrejectionreason.RequestRejectionReasonOptionDto;
+import com.promaty.rrhh.dto.requestrejectionreason.RequestRejectionReasonSubModuleOptionDto;
 import com.promaty.rrhh.dto.requestrejectionreason.UpdateRequestRejectionReasonDto;
 
 public interface RequestRejectionReasonService {
@@ -25,4 +26,6 @@ public interface RequestRejectionReasonService {
 	RequestRejectionReasonDetailDto toggleRequestRejectionReasonActive(Long id);
 
 	List<RequestRejectionReasonOptionDto> listOptionsBySubModule(String subModule);
+
+	List<RequestRejectionReasonSubModuleOptionDto> listSubModules();
 }

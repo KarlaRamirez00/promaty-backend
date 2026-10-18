@@ -26,6 +26,9 @@ public final class RequestRejectionReasonQueryBuilder {
 				String patron = "%" + filters.getSearch().toLowerCase() + "%";
 				predicates.add(cb.like(cb.lower(root.get("name")), patron));
 			}
+			if (filters.getSubModule() != null && !filters.getSubModule().isBlank()) {
+				predicates.add(cb.equal(root.get("subModule"), filters.getSubModule()));
+			}
 
 			return cb.and(predicates.toArray(new Predicate[0]));
 		};

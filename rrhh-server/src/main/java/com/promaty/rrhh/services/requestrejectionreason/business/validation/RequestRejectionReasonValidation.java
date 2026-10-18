@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import com.promaty.rrhh.dto.requestrejectionreason.CreateRequestRejectionReasonDto;
 import com.promaty.rrhh.dto.requestrejectionreason.UpdateRequestRejectionReasonDto;
 import com.promaty.rrhh.entity.RequestRejectionReason;
+import com.promaty.rrhh.entity.RequestRejectionReasonSubModule;
 import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.repository.RequestRejectionReasonRepository;
 
@@ -29,6 +30,7 @@ public class RequestRejectionReasonValidation {
 		if (requestRejectionReasonRepository.findByName(dto.getName()).isPresent()) {
 			errores.put("name", "Ya existe un motivo de rechazo con este nombre.");
 		}
+		validarSubModulo(dto.getSubModule(), errores);
 
 		lanzarSiHayErrores(errores);
 	}
@@ -40,8 +42,15 @@ public class RequestRejectionReasonValidation {
 		if (existente.isPresent() && !existente.get().getId().equals(id)) {
 			errores.put("name", "Ya existe un motivo de rechazo con este nombre.");
 		}
+		validarSubModulo(dto.getSubModule(), errores);
 
 		lanzarSiHayErrores(errores);
+	}
+
+	private void validarSubModulo(String subModule, Map<String, String> errores) {
+		if (RequestRejectionReasonSubModule.fromCode(subModule).isEmpty()) {
+			errores.put("subModule", "El submodulo indicado no existe.");
+		}
 	}
 
 	private void lanzarSiHayErrores(Map<String, String> errores) {

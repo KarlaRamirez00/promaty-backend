@@ -9,4 +9,5 @@ public class RequestRejectionReasonFilterParams {
 
 	private String search;
 	private Boolean active;
+	private String subModule;
 }

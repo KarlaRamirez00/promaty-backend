@@ -22,6 +22,7 @@ import com.promaty.rrhh.dto.requestrejectionreason.RequestRejectionReasonDetailD
 import com.promaty.rrhh.dto.requestrejectionreason.RequestRejectionReasonFilterParams;
 import com.promaty.rrhh.dto.requestrejectionreason.RequestRejectionReasonListDto;
 import com.promaty.rrhh.dto.requestrejectionreason.RequestRejectionReasonOptionDto;
+import com.promaty.rrhh.dto.requestrejectionreason.RequestRejectionReasonSubModuleOptionDto;
 import com.promaty.rrhh.dto.requestrejectionreason.UpdateRequestRejectionReasonDto;
 import com.promaty.rrhh.dto.response.BaseData;
 import com.promaty.rrhh.dto.response.BaseListData;
@@ -56,9 +57,15 @@ public class RequestRejectionReasonController {
 	}
 
 	@GetMapping("/selector")
-	@PreAuthorize("hasAuthority('requestRejectionReason.read')")
+	@PreAuthorize("hasAnyAuthority('requestRejectionReason.read', 'contract.approve', 'contract.validate')")
 	public ResponseEntity<BaseListData<RequestRejectionReasonOptionDto>> selector(@RequestParam String subModule) {
 		return ResponseEntity.ok(BaseListData.of(requestRejectionReasonService.listOptionsBySubModule(subModule)));
+	}
+
+	@GetMapping("/subModules")
+	@PreAuthorize("hasAuthority('requestRejectionReason.read')")
+	public ResponseEntity<BaseListData<RequestRejectionReasonSubModuleOptionDto>> subModules() {
+		return ResponseEntity.ok(BaseListData.of(requestRejectionReasonService.listSubModules()));
 	}
 
 	@GetMapping("/{id}")

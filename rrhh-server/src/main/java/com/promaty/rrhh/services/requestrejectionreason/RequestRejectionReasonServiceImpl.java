@@ -1,5 +1,6 @@
 package com.promaty.rrhh.services.requestrejectionreason;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -14,9 +15,11 @@ import com.promaty.rrhh.dto.requestrejectionreason.RequestRejectionReasonDetailD
 import com.promaty.rrhh.dto.requestrejectionreason.RequestRejectionReasonFilterParams;
 import com.promaty.rrhh.dto.requestrejectionreason.RequestRejectionReasonListDto;
 import com.promaty.rrhh.dto.requestrejectionreason.RequestRejectionReasonOptionDto;
+import com.promaty.rrhh.dto.requestrejectionreason.RequestRejectionReasonSubModuleOptionDto;
 import com.promaty.rrhh.dto.requestrejectionreason.UpdateRequestRejectionReasonDto;
 import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.entity.RequestRejectionReason;
+import com.promaty.rrhh.entity.RequestRejectionReasonSubModule;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.RequestRejectionReasonRepository;
 import com.promaty.rrhh.services.requestrejectionreason.business.builder.RequestRejectionReasonQueryBuilder;
@@ -100,6 +103,13 @@ public class RequestRejectionReasonServiceImpl implements RequestRejectionReason
 		return requestRejectionReasonRepository.findBySubModuleAndActiveTrueOrderByName(subModule)
 			.stream()
 			.map(RequestRejectionReasonMapper::toOptionDto)
+			.toList();
+	}
+
+	@Override
+	public List<RequestRejectionReasonSubModuleOptionDto> listSubModules() {
+		return Arrays.stream(RequestRejectionReasonSubModule.values())
+			.map(valor -> new RequestRejectionReasonSubModuleOptionDto(valor.getCode(), valor.getLabel()))
 			.toList();
 	}
 
