@@ -26,7 +26,7 @@ class CurrentUserProjectAccessTest {
 
 	@Test
 	void conAllowedAllProjects_devuelveTrue() {
-		JwtPrincipal principal = new JwtPrincipal("1", "Admin", "Karla", List.of(), true, List.of());
+		JwtPrincipal principal = new JwtPrincipal("1", "Admin", "Karla", List.of(), true, List.of(), false);
 		SecurityContextHolder.getContext()
 			.setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, List.of()));
 
@@ -35,7 +35,7 @@ class CurrentUserProjectAccessTest {
 
 	@Test
 	void conProjectIdsAsignados_devuelveLaListaDelPrincipal() {
-		JwtPrincipal principal = new JwtPrincipal("1", "Supervisor", "Juan", List.of(), false, List.of(5L, 8L));
+		JwtPrincipal principal = new JwtPrincipal("1", "Supervisor", "Juan", List.of(), false, List.of(5L, 8L), false);
 		SecurityContextHolder.getContext()
 			.setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, List.of()));
 

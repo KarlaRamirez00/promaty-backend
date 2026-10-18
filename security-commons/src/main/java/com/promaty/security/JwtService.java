@@ -31,7 +31,8 @@ public class JwtService {
 			claims.get("name", String.class),
 			readStringList(claims, "permissions"),
 			Boolean.TRUE.equals(claims.get("allowedAllProjects", Boolean.class)),
-			readLongList(claims, "projectIds")
+			readLongList(claims, "projectIds"),
+			Boolean.TRUE.equals(claims.get("isSystemRole", Boolean.class))
 		);
 	}
 

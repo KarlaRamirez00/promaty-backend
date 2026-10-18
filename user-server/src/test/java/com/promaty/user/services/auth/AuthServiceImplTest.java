@@ -60,6 +60,33 @@ class AuthServiceImplTest {
 	}
 
 	@Test
+	void validate_conRolDeSistema_retornaSystemRoleTrue() {
+		AuthValidationRequestDto dto = requestDto("ana@promaty.com", "clave123");
+		User user = usuarioActivo();
+		user.getRole().setSystem(true);
+		when(userRepository.findByEmail("ana@promaty.com")).thenReturn(Optional.of(user));
+		when(passwordEncoder.matches("clave123", user.getPassword())).thenReturn(true);
+		when(userProjectAccessRepository.findProjectIdsByUserId(1L)).thenReturn(List.of());
+
+		AuthValidationResponseDto resultado = authService.validate(dto);
+
+		assertThat(resultado.getSystemRole()).isTrue();
+	}
+
+	@Test
+	void validate_conRolNoDeSistema_retornaSystemRoleFalse() {
+		AuthValidationRequestDto dto = requestDto("ana@promaty.com", "clave123");
+		User user = usuarioActivo();
+		when(userRepository.findByEmail("ana@promaty.com")).thenReturn(Optional.of(user));
+		when(passwordEncoder.matches("clave123", user.getPassword())).thenReturn(true);
+		when(userProjectAccessRepository.findProjectIdsByUserId(1L)).thenReturn(List.of());
+
+		AuthValidationResponseDto resultado = authService.validate(dto);
+
+		assertThat(resultado.getSystemRole()).isFalse();
+	}
+
+	@Test
 	void validate_conPermisoAllowedAll_retornaAllowedAllProjectsTrueYNoConsultaProyectos() {
 		AuthValidationRequestDto dto = requestDto("ana@promaty.com", "clave123");
 		User user = usuarioActivo();

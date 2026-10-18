@@ -27,7 +27,7 @@ class AuditorAwareImplTest {
 
 	@Test
 	void getCurrentAuditor_conJwtPrincipalConNombre_devuelveElNombre() {
-		JwtPrincipal principal = new JwtPrincipal("1", "Editor", "Ana Pérez", List.of(), false, List.of());
+		JwtPrincipal principal = new JwtPrincipal("1", "Editor", "Ana Pérez", List.of(), false, List.of(), false);
 		SecurityContextHolder.getContext()
 			.setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, List.of()));
 
@@ -36,7 +36,7 @@ class AuditorAwareImplTest {
 
 	@Test
 	void getCurrentAuditor_conJwtPrincipalSinNombre_devuelveSystem() {
-		JwtPrincipal principal = new JwtPrincipal("1", "Editor", null, List.of(), false, List.of());
+		JwtPrincipal principal = new JwtPrincipal("1", "Editor", null, List.of(), false, List.of(), false);
 		SecurityContextHolder.getContext()
 			.setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, List.of()));
 

@@ -45,7 +45,7 @@ class AuthInternalControllerTest {
 	void validate_conCredencialesValidas_retorna200ConValidTrue() throws Exception {
 		AuthValidationRequestDto dto = requestDto("ana@promaty.com", "clave123");
 		AuthValidationResponseDto respuesta = new AuthValidationResponseDto(true, 1L, "Editor", "Ana Pérez",
-				List.of("warehouse.read"), false, List.of(10L));
+				List.of("warehouse.read"), false, List.of(10L), false);
 		when(authService.validate(any())).thenReturn(respuesta);
 
 		mockMvc.perform(post("/internal/auth/validate")

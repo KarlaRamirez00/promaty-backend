@@ -32,7 +32,7 @@ class AuditorAwareImplIntegrationTest {
 
 	@Test
 	void alGuardarUnRegistro_createdByQuedaConElNombreDelTokenActual() {
-		JwtPrincipal principal = new JwtPrincipal("1", "Editor", "Ana Pérez", List.of(), false, List.of());
+		JwtPrincipal principal = new JwtPrincipal("1", "Editor", "Ana Pérez", List.of(), false, List.of(), false);
 		SecurityContextHolder.getContext()
 			.setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, List.of()));
 

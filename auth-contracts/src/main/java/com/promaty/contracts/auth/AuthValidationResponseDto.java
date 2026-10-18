@@ -20,8 +20,9 @@ public class AuthValidationResponseDto {
 	private List<String> permissions;
 	private Boolean allowedAllProjects;
 	private List<Long> projectIds;
+	private Boolean systemRole;
 
 	public static AuthValidationResponseDto invalid() {
-		return new AuthValidationResponseDto(false, null, null, null, null, null, null);
+		return new AuthValidationResponseDto(false, null, null, null, null, null, null, null);
 	}
 }

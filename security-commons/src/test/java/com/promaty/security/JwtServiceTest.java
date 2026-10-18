@@ -32,6 +32,7 @@ class JwtServiceTest {
 			.claim("permissions", List.of("rrhh.read", "rrhh.write"))
 			.claim("allowedAllProjects", false)
 			.claim("projectIds", List.of(1, 2, 3))
+			.claim("isSystemRole", true)
 			.signWith(key)
 			.compact();
 
@@ -43,6 +44,7 @@ class JwtServiceTest {
 		assertThat(principal.permissions()).containsExactly("rrhh.read", "rrhh.write");
 		assertThat(principal.allowedAllProjects()).isFalse();
 		assertThat(principal.projectIds()).containsExactly(1L, 2L, 3L);
+		assertThat(principal.systemRole()).isTrue();
 	}
 
 	@Test
@@ -88,6 +90,7 @@ class JwtServiceTest {
 		assertThat(principal.allowedAllProjects()).isFalse();
 		assertThat(principal.role()).isNull();
 		assertThat(principal.name()).isNull();
+		assertThat(principal.systemRole()).isFalse();
 	}
 
 	@Test

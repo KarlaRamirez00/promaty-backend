@@ -64,7 +64,7 @@ class CreateRequestBuilderTest {
 	}
 
 	private void autenticarComo(String userId) {
-		JwtPrincipal principal = new JwtPrincipal(userId, "ROLE", "Jefe de obra", List.of(), false, List.of());
+		JwtPrincipal principal = new JwtPrincipal(userId, "ROLE", "Jefe de obra", List.of(), false, List.of(), false);
 		SecurityContextHolder.getContext().setAuthentication(
 			new UsernamePasswordAuthenticationToken(principal, null, List.of()));
 	}

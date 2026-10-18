@@ -9,6 +9,7 @@ public record JwtPrincipal(
 	String name,
 	List<String> permissions,
 	boolean allowedAllProjects,
-	List<Long> projectIds
+	List<Long> projectIds,
+	boolean systemRole
 ) {
 }

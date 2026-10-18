@@ -63,6 +63,21 @@ class AuthServiceImplTest {
 		// Integer, aunque en el DTO original era Long.
 		List<Integer> projectIds = (List<Integer>) claims.get("projectIds", List.class);
 		assertThat(projectIds).containsExactly(10, 20);
+		assertThat(claims.get("isSystemRole", Boolean.class)).isFalse();
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void login_conRolDeSistema_incluyeIsSystemRoleTrueEnElToken() {
+		LoginRequestDto dto = loginDto("ana@promaty.com", "clave123");
+		AuthValidationResponseDto validacion = validacionValida();
+		validacion.setSystemRole(true);
+		when(userServerClient.validate(any())).thenReturn(BaseData.success(validacion));
+
+		LoginResponseDto resultado = authService.login(dto);
+
+		Claims claims = parseClaims(resultado.getToken());
+		assertThat(claims.get("isSystemRole", Boolean.class)).isTrue();
 	}
 
 	@Test
@@ -90,6 +105,7 @@ class AuthServiceImplTest {
 		validacion.setPermissions(List.of("warehouse.read"));
 		validacion.setAllowedAllProjects(false);
 		validacion.setProjectIds(List.of(10L, 20L));
+		validacion.setSystemRole(false);
 		return validacion;
 	}
 
