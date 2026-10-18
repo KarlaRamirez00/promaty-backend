@@ -72,6 +72,10 @@ FROM (VALUES
 JOIN sub_modules sm ON sm.name = p.sub
 WHERE NOT EXISTS (SELECT 1 FROM permissions pe WHERE pe.name = p.name);
 
+INSERT INTO roles (name, description, active, is_system, created_at, updated_at, created_by, updated_by)
+SELECT 'Editor', 'Rol con acceso completo', true, false, localtimestamp, localtimestamp, 'seed', 'seed'
+WHERE NOT EXISTS (SELECT 1 FROM roles WHERE name = 'Editor');
+
 INSERT INTO role_permission (role_id, permission_id)
 SELECT r.id, pe.id
 FROM roles r
@@ -91,3 +95,11 @@ WHERE r.name = 'Editor'
   AND NOT EXISTS (
     SELECT 1 FROM role_submodule rs WHERE rs.role_id = r.id AND rs.submodule_id = sm.id
   );
+
+-- Usuario de prueba para entornos Docker/demo (password hasheado: 'Test.2026', bcrypt). Nunca usar
+-- en un entorno con datos reales; solo existe para no tener que crearlo a mano en cada volumen nuevo.
+INSERT INTO users (first_name, last_name, email, password, active, role_id, created_at, updated_at, created_by, updated_by)
+SELECT 'Test', 'Promaty', 'test@promaty.cl', '$2b$12$dnc1wqi6mbvwSrwdVhYRFu6jf9/SINDoGTDVQzuV5DHvHWF7wy.xy', true, r.id, localtimestamp, localtimestamp, 'seed', 'seed'
+FROM roles r
+WHERE r.name = 'Editor'
+  AND NOT EXISTS (SELECT 1 FROM users WHERE email = 'test@promaty.cl');
