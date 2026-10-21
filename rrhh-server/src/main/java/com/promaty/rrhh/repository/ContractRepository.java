@@ -6,8 +6,12 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.promaty.rrhh.entity.Contract;
+import com.promaty.rrhh.repository.projection.StaffContractStartDateProjection;
+import com.promaty.rrhh.repository.projection.StaffCostCenterProjection;
 
 public interface ContractRepository extends JpaRepository<Contract, Long>, JpaSpecificationExecutor<Contract> {
 
@@ -16,4 +20,29 @@ public interface ContractRepository extends JpaRepository<Contract, Long>, JpaSp
 	Optional<Contract> findByRexContractNumber(String rexContractNumber);
 
 	List<Contract> findByStatus_CodeAndEndDateBefore(String statusCode, LocalDate date);
+
+	Optional<Contract> findFirstByStaffIdAndStatus_CodeInOrderByStartDateDesc(
+		Long staffId,
+		List<String> statusCodes
+	);
+
+	@Query("""
+		select c.staff.id as staffId, c.project.costCenterCode as costCenterCode
+		from Contract c
+		where c.staff.id in :staffIds and c.status.code = :statusCode
+		""")
+	List<StaffCostCenterProjection> findActiveCostCentersByStaffIds(
+		@Param("staffIds") List<Long> staffIds,
+		@Param("statusCode") String statusCode
+	);
+
+	@Query("""
+		select c.staff.id as staffId, c.startDate as startDate
+		from Contract c
+		where c.staff.id in :staffIds and c.status.code in :statusCodes
+		""")
+	List<StaffContractStartDateProjection> findStartDatesByStaffIds(
+		@Param("staffIds") List<Long> staffIds,
+		@Param("statusCodes") List<String> statusCodes
+	);
 }

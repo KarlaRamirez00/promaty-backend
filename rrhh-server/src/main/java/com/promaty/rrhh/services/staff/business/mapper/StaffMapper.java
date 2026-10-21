@@ -1,5 +1,7 @@
 package com.promaty.rrhh.services.staff.business.mapper;
 
+import java.time.LocalDate;
+
 import com.promaty.rrhh.dto.platformstatus.PlatformStatusOptionDto;
 import com.promaty.rrhh.dto.staff.RelationSummaryDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
@@ -22,7 +24,7 @@ public final class StaffMapper {
 	private StaffMapper() {
 	}
 
-	public static StaffListDto toListDto(Staff staff, String costCenterCode) {
+	public static StaffListDto toListDto(Staff staff, String costCenterCode, LocalDate hireDate) {
 		return new StaffListDto(
 			staff.getId(),
 			staff.getIdentificationType(),
@@ -31,6 +33,7 @@ public final class StaffMapper {
 			staff.getPaternalLastName(),
 			staff.getMaternalLastName(),
 			costCenterCode,
+			hireDate,
 			staff.getStatus().getCode(),
 			staff.getStatus().getName(),
 			staff.getCreatedAt(),
@@ -41,7 +44,7 @@ public final class StaffMapper {
 		);
 	}
 
-	public static StaffDetailDto toDetailDto(Staff staff, String costCenterCode) {
+	public static StaffDetailDto toDetailDto(Staff staff, String costCenterCode, LocalDate hireDate) {
 		return new StaffDetailDto(
 			staff.getId(),
 			staff.getIdentificationType(),
@@ -50,6 +53,7 @@ public final class StaffMapper {
 			staff.getPaternalLastName(),
 			staff.getMaternalLastName(),
 			costCenterCode,
+			hireDate,
 			staff.getBirthDate(),
 			toRelationSummary(staff.getRegisteredSex()),
 			toRelationSummary(staff.getMaritalStatus()),

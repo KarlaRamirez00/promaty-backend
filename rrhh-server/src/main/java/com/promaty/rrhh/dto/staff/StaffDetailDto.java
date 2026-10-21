@@ -28,6 +28,7 @@ public class StaffDetailDto {
 	private String paternalLastName;
 	private String maternalLastName;
 	private String costCenterCode;
+	private LocalDate hireDate;
 	private LocalDate birthDate;
 	private RelationSummaryDto registeredSex;
 	private RelationSummaryDto maritalStatus;

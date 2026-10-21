@@ -137,7 +137,7 @@ class StaffControllerTest {
 	void list_retorna200ConData() throws Exception {
 		Page<StaffListDto> pagina = new PageImpl<>(List.of(
 			new StaffListDto(1L, IdentificationType.RUT, "12345678-5", "Juan", "Perez", "Soto",
-				"00824", "ACTIVE", "Activo", null, null, "system", null, List.of())
+				"00824", LocalDate.of(2026, 1, 15), "ACTIVE", "Activo", null, null, "system", null, List.of())
 		));
 		when(staffService.listStaff(any(), any())).thenReturn(pagina);
 
@@ -250,7 +250,7 @@ class StaffControllerTest {
 		RelationSummaryDto provincia = new RelationSummaryDto(1L, "Santiago", "rm01");
 		RelationSummaryDto comuna = new RelationSummaryDto(1L, "Santiago", "rm0101");
 		return new StaffDetailDto(1L, IdentificationType.RUT, "12345678-5", "Juan", "Perez", "Soto",
-			"00824", LocalDate.of(1990, 1, 1), registeredSex, maritalStatus, nationality, "912345678",
+			"00824", LocalDate.of(2026, 1, 15), LocalDate.of(1990, 1, 1), registeredSex, maritalStatus, nationality, "912345678",
 			"987654321", "Maria Perez", "Calle Falsa 123", region, provincia, comuna, false, null,
 			"juan.perez@example.com", 42, ClothingSize.M, educationLevel, afp, healthSystem, bank,
 			AccountType.CHECKING, "00012345678", new PlatformStatusOptionDto(1L, "ACTIVE", "Activo"), null,

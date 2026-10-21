@@ -1,5 +1,6 @@
 package com.promaty.rrhh.dto.staff;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -24,6 +25,7 @@ public class StaffListDto {
 	private String paternalLastName;
 	private String maternalLastName;
 	private String costCenterCode;
+	private LocalDate hireDate;
 	private String statusCode;
 	private String statusName;
 	private LocalDateTime createdAt;

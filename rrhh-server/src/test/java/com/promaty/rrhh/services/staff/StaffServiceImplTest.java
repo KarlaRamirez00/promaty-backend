@@ -2,6 +2,8 @@ package com.promaty.rrhh.services.staff;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -14,9 +16,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import com.promaty.rrhh.dto.staff.CreateStaffDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
+import com.promaty.rrhh.dto.staff.StaffFilterParams;
+import com.promaty.rrhh.dto.staff.StaffListDto;
 import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffStatusDto;
@@ -38,6 +46,8 @@ import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.StaffRepository;
+import com.promaty.rrhh.repository.projection.StaffContractStartDateProjection;
+import com.promaty.rrhh.repository.projection.StaffCostCenterProjection;
 import com.promaty.rrhh.services.shared.ActionsResolver;
 import com.promaty.rrhh.services.staff.business.builder.CreateStaffBuilder;
 import com.promaty.rrhh.services.staff.business.builder.StaffRelationsResolver;
@@ -179,6 +189,32 @@ class StaffServiceImplTest {
 	}
 
 	@Test
+	void getStaffDetail_conContratoRechazado_hireDateEsNulo() {
+		when(staffRepository.findById(1L)).thenReturn(Optional.of(staffCompleto()));
+		when(contractRepository.findByStaffIdAndStatus_Code(1L, "ACTIVE")).thenReturn(Optional.empty());
+		when(contractRepository.findFirstByStaffIdAndStatus_CodeInOrderByStartDateDesc(1L, List.of("ACTIVE", "EXPIRED", "ANNULLED")))
+			.thenReturn(Optional.empty());
+
+		StaffDetailDto detalle = service.getStaffDetail(1L);
+
+		assertThat(detalle.getHireDate()).isNull();
+	}
+
+	@Test
+	void getStaffDetail_conContratoQueLlegoAActive_resuelveHireDate() {
+		when(staffRepository.findById(1L)).thenReturn(Optional.of(staffCompleto()));
+		when(contractRepository.findByStaffIdAndStatus_Code(1L, "ACTIVE")).thenReturn(Optional.empty());
+		Contract contratoVencido = new Contract();
+		contratoVencido.setStartDate(LocalDate.of(2025, 6, 1));
+		when(contractRepository.findFirstByStaffIdAndStatus_CodeInOrderByStartDateDesc(1L, List.of("ACTIVE", "EXPIRED", "ANNULLED")))
+			.thenReturn(Optional.of(contratoVencido));
+
+		StaffDetailDto detalle = service.getStaffDetail(1L);
+
+		assertThat(detalle.getHireDate()).isEqualTo(LocalDate.of(2025, 6, 1));
+	}
+
+	@Test
 	void listSelectorOptionsForContract_delegaEnRepositoryYMapeaNombreCompleto() {
 		Staff staff = staffCompleto();
 		when(staffRepository.findAvailableForContractSelector("ACTIVE", "BLOCKED")).thenReturn(List.of(staff));
@@ -188,6 +224,73 @@ class StaffServiceImplTest {
 		assertThat(opciones).hasSize(1);
 		assertThat(opciones.get(0).getName()).isEqualTo("Juan Perez Soto");
 		assertThat(opciones.get(0).getIdentificationNumber()).isEqualTo("12345678-5");
+	}
+
+	@Test
+	void listStaff_conResultados_resuelveCentroDeCostoYFechaDeIngresoEnLote() {
+		Staff staff1 = staffConId(1L);
+		staff1.setStatus(estadoActivo());
+		Staff staff2 = staffConId(2L);
+		staff2.setStatus(estadoActivo());
+		Pageable pageable = PageRequest.of(0, 20);
+		Page<Staff> pagina = new PageImpl<>(List.of(staff1, staff2), pageable, 2);
+
+		when(staffRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageable)))
+			.thenReturn(pagina);
+		when(contractRepository.findActiveCostCentersByStaffIds(List.of(1L, 2L), "ACTIVE"))
+			.thenReturn(List.of(costCenterProjection(1L, "00824")));
+		when(contractRepository.findStartDatesByStaffIds(List.of(1L, 2L), List.of("ACTIVE", "EXPIRED", "ANNULLED")))
+			.thenReturn(List.of(
+				startDateProjection(2L, LocalDate.of(2025, 3, 1)),
+				startDateProjection(2L, LocalDate.of(2026, 1, 10))
+			));
+
+		Page<StaffListDto> resultado = service.listStaff(new StaffFilterParams(), pageable);
+
+		List<StaffListDto> contenido = resultado.getContent();
+		assertThat(contenido.get(0).getCostCenterCode()).isEqualTo("00824");
+		assertThat(contenido.get(0).getHireDate()).isNull();
+		assertThat(contenido.get(1).getCostCenterCode()).isNull();
+		assertThat(contenido.get(1).getHireDate()).isEqualTo(LocalDate.of(2026, 1, 10));
+		verify(contractRepository, org.mockito.Mockito.times(1)).findActiveCostCentersByStaffIds(List.of(1L, 2L), "ACTIVE");
+		verify(contractRepository, org.mockito.Mockito.times(1))
+			.findStartDatesByStaffIds(List.of(1L, 2L), List.of("ACTIVE", "EXPIRED", "ANNULLED"));
+	}
+
+	private PlatformStatus estadoActivo() {
+		PlatformStatus status = new PlatformStatus();
+		status.setId(1L);
+		status.setCode("ACTIVE");
+		status.setName("Activo");
+		return status;
+	}
+
+	private StaffCostCenterProjection costCenterProjection(Long staffId, String costCenterCode) {
+		return new StaffCostCenterProjection() {
+			@Override
+			public Long getStaffId() {
+				return staffId;
+			}
+
+			@Override
+			public String getCostCenterCode() {
+				return costCenterCode;
+			}
+		};
+	}
+
+	private StaffContractStartDateProjection startDateProjection(Long staffId, LocalDate startDate) {
+		return new StaffContractStartDateProjection() {
+			@Override
+			public Long getStaffId() {
+				return staffId;
+			}
+
+			@Override
+			public LocalDate getStartDate() {
+				return startDate;
+			}
+		};
 	}
 
 	private Staff staffConId(Long id) {

@@ -1,7 +1,11 @@
 package com.promaty.rrhh.services.staff;
 
+import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BinaryOperator;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +27,8 @@ import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.StaffRepository;
+import com.promaty.rrhh.repository.projection.StaffContractStartDateProjection;
+import com.promaty.rrhh.repository.projection.StaffCostCenterProjection;
 import com.promaty.rrhh.services.shared.ActionsResolver;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
 import com.promaty.rrhh.services.staff.business.builder.CreateStaffBuilder;
@@ -38,6 +44,7 @@ public class StaffServiceImpl implements StaffService {
 	private static final String NO_ENCONTRADO = "Colaborador no encontrado.";
 	private static final String ESTADO_ACTIVO = "ACTIVE";
 	private static final String CODIGO_ESTADO_BLOCKED = "BLOCKED";
+	private static final List<String> ESTADOS_CONTRATO_ALGUNA_VEZ_ACTIVO = List.of("ACTIVE", "EXPIRED", "ANNULLED");
 
 	private static final Map<String, Action> REGLAS_ACCIONES = Map.of(
 		"staff.update", Action.UPDATE,
@@ -94,7 +101,7 @@ public class StaffServiceImpl implements StaffService {
 		Staff existente = buscarPorId(id);
 		existente.setStatus(relationsResolver.resolveStatus(dto.getStatusId()));
 		existente.setBlockReason(CODIGO_ESTADO_BLOCKED.equals(existente.getStatus().getCode()) ? dto.getBlockReason() : null);
-		return conAcciones(StaffMapper.toDetailDto(staffRepository.save(existente), resolverCentroCosto(id)));
+		return conAcciones(StaffMapper.toDetailDto(staffRepository.save(existente), resolverCentroCosto(id), resolverFechaIngreso(id)));
 	}
 
 	@Override
@@ -102,8 +109,18 @@ public class StaffServiceImpl implements StaffService {
 	public Page<StaffListDto> listStaff(StaffFilterParams filters, Pageable pageable) {
 		Specification<Staff> especificacion = StaffQueryBuilder.fromFilters(filters);
 		List<Action> actions = actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES);
-		return staffRepository.findAll(especificacion, pageable)
-			.map(staff -> StaffMapper.toListDto(staff, resolverCentroCosto(staff.getId())))
+		Page<Staff> pagina = staffRepository.findAll(especificacion, pageable);
+
+		List<Long> staffIds = pagina.getContent().stream().map(Staff::getId).toList();
+		Map<Long, String> centrosCostoPorStaff = resolverCentrosCostoEnLote(staffIds);
+		Map<Long, LocalDate> fechasIngresoPorStaff = resolverFechasIngresoEnLote(staffIds);
+
+		return pagina
+			.map(staff -> StaffMapper.toListDto(
+				staff,
+				centrosCostoPorStaff.get(staff.getId()),
+				fechasIngresoPorStaff.get(staff.getId())
+			))
 			.map(dto -> conAcciones(dto, actions));
 	}
 
@@ -111,7 +128,7 @@ public class StaffServiceImpl implements StaffService {
 	@Transactional(readOnly = true)
 	public StaffDetailDto getStaffDetail(Long id) {
 		Staff staff = buscarPorId(id);
-		return conAcciones(StaffMapper.toDetailDto(staff, resolverCentroCosto(id)));
+		return conAcciones(StaffMapper.toDetailDto(staff, resolverCentroCosto(id), resolverFechaIngreso(id)));
 	}
 
 	@Override
@@ -128,6 +145,33 @@ public class StaffServiceImpl implements StaffService {
 			.map(Contract::getProject)
 			.map(Project::getCostCenterCode)
 			.orElse(null);
+	}
+
+	private LocalDate resolverFechaIngreso(Long staffId) {
+		return contractRepository
+			.findFirstByStaffIdAndStatus_CodeInOrderByStartDateDesc(staffId, ESTADOS_CONTRATO_ALGUNA_VEZ_ACTIVO)
+			.map(Contract::getStartDate)
+			.orElse(null);
+	}
+
+	private Map<Long, String> resolverCentrosCostoEnLote(List<Long> staffIds) {
+		if (staffIds.isEmpty()) {
+			return Map.of();
+		}
+		return contractRepository.findActiveCostCentersByStaffIds(staffIds, ESTADO_ACTIVO).stream()
+			.collect(Collectors.toMap(StaffCostCenterProjection::getStaffId, StaffCostCenterProjection::getCostCenterCode));
+	}
+
+	private Map<Long, LocalDate> resolverFechasIngresoEnLote(List<Long> staffIds) {
+		if (staffIds.isEmpty()) {
+			return Map.of();
+		}
+		return contractRepository.findStartDatesByStaffIds(staffIds, ESTADOS_CONTRATO_ALGUNA_VEZ_ACTIVO).stream()
+			.collect(Collectors.toMap(
+				StaffContractStartDateProjection::getStaffId,
+				StaffContractStartDateProjection::getStartDate,
+				BinaryOperator.maxBy(Comparator.naturalOrder())
+			));
 	}
 
 	private Staff buscarPorId(Long id) {
