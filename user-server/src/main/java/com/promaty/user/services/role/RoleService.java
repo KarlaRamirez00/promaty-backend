@@ -1,5 +1,7 @@
 package com.promaty.user.services.role;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -9,6 +11,7 @@ import com.promaty.user.dto.role.RoleFilterParams;
 import com.promaty.user.dto.role.RoleListDto;
 import com.promaty.user.dto.role.RoleActiveUpdateDto;
 import com.promaty.user.dto.role.RoleActiveUpdateResultDto;
+import com.promaty.user.dto.role.RoleSelectorOptionDto;
 import com.promaty.user.dto.role.UpdateRoleDto;
 
 public interface RoleService {
@@ -18,6 +21,8 @@ public interface RoleService {
 	void updateRole(Long id, UpdateRoleDto dto);
 
 	Page<RoleListDto> listRoles(RoleFilterParams filters, Pageable pageable);
+
+	List<RoleSelectorOptionDto> listSelectorOptionsForUserAssignment();
 
 	RoleDetailDto getRoleDetail(Long id);
 

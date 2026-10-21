@@ -24,6 +24,7 @@ import com.promaty.user.dto.role.RoleFilterParams;
 import com.promaty.user.dto.role.RoleListDto;
 import com.promaty.user.dto.role.RoleActiveUpdateDto;
 import com.promaty.user.dto.role.RoleActiveUpdateResultDto;
+import com.promaty.user.dto.role.RoleSelectorOptionDto;
 import com.promaty.user.dto.role.UpdateRoleDto;
 import com.promaty.user.services.role.RoleService;
 
@@ -53,6 +54,12 @@ public class RoleController {
 		@PageableDefault(sort = {"createdAt", "id"}, direction = Sort.Direction.DESC) Pageable pageable
 	) {
 		return ResponseEntity.ok(BaseListData.of(roleService.listRoles(filters, pageable)));
+	}
+
+	@GetMapping("/selector")
+	@PreAuthorize("hasAnyAuthority('user.create', 'user.update')")
+	public ResponseEntity<BaseListData<RoleSelectorOptionDto>> selectorForUserAssignment() {
+		return ResponseEntity.ok(BaseListData.of(roleService.listSelectorOptionsForUserAssignment()));
 	}
 
 	@GetMapping("/{id}")

@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ import com.promaty.user.dto.role.RoleFilterParams;
 import com.promaty.user.dto.role.RoleListDto;
 import com.promaty.user.dto.role.RoleActiveUpdateDto;
 import com.promaty.user.dto.role.RoleActiveUpdateResultDto;
+import com.promaty.user.dto.role.RoleSelectorOptionDto;
 import com.promaty.user.dto.role.UpdateRoleDto;
 import com.promaty.user.dto.shared.Action;
 import com.promaty.user.entity.Permission;
@@ -43,6 +45,7 @@ public class RoleServiceImpl implements RoleService {
 	private static final String ROL_NO_ENCONTRADO = "Rol no encontrado.";
 	private static final String ROL_REEMPLAZO_NO_ENCONTRADO = "El rol de reemplazo no existe.";
 	private static final String ROL_DE_SISTEMA = "Este rol es del sistema y no puede editarse ni desactivarse.";
+	private static final String PERMISO_ASIGNAR_ROL_SISTEMA = "user.assignSystemRole";
 
 	private static final Map<String, Action> REGLAS_ACCIONES = Map.of(
 		"role.update", Action.UPDATE,
@@ -106,6 +109,23 @@ public class RoleServiceImpl implements RoleService {
 			dto.setActions(resolveActions(role));
 			return dto;
 		});
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<RoleSelectorOptionDto> listSelectorOptionsForUserAssignment() {
+		boolean puedeAsignarRolDeSistema = CurrentUserAuthorities.get().contains(PERMISO_ASIGNAR_ROL_SISTEMA);
+		Specification<Role> especificacion = (root, query, cb) -> {
+			var activo = cb.equal(root.get("active"), true);
+			if (puedeAsignarRolDeSistema) {
+				return activo;
+			}
+			return cb.and(activo, cb.equal(root.get("system"), false));
+		};
+		return roleRepository.findAll(especificacion, Sort.by("name"))
+			.stream()
+			.map(role -> new RoleSelectorOptionDto(role.getId(), role.getName()))
+			.toList();
 	}
 
 	@Override

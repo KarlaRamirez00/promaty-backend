@@ -10,11 +10,18 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Optional;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.promaty.user.dto.role.CreateRoleDto;
 import com.promaty.user.dto.role.RoleActiveUpdateDto;
@@ -34,6 +41,19 @@ import com.promaty.user.services.shared.ActionsResolver;
 
 @ExtendWith(MockitoExtension.class)
 class RoleServiceImplTest {
+
+	@AfterEach
+	void limpiarContextoDeSeguridad() {
+		SecurityContextHolder.clearContext();
+	}
+
+	private void autenticarCon(String... authorities) {
+		List<SimpleGrantedAuthority> grantedAuthorities = List.of(authorities).stream()
+			.map(SimpleGrantedAuthority::new)
+			.toList();
+		SecurityContextHolder.getContext().setAuthentication(
+			new UsernamePasswordAuthenticationToken("test", null, grantedAuthorities));
+	}
 
 	@Mock
 	private RoleRepository roleRepository;
@@ -210,10 +230,45 @@ class RoleServiceImplTest {
 		verify(userRepository, never()).saveAll(any());
 	}
 
+	@Test
+	void listSelectorOptionsForUserAssignment_sinPermisoRolSistema_filtraRolesDeSistema() {
+		Role editor = roleConNombre(1L, "Editor", false);
+		when(roleRepository.findAll(ArgumentMatchers.<Specification<Role>>any(), any(Sort.class)))
+			.thenReturn(List.of(editor));
+
+		List<com.promaty.user.dto.role.RoleSelectorOptionDto> resultado =
+			roleService.listSelectorOptionsForUserAssignment();
+
+		assertThat(resultado).hasSize(1);
+		assertThat(resultado.get(0).getName()).isEqualTo("Editor");
+	}
+
+	@Test
+	void listSelectorOptionsForUserAssignment_conPermisoRolSistema_incluyeRolesDeSistema() {
+		Role superadmin = roleConNombre(1L, "Superadmin", true);
+		autenticarCon("user.assignSystemRole");
+		when(roleRepository.findAll(ArgumentMatchers.<Specification<Role>>any(), any(Sort.class)))
+			.thenReturn(List.of(superadmin));
+
+		List<com.promaty.user.dto.role.RoleSelectorOptionDto> resultado =
+			roleService.listSelectorOptionsForUserAssignment();
+
+		assertThat(resultado).hasSize(1);
+		assertThat(resultado.get(0).getName()).isEqualTo("Superadmin");
+	}
+
 	private Role roleConId(Long id, boolean active) {
 		Role role = new Role();
 		role.setId(id);
 		role.setActive(active);
+		return role;
+	}
+
+	private Role roleConNombre(Long id, String name, boolean esDeSistema) {
+		Role role = new Role();
+		role.setId(id);
+		role.setName(name);
+		role.setSystem(esDeSistema);
 		return role;
 	}
 }
