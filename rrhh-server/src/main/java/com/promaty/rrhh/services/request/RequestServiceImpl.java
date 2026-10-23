@@ -1,6 +1,8 @@
 package com.promaty.rrhh.services.request;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,8 +24,10 @@ import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.entity.RequestRejectionReason;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ApprovalRepository;
+import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.RequestRejectionReasonRepository;
 import com.promaty.rrhh.repository.RequestRepository;
+import com.promaty.rrhh.repository.projection.RequestStaffDataProjection;
 import com.promaty.rrhh.services.request.business.builder.CreateRequestBuilder;
 import com.promaty.rrhh.services.request.business.builder.RequestQueryBuilder;
 import com.promaty.rrhh.services.request.business.builder.RequestRelationsResolver;
@@ -47,6 +51,7 @@ public class RequestServiceImpl implements RequestService {
 	private final RequestRepository requestRepository;
 	private final ApprovalRepository approvalRepository;
 	private final RequestRejectionReasonRepository requestRejectionReasonRepository;
+	private final ContractRepository contractRepository;
 	private final RequestValidation requestValidation;
 	private final RequestDecisionValidation requestDecisionValidation;
 	private final CreateRequestBuilder createRequestBuilder;
@@ -59,6 +64,7 @@ public class RequestServiceImpl implements RequestService {
 		RequestRepository requestRepository,
 		ApprovalRepository approvalRepository,
 		RequestRejectionReasonRepository requestRejectionReasonRepository,
+		ContractRepository contractRepository,
 		RequestValidation requestValidation,
 		RequestDecisionValidation requestDecisionValidation,
 		CreateRequestBuilder createRequestBuilder,
@@ -70,6 +76,7 @@ public class RequestServiceImpl implements RequestService {
 		this.requestRepository = requestRepository;
 		this.approvalRepository = approvalRepository;
 		this.requestRejectionReasonRepository = requestRejectionReasonRepository;
+		this.contractRepository = contractRepository;
 		this.requestValidation = requestValidation;
 		this.requestDecisionValidation = requestDecisionValidation;
 		this.createRequestBuilder = createRequestBuilder;
@@ -108,8 +115,17 @@ public class RequestServiceImpl implements RequestService {
 	public Page<RequestListDto> listRequests(RequestFilterParams filters, Pageable pageable) {
 		Specification<Request> especificacion = RequestQueryBuilder.fromFilters(filters)
 			.and(ProjectAccessSpecification.onProject());
-		return requestRepository.findAll(especificacion, pageable)
+		Page<Request> pagina = requestRepository.findAll(especificacion, pageable);
+
+		List<Long> contractIds = pagina.getContent().stream()
+			.filter(request -> request.getEntityType() == RequestEntityType.CONTRACT)
+			.map(Request::getEntityId)
+			.toList();
+		Map<Long, RequestStaffDataProjection> datosDeStaffPorContrato = resolverDatosDeStaffEnLote(contractIds);
+
+		return pagina
 			.map(RequestMapper::toListDto)
+			.map(dto -> conDatosDeStaff(dto, datosDeStaffPorContrato.get(dto.getEntityId())))
 			.map(this::sinAccionesDeDecision);
 	}
 
@@ -151,6 +167,26 @@ public class RequestServiceImpl implements RequestService {
 
 	private RequestListDto sinAccionesDeDecision(RequestListDto dto) {
 		dto.setActions(List.of());
+		return dto;
+	}
+
+	private Map<Long, RequestStaffDataProjection> resolverDatosDeStaffEnLote(List<Long> contractIds) {
+		if (contractIds.isEmpty()) {
+			return Map.of();
+		}
+		return contractRepository.findStaffDataByContractIds(contractIds).stream()
+			.collect(Collectors.toMap(RequestStaffDataProjection::getContractId, datos -> datos));
+	}
+
+	private RequestListDto conDatosDeStaff(RequestListDto dto, RequestStaffDataProjection datos) {
+		if (datos != null) {
+			dto.setStaffIdentificationType(datos.getStaffIdentificationType());
+			dto.setStaffIdentificationNumber(datos.getStaffIdentificationNumber());
+			dto.setStaffFirstName(datos.getStaffFirstName());
+			dto.setStaffPaternalLastName(datos.getStaffPaternalLastName());
+			dto.setStaffMaternalLastName(datos.getStaffMaternalLastName());
+			dto.setStaffPosition(datos.getJobTitleName());
+		}
 		return dto;
 	}
 

@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.promaty.rrhh.dto.platformstatus.PlatformStatusOptionDto;
 import com.promaty.rrhh.dto.shared.Action;
+import com.promaty.rrhh.entity.IdentificationType;
 import com.promaty.rrhh.entity.RequestAction;
 import com.promaty.rrhh.entity.RequestEntityType;
 
@@ -28,6 +29,12 @@ public class RequestListDto {
 	private String costCenterCode;
 	private Long requesterUserId;
 	private String requesterName;
+	private IdentificationType staffIdentificationType;
+	private String staffIdentificationNumber;
+	private String staffFirstName;
+	private String staffPaternalLastName;
+	private String staffMaternalLastName;
+	private String staffPosition;
 	private PlatformStatusOptionDto status;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;

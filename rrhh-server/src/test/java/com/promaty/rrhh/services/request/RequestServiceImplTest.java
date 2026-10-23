@@ -36,6 +36,7 @@ import com.promaty.rrhh.dto.request.RequestListDto;
 import com.promaty.rrhh.entity.Approval;
 import com.promaty.rrhh.entity.ApprovalDecision;
 import com.promaty.rrhh.entity.ApprovalLevel;
+import com.promaty.rrhh.entity.IdentificationType;
 import com.promaty.rrhh.entity.PlatformStatus;
 import com.promaty.rrhh.entity.Project;
 import com.promaty.rrhh.entity.Request;
@@ -43,8 +44,10 @@ import com.promaty.rrhh.entity.RequestAction;
 import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ApprovalRepository;
+import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.RequestRejectionReasonRepository;
 import com.promaty.rrhh.repository.RequestRepository;
+import com.promaty.rrhh.repository.projection.RequestStaffDataProjection;
 import com.promaty.rrhh.services.request.business.builder.CreateRequestBuilder;
 import com.promaty.rrhh.services.request.business.builder.RequestRelationsResolver;
 import com.promaty.rrhh.services.request.business.mapper.ContractPendingDataResolver;
@@ -63,6 +66,8 @@ class RequestServiceImplTest {
 	private ApprovalRepository approvalRepository;
 	@Mock
 	private RequestRejectionReasonRepository requestRejectionReasonRepository;
+	@Mock
+	private ContractRepository contractRepository;
 	@Mock
 	private RequestValidation requestValidation;
 	@Mock
@@ -197,6 +202,26 @@ class RequestServiceImplTest {
 	}
 
 	@Test
+	void listRequests_conSolicitudDeContrato_resuelveDatosDeStaffEnLote() {
+		Request request = requestConId(4L, RequestEntityType.CONTRACT);
+		request.setEntityId(50L);
+		request.setProject(proyectoConNombre("Edificio Centro"));
+		request.setStatus(statusConCodigo("PENDING_APPROVAL"));
+		Pageable pageable = PageRequest.of(0, 20);
+		when(requestRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(new PageImpl<>(List.of(request)));
+		when(contractRepository.findStaffDataByContractIds(List.of(50L)))
+			.thenReturn(List.of(staffDataProjection(50L, "Juan", "Perez", "Soto", "12345678-5", "Albañil")));
+
+		RequestListDto dto = requestService.listRequests(new RequestFilterParams(), pageable).getContent().get(0);
+
+		assertThat(dto.getStaffFirstName()).isEqualTo("Juan");
+		assertThat(dto.getStaffPaternalLastName()).isEqualTo("Perez");
+		assertThat(dto.getStaffMaternalLastName()).isEqualTo("Soto");
+		assertThat(dto.getStaffIdentificationNumber()).isEqualTo("12345678-5");
+		assertThat(dto.getStaffPosition()).isEqualTo("Albañil");
+	}
+
+	@Test
 	void getCounters_delegaEnRepositoryConteoPorStatus() {
 		when(requestRepository.count(any(Specification.class))).thenReturn(3L, 5L);
 
@@ -271,6 +296,48 @@ class RequestServiceImplTest {
 		PlatformStatus status = new PlatformStatus();
 		status.setCode(code);
 		return status;
+	}
+
+	private RequestStaffDataProjection staffDataProjection(
+		Long contractId, String firstName, String paternalLastName, String maternalLastName,
+		String identificationNumber, String jobTitleName
+	) {
+		return new RequestStaffDataProjection() {
+			@Override
+			public Long getContractId() {
+				return contractId;
+			}
+
+			@Override
+			public IdentificationType getStaffIdentificationType() {
+				return IdentificationType.RUT;
+			}
+
+			@Override
+			public String getStaffIdentificationNumber() {
+				return identificationNumber;
+			}
+
+			@Override
+			public String getStaffFirstName() {
+				return firstName;
+			}
+
+			@Override
+			public String getStaffPaternalLastName() {
+				return paternalLastName;
+			}
+
+			@Override
+			public String getStaffMaternalLastName() {
+				return maternalLastName;
+			}
+
+			@Override
+			public String getJobTitleName() {
+				return jobTitleName;
+			}
+		};
 	}
 
 	private DecideRequestDto decisionAprobada() {

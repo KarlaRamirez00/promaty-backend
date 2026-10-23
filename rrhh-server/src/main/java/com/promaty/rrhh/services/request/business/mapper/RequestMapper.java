@@ -25,6 +25,12 @@ public final class RequestMapper {
 			request.getProject().getCostCenterCode(),
 			request.getRequesterUserId(),
 			request.getCreatedBy(),
+			null, // staffIdentificationType: resuelto en lote por el service a partir del Contract
+			null, // staffIdentificationNumber: idem
+			null, // staffFirstName: idem
+			null, // staffPaternalLastName: idem
+			null, // staffMaternalLastName: idem
+			null, // staffPosition: idem
 			new PlatformStatusOptionDto(request.getStatus().getId(), request.getStatus().getCode(), request.getStatus().getName()),
 			request.getCreatedAt(),
 			request.getUpdatedAt(),

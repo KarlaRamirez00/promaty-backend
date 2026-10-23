@@ -7,9 +7,12 @@ import java.util.List;
 import org.springframework.data.jpa.domain.Specification;
 
 import com.promaty.rrhh.dto.request.RequestFilterParams;
+import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.Request;
+import com.promaty.rrhh.entity.RequestEntityType;
 
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Subquery;
 
 public final class RequestQueryBuilder {
 
@@ -34,9 +37,23 @@ public final class RequestQueryBuilder {
 			}
 			if (filters.getSearch() != null && !filters.getSearch().isBlank()) {
 				String patron = "%" + filters.getSearch().toLowerCase() + "%";
+
+				Subquery<Long> contratosDeColaborador = query.subquery(Long.class);
+				var contrato = contratosDeColaborador.from(Contract.class);
+				contratosDeColaborador.select(contrato.get("id")).where(cb.or(
+					cb.like(cb.lower(contrato.get("staff").get("firstName")), patron),
+					cb.like(cb.lower(contrato.get("staff").get("paternalLastName")), patron),
+					cb.like(cb.lower(contrato.get("staff").get("maternalLastName")), patron),
+					cb.like(cb.lower(contrato.get("staff").get("identificationNumber")), patron)
+				));
+
 				predicates.add(cb.or(
 					cb.like(cb.lower(root.get("project").get("name")), patron),
-					cb.like(cb.lower(root.get("project").get("costCenterCode")), patron)
+					cb.like(cb.lower(root.get("project").get("costCenterCode")), patron),
+					cb.and(
+						cb.equal(root.get("entityType"), RequestEntityType.CONTRACT),
+						root.get("entityId").in(contratosDeColaborador)
+					)
 				));
 			}
 			if (filters.getCreatedFrom() != null) {

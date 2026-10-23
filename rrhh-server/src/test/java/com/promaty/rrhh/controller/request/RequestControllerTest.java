@@ -137,7 +137,8 @@ class RequestControllerTest {
 	void list_conPermisoDeLectura_retorna200ConLista() throws Exception {
 		RequestListDto dto = new RequestListDto(
 			1L, RequestEntityType.CONTRACT, RequestAction.CREATE, "Nuevo contrato", null, "Edificio Centro",
-			"CC-01", 7L, "Juan Pérez", null, null, null, null, null, List.of()
+			"CC-01", 7L, "Juan Pérez", null, null, null, null, null, null,
+			null, null, null, null, null, List.of()
 		);
 		when(requestService.listRequests(any(), any())).thenReturn(new PageImpl<>(List.of(dto)));
 
