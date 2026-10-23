@@ -22,7 +22,9 @@ FROM (VALUES
   ('platformStatuses', 'Estados', '/estados'),
   ('staff', 'Colaboradores', '/colaboradores'),
   ('contracts', 'Contratos', '/contratos'),
-  ('requestRejectionReasons', 'Motivos de rechazo', '/motivos-rechazo')
+  ('requestRejectionReasons', 'Motivos de rechazo', '/motivos-rechazo'),
+  ('terminations', 'Finiquitos', '/finiquitos'),
+  ('nonRehireReasons', 'Motivos de no recontratación', '/motivos-no-recontratacion')
 ) AS s(name, alias, path)
 CROSS JOIN (SELECT id FROM modules WHERE name = 'sistema') m
 WHERE NOT EXISTS (SELECT 1 FROM sub_modules sm WHERE sm.name = s.name);
@@ -68,7 +70,16 @@ FROM (VALUES
   ('requestRejectionReason.read', 'Ver motivos de rechazo', 'requestRejectionReasons'),
   ('requestRejectionReason.create', 'Crear motivos de rechazo', 'requestRejectionReasons'),
   ('requestRejectionReason.update', 'Editar motivos de rechazo', 'requestRejectionReasons'),
-  ('requestRejectionReason.active', 'Activar motivos de rechazo', 'requestRejectionReasons')
+  ('requestRejectionReason.active', 'Activar motivos de rechazo', 'requestRejectionReasons'),
+  ('termination.read', 'Ver finiquitos', 'terminations'),
+  ('termination.create', 'Crear finiquitos', 'terminations'),
+  ('termination.update', 'Editar finiquitos', 'terminations'),
+  ('termination.approve', 'Aprobar solicitud de finiquito (gerente de obra)', 'terminations'),
+  ('termination.validate', 'Validar solicitud de finiquito (RRHH)', 'terminations'),
+  ('nonRehireReason.read', 'Ver motivos de no recontratación', 'nonRehireReasons'),
+  ('nonRehireReason.create', 'Crear motivos de no recontratación', 'nonRehireReasons'),
+  ('nonRehireReason.update', 'Editar motivos de no recontratación', 'nonRehireReasons'),
+  ('nonRehireReason.active', 'Activar motivos de no recontratación', 'nonRehireReasons')
 ) AS p(name, alias, sub)
 JOIN sub_modules sm ON sm.name = p.sub
 WHERE NOT EXISTS (SELECT 1 FROM permissions pe WHERE pe.name = p.name);

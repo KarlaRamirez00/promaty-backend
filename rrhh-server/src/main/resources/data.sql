@@ -605,3 +605,35 @@ VALUES
 	('Conductores de camiones pesados y de alto tonelaje', '8332', true, now(), now(), 'system', 'system'),
 	('Operadores de grúas y aparatos elevadores', '8343', true, now(), now(), 'system', 'system')
 ON CONFLICT (code) DO NOTHING;
+
+-- Causales legales de término de contrato (HU-B101, Finiquito). Catálogo de solo lectura: en el
+-- sistema real se sincroniza desde Rex+, no es un mantenedor editable por el usuario acá. Listado
+-- según las causales informadas por la Dirección del Trabajo (confirmado con Codex del proyecto
+-- original) — code estable, nunca un id fijo, para no acoplar reglas de negocio a un id de seed.
+INSERT INTO legal_termination_cause (name, code, active, created_at, updated_at, created_by, updated_by)
+VALUES
+	('Mutuo acuerdo de las partes',          'MUTUAL_AGREEMENT',       true, now(), now(), 'system', 'system'),
+	('Renuncia voluntaria',                  'RESIGNATION',            true, now(), now(), 'system', 'system'),
+	('Muerte del trabajador',                'DEATH',                  true, now(), now(), 'system', 'system'),
+	('Vencimiento del plazo convenido',      'TERM_EXPIRATION',        true, now(), now(), 'system', 'system'),
+	('Conclusión del trabajo o servicio',    'WORK_COMPLETION',        true, now(), now(), 'system', 'system'),
+	('Caso fortuito o fuerza mayor',         'FORCE_MAJEURE',          true, now(), now(), 'system', 'system'),
+	('Necesidades de la empresa',            'BUSINESS_NEEDS',         true, now(), now(), 'system', 'system'),
+	('Causal disciplinaria (art. 160)',      'DISCIPLINARY',           true, now(), now(), 'system', 'system'),
+	('Desahucio escrito del empleador',      'EMPLOYER_NOTICE',        true, now(), now(), 'system', 'system'),
+	('Quiebra o liquidación concursal',      'BANKRUPTCY_LIQUIDATION', true, now(), now(), 'system', 'system')
+ON CONFLICT (code) DO NOTHING;
+
+-- Motivos de no recontratación (HU-B101, Finiquito). A diferencia de legal_termination_cause, este
+-- SÍ es un mantenedor editable por usuarios autorizados (CRUD completo vía /nonRehireReasons) — solo
+-- se siembra con un set inicial de referencia (confirmado con Codex del proyecto original).
+INSERT INTO non_rehire_reason (name, code, description, active, created_at, updated_at, created_by, updated_by)
+VALUES
+	('Bajo desempeño',                            'LOW_PERFORMANCE',       NULL, true, now(), now(), 'system', 'system'),
+	('Incumplimiento de normas de seguridad',      'SAFETY_VIOLATION',      NULL, true, now(), now(), 'system', 'system'),
+	('Conducta laboral inadecuada',                'MISCONDUCT',            NULL, true, now(), now(), 'system', 'system'),
+	('Inasistencia o impuntualidad reiterada',     'ABSENTEEISM',           NULL, true, now(), now(), 'system', 'system'),
+	('Falta de compromiso',                        'LACK_OF_COMMITMENT',    NULL, true, now(), now(), 'system', 'system'),
+	('No cumple el perfil',                        'PROFILE_MISMATCH',      NULL, true, now(), now(), 'system', 'system'),
+	('Decisión definitiva de la empresa',          'COMPANY_DECISION',      NULL, true, now(), now(), 'system', 'system')
+ON CONFLICT (code) DO NOTHING;
