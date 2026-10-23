@@ -138,7 +138,10 @@ public class RequestServiceImpl implements RequestService {
 		if (request.getEntityType() == RequestEntityType.CONTRACT) {
 			dto.setContractPendingData(contractPendingDataResolver.resolve(request.getPendingData()));
 		}
-		dto.setActions(actionsResolver.resolve(dto.getStatus().getCode(), CurrentUserAuthorities.get()));
+		var handler = handlerRegistry.get(request.getEntityType());
+		dto.setActions(actionsResolver.resolve(
+			dto.getStatus().getCode(), CurrentUserAuthorities.get(), handler.approvePermission(), handler.validatePermission()
+		));
 		return dto;
 	}
 

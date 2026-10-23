@@ -237,6 +237,7 @@ class RequestServiceImplTest {
 		request.setProject(proyectoConNombre("Edificio Centro"));
 		request.setStatus(statusConCodigo("APPROVED"));
 		when(requestRepository.findById(5L)).thenReturn(Optional.of(request));
+		when(handlerRegistry.get(RequestEntityType.CONTRACT)).thenReturn(contractRequestHandler);
 		Approval approval = new Approval();
 		approval.setLevel(ApprovalLevel.PROJECT_MANAGER);
 		approval.setDecision(ApprovalDecision.APPROVED);
@@ -256,6 +257,7 @@ class RequestServiceImplTest {
 		request.setStatus(statusConCodigo("APPROVED"));
 		request.setPendingData("{}");
 		when(requestRepository.findById(6L)).thenReturn(Optional.of(request));
+		when(handlerRegistry.get(RequestEntityType.CONTRACT)).thenReturn(contractRequestHandler);
 		when(approvalRepository.findByRequest_IdOrderByCreatedAtAsc(6L)).thenReturn(List.of());
 		ContractPendingDataResolvedDto resuelto = mock(ContractPendingDataResolvedDto.class);
 		when(contractPendingDataResolver.resolve("{}")).thenReturn(resuelto);

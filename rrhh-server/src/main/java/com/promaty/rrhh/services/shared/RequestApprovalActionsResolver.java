@@ -18,14 +18,12 @@ public class RequestApprovalActionsResolver {
 
 	private static final String CODE_PENDING_APPROVAL = "PENDING_APPROVAL";
 	private static final String CODE_PENDING_VALIDATION = "PENDING_VALIDATION";
-	private static final String PERMISO_APROBAR = "contract.approve";
-	private static final String PERMISO_VALIDAR = "contract.validate";
 
-	public List<Action> resolve(String statusCode, Set<String> authorities) {
+	public List<Action> resolve(String statusCode, Set<String> authorities, String approvePermission, String validatePermission) {
 		List<Action> actions = new ArrayList<>();
-		if (CODE_PENDING_APPROVAL.equals(statusCode) && authorities.contains(PERMISO_APROBAR)) {
+		if (CODE_PENDING_APPROVAL.equals(statusCode) && authorities.contains(approvePermission)) {
 			actions.add(Action.APPROVE);
-		} else if (CODE_PENDING_VALIDATION.equals(statusCode) && authorities.contains(PERMISO_VALIDAR)) {
+		} else if (CODE_PENDING_VALIDATION.equals(statusCode) && authorities.contains(validatePermission)) {
 			actions.add(Action.VALIDATE);
 		}
 		return actions;

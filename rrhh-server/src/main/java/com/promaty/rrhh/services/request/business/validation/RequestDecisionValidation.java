@@ -13,24 +13,28 @@ import com.promaty.rrhh.entity.ApprovalLevel;
 import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.repository.RequestRejectionReasonRepository;
+import com.promaty.rrhh.services.request.handler.RequestHandlerRegistry;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
 
 @Component
 public class RequestDecisionValidation {
 
 	private static final String MENSAJE_VALIDACION = "La validacion fallo para uno o mas campos.";
-	private static final String PERMISO_APROBAR = "contract.approve";
-	private static final String PERMISO_VALIDAR = "contract.validate";
 
 	private final RequestRejectionReasonRepository requestRejectionReasonRepository;
+	private final RequestHandlerRegistry handlerRegistry;
 
-	public RequestDecisionValidation(RequestRejectionReasonRepository requestRejectionReasonRepository) {
+	public RequestDecisionValidation(
+		RequestRejectionReasonRepository requestRejectionReasonRepository,
+		RequestHandlerRegistry handlerRegistry
+	) {
 		this.requestRejectionReasonRepository = requestRejectionReasonRepository;
+		this.handlerRegistry = handlerRegistry;
 	}
 
 	public ApprovalLevel validateDecision(Request request, DecideRequestDto dto) {
 		ApprovalLevel nivelEsperado = resolveNivelEsperado(request);
-		validarPermisoDelNivel(nivelEsperado);
+		validarPermisoDelNivel(request, nivelEsperado);
 		validarMotivoDeRechazo(dto);
 		return nivelEsperado;
 	}
@@ -47,8 +51,11 @@ public class RequestDecisionValidation {
 		};
 	}
 
-	private void validarPermisoDelNivel(ApprovalLevel nivelEsperado) {
-		String permisoRequerido = nivelEsperado == ApprovalLevel.PROJECT_MANAGER ? PERMISO_APROBAR : PERMISO_VALIDAR;
+	private void validarPermisoDelNivel(Request request, ApprovalLevel nivelEsperado) {
+		var handler = handlerRegistry.get(request.getEntityType());
+		String permisoRequerido = nivelEsperado == ApprovalLevel.PROJECT_MANAGER
+			? handler.approvePermission()
+			: handler.validatePermission();
 		Set<String> autoridades = CurrentUserAuthorities.get();
 		if (!autoridades.contains(permisoRequerido)) {
 			throw new AccessDeniedException("No tiene el permiso requerido para decidir en este nivel.");

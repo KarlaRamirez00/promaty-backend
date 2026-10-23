@@ -51,6 +51,8 @@ public class ContractRequestHandler implements RequestHandler {
 	private static final String CODE_CONTRACT_TYPE_OBRA = "O";
 	private static final int PLAZO_HABIL_OBRA = 5;
 	private static final int PLAZO_HABIL_GENERAL = 15;
+	private static final String PERMISO_APROBAR = "contract.approve";
+	private static final String PERMISO_VALIDAR = "contract.validate";
 
 	private final ObjectMapper objectMapper;
 	private final ContractRepository contractRepository;
@@ -96,6 +98,16 @@ public class ContractRequestHandler implements RequestHandler {
 	@Override
 	public RequestEntityType supports() {
 		return RequestEntityType.CONTRACT;
+	}
+
+	@Override
+	public String approvePermission() {
+		return PERMISO_APROBAR;
+	}
+
+	@Override
+	public String validatePermission() {
+		return PERMISO_VALIDAR;
 	}
 
 	@Override
@@ -160,7 +172,7 @@ public class ContractRequestHandler implements RequestHandler {
 		}
 		RexSyncResult sincronizacion = rexPlusClient.syncContract(contract);
 		if (sincronizacion.success()) {
-			contract.setRexContractNumber(sincronizacion.externalContractNumber());
+			contract.setRexContractNumber(sincronizacion.externalReferenceNumber());
 			contract.setStatus(resolveEstado(CODE_ACTIVE));
 			contractRepository.save(contract);
 			actualizarEstadoStaffSiCorresponde(contract, CODE_ACTIVE);

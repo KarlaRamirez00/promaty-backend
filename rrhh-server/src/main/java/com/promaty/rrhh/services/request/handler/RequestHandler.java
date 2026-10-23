@@ -14,4 +14,10 @@ public interface RequestHandler {
 
 	/** Aplica el efecto de una decisión de aprobación/rechazo sobre la entidad ya creada por create(). */
 	void applyDecision(Request request, ApprovalLevel level, ApprovalDecision decision);
+
+	/** Permiso que habilita la decisión de nivel 1 (jefatura de centro de costo) para este tipo de solicitud. */
+	String approvePermission();
+
+	/** Permiso que habilita la decisión de nivel 2 (RRHH) para este tipo de solicitud. */
+	String validatePermission();
 }

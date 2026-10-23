@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,14 +22,26 @@ import com.promaty.rrhh.entity.ApprovalDecision;
 import com.promaty.rrhh.entity.ApprovalLevel;
 import com.promaty.rrhh.entity.PlatformStatus;
 import com.promaty.rrhh.entity.Request;
+import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.repository.RequestRejectionReasonRepository;
+import com.promaty.rrhh.services.request.handler.RequestHandler;
+import com.promaty.rrhh.services.request.handler.RequestHandlerRegistry;
 
 class RequestDecisionValidationTest {
 
 	private final RequestRejectionReasonRepository requestRejectionReasonRepository = mock(RequestRejectionReasonRepository.class);
+	private final RequestHandlerRegistry handlerRegistry = mock(RequestHandlerRegistry.class);
+	private final RequestHandler contractRequestHandler = mock(RequestHandler.class);
 	private final RequestDecisionValidation requestDecisionValidation =
-		new RequestDecisionValidation(requestRejectionReasonRepository);
+		new RequestDecisionValidation(requestRejectionReasonRepository, handlerRegistry);
+
+	@BeforeEach
+	void prepararHandlerDeContrato() {
+		when(handlerRegistry.get(RequestEntityType.CONTRACT)).thenReturn(contractRequestHandler);
+		when(contractRequestHandler.approvePermission()).thenReturn("contract.approve");
+		when(contractRequestHandler.validatePermission()).thenReturn("contract.validate");
+	}
 
 	@AfterEach
 	void limpiarContextoDeSeguridad() {
@@ -113,6 +126,7 @@ class RequestDecisionValidationTest {
 		PlatformStatus status = new PlatformStatus();
 		status.setCode(code);
 		Request request = new Request();
+		request.setEntityType(RequestEntityType.CONTRACT);
 		request.setStatus(status);
 		return request;
 	}

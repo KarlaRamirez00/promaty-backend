@@ -35,6 +35,8 @@ public class ContractServiceImpl implements ContractService {
 	private static final String NO_ENCONTRADO = "Contrato no encontrado.";
 	private static final String CODE_ACTIVE = "ACTIVE";
 	private static final String CODE_EXPIRED = "EXPIRED";
+	private static final String PERMISO_APROBAR = "contract.approve";
+	private static final String PERMISO_VALIDAR = "contract.validate";
 	// Próximos N días para "por vencer" — fijo por ahora, ver rrhh-domain.md §8 para la idea de
 	// hacerlo configurable en el panel de parámetros del sistema (no construido todavía).
 	private static final int DIAS_POR_VENCER = 7;
@@ -72,7 +74,7 @@ public class ContractServiceImpl implements ContractService {
 		Request request = requestRepository.findByEntityTypeAndEntityId(RequestEntityType.CONTRACT, id).orElse(null);
 		dto.setRequestId(request == null ? null : request.getId());
 		String statusCode = request == null ? null : request.getStatus().getCode();
-		dto.setActions(actionsResolver.resolve(statusCode, CurrentUserAuthorities.get()));
+		dto.setActions(actionsResolver.resolve(statusCode, CurrentUserAuthorities.get(), PERMISO_APROBAR, PERMISO_VALIDAR));
 		return dto;
 	}
 
@@ -113,7 +115,7 @@ public class ContractServiceImpl implements ContractService {
 	private ContractListDto conRequestYAcciones(ContractListDto dto, Request request, Set<String> autoridades) {
 		dto.setRequestId(request == null ? null : request.getId());
 		String statusCode = request == null ? null : request.getStatus().getCode();
-		dto.setActions(actionsResolver.resolve(statusCode, autoridades));
+		dto.setActions(actionsResolver.resolve(statusCode, autoridades, PERMISO_APROBAR, PERMISO_VALIDAR));
 		return dto;
 	}
 }
