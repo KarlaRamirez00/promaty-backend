@@ -12,11 +12,13 @@ import com.promaty.rrhh.dto.nonrehirereason.UpdateNonRehireReasonDto;
 import com.promaty.rrhh.entity.NonRehireReason;
 import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.repository.NonRehireReasonRepository;
+import com.promaty.rrhh.services.shared.SlugCodeGenerator;
 
 @Component
 public class NonRehireReasonValidation {
 
 	private static final String MENSAJE_VALIDACION = "La validacion fallo para uno o mas campos.";
+	private static final int LARGO_MAXIMO_CODIGO = 40;
 
 	private final NonRehireReasonRepository nonRehireReasonRepository;
 
@@ -27,15 +29,35 @@ public class NonRehireReasonValidation {
 	public void validateCreate(CreateNonRehireReasonDto dto) {
 		Map<String, String> errores = new LinkedHashMap<>();
 		validarNombreDuplicado(errores, dto.getName(), null);
-		validarCodigoDuplicado(errores, dto.getCode(), null);
 		lanzarSiHayErrores(errores);
 	}
 
 	public void validateUpdate(Long id, UpdateNonRehireReasonDto dto) {
 		Map<String, String> errores = new LinkedHashMap<>();
 		validarNombreDuplicado(errores, dto.getName(), id);
-		validarCodigoDuplicado(errores, dto.getCode(), id);
 		lanzarSiHayErrores(errores);
+	}
+
+	/**
+	 * code es un identificador interno, nunca visible en UI: se genera desde name en vez de pedirlo
+	 * como input (evita confundir al usuario con un campo que no sabría cómo llenar).
+	 */
+	public String resolveCode(String name, Long idActual) {
+		String base = SlugCodeGenerator.fromName(name, LARGO_MAXIMO_CODIGO);
+		String candidato = base;
+		int sufijo = 2;
+		while (colisionaConOtroRegistro(candidato, idActual)) {
+			String sufijoTexto = "_" + sufijo;
+			int largoBase = Math.min(base.length(), LARGO_MAXIMO_CODIGO - sufijoTexto.length());
+			candidato = base.substring(0, largoBase) + sufijoTexto;
+			sufijo++;
+		}
+		return candidato;
+	}
+
+	private boolean colisionaConOtroRegistro(String code, Long idActual) {
+		Optional<NonRehireReason> existente = nonRehireReasonRepository.findByCode(code);
+		return existente.isPresent() && !Objects.equals(existente.get().getId(), idActual);
 	}
 
 	/**
@@ -47,13 +69,6 @@ public class NonRehireReasonValidation {
 		Optional<NonRehireReason> existente = nonRehireReasonRepository.findByName(name);
 		if (existente.isPresent() && !Objects.equals(existente.get().getId(), idActual)) {
 			errores.put("name", "Ya existe un motivo de no recontratación con este nombre.");
-		}
-	}
-
-	private void validarCodigoDuplicado(Map<String, String> errores, String code, Long idActual) {
-		Optional<NonRehireReason> existente = nonRehireReasonRepository.findByCode(code);
-		if (existente.isPresent() && !Objects.equals(existente.get().getId(), idActual)) {
-			errores.put("code", "Ya existe un motivo de no recontratación con este código.");
 		}
 	}
 

@@ -34,30 +34,17 @@ class NonRehireReasonValidationTest {
 		existente.setId(5L);
 		when(nonRehireReasonRepository.findByName("Bajo desempeño")).thenReturn(Optional.of(existente));
 
-		assertThatThrownBy(() -> nonRehireReasonValidation.validateCreate(createDto("Bajo desempeño", "LOW_PERFORMANCE")))
+		assertThatThrownBy(() -> nonRehireReasonValidation.validateCreate(createDto("Bajo desempeño")))
 			.isInstanceOf(BusinessValidationException.class)
 			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
 				.containsKey("name"));
 	}
 
 	@Test
-	void validateCreate_conCodigoDuplicado_lanzaErrorEnCode() {
-		NonRehireReason existente = new NonRehireReason();
-		existente.setId(5L);
-		when(nonRehireReasonRepository.findByCode("LOW_PERFORMANCE")).thenReturn(Optional.of(existente));
-
-		assertThatThrownBy(() -> nonRehireReasonValidation.validateCreate(createDto("Otro nombre", "LOW_PERFORMANCE")))
-			.isInstanceOf(BusinessValidationException.class)
-			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
-				.containsKey("code"));
-	}
-
-	@Test
 	void validateCreate_sinDuplicados_noLanzaExcepcion() {
 		when(nonRehireReasonRepository.findByName("Bajo desempeño")).thenReturn(Optional.empty());
-		when(nonRehireReasonRepository.findByCode("LOW_PERFORMANCE")).thenReturn(Optional.empty());
 
-		assertThatCode(() -> nonRehireReasonValidation.validateCreate(createDto("Bajo desempeño", "LOW_PERFORMANCE")))
+		assertThatCode(() -> nonRehireReasonValidation.validateCreate(createDto("Bajo desempeño")))
 			.doesNotThrowAnyException();
 	}
 
@@ -66,36 +53,64 @@ class NonRehireReasonValidationTest {
 		NonRehireReason otro = new NonRehireReason();
 		otro.setId(99L);
 		when(nonRehireReasonRepository.findByName("Falta de compromiso")).thenReturn(Optional.of(otro));
-		when(nonRehireReasonRepository.findByCode("LACK_OF_COMMITMENT")).thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> nonRehireReasonValidation.validateUpdate(1L, updateDto("Falta de compromiso", "LACK_OF_COMMITMENT")))
+		assertThatThrownBy(() -> nonRehireReasonValidation.validateUpdate(1L, updateDto("Falta de compromiso")))
 			.isInstanceOf(BusinessValidationException.class)
 			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
 				.containsKey("name"));
 	}
 
 	@Test
-	void validateUpdate_conNombreYCodigoDelMismoRegistro_noLanzaExcepcion() {
+	void validateUpdate_conNombreDelMismoRegistro_noLanzaExcepcion() {
 		NonRehireReason mismo = new NonRehireReason();
 		mismo.setId(1L);
 		when(nonRehireReasonRepository.findByName("Falta de compromiso")).thenReturn(Optional.of(mismo));
-		when(nonRehireReasonRepository.findByCode("LACK_OF_COMMITMENT")).thenReturn(Optional.of(mismo));
 
-		assertThatCode(() -> nonRehireReasonValidation.validateUpdate(1L, updateDto("Falta de compromiso", "LACK_OF_COMMITMENT")))
+		assertThatCode(() -> nonRehireReasonValidation.validateUpdate(1L, updateDto("Falta de compromiso")))
 			.doesNotThrowAnyException();
 	}
 
-	private CreateNonRehireReasonDto createDto(String name, String code) {
+	@Test
+	void resolveCode_conNombreSinColision_generaSlugDesdeElNombre() {
+		when(nonRehireReasonRepository.findByCode("FALTA_COMPROMISO")).thenReturn(Optional.empty());
+
+		String code = nonRehireReasonValidation.resolveCode("Falta de compromiso", null);
+
+		assertThat(code).isEqualTo("FALTA_COMPROMISO");
+	}
+
+	@Test
+	void resolveCode_conCodigoYaUsadoPorOtroRegistro_agregaSufijoNumerico() {
+		NonRehireReason otro = new NonRehireReason();
+		otro.setId(99L);
+		when(nonRehireReasonRepository.findByCode("FALTA_COMPROMISO")).thenReturn(Optional.of(otro));
+		when(nonRehireReasonRepository.findByCode("FALTA_COMPROMISO_2")).thenReturn(Optional.empty());
+
+		String code = nonRehireReasonValidation.resolveCode("Falta de compromiso", null);
+
+		assertThat(code).isEqualTo("FALTA_COMPROMISO_2");
+	}
+
+	@Test
+	void resolveCode_conCodigoUsadoPorElMismoRegistro_noLoConsideraColision() {
+		NonRehireReason mismo = new NonRehireReason();
+		mismo.setId(1L);
+		when(nonRehireReasonRepository.findByCode("FALTA_COMPROMISO")).thenReturn(Optional.of(mismo));
+
+		String code = nonRehireReasonValidation.resolveCode("Falta de compromiso", 1L);
+
+		assertThat(code).isEqualTo("FALTA_COMPROMISO");
+	}
+
+	private CreateNonRehireReasonDto createDto(String name) {
 		CreateNonRehireReasonDto dto = new CreateNonRehireReasonDto();
 		dto.setName(name);
-		dto.setCode(code);
 		return dto;
 	}
 
-	private UpdateNonRehireReasonDto updateDto(String name, String code) {
+	private UpdateNonRehireReasonDto updateDto(String name) {
 		UpdateNonRehireReasonDto dto = new UpdateNonRehireReasonDto();
 		dto.setName(name);
-		dto.setCode(code);
 		return dto;
 	}
 }

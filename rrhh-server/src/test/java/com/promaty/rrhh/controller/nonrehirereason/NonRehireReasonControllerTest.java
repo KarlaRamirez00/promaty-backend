@@ -40,7 +40,7 @@ class NonRehireReasonControllerTest {
 		TestJwt.bearer("nonRehireReason.read", "nonRehireReason.create", "nonRehireReason.update", "nonRehireReason.active");
 	private static final String SIN_PERMISOS = TestJwt.bearer();
 
-	private static final String CREATE_JSON = "{\"name\":\"Bajo desempeño\",\"code\":\"LOW_PERFORMANCE\"}";
+	private static final String CREATE_JSON = "{\"name\":\"Bajo desempeño\"}";
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -65,19 +65,9 @@ class NonRehireReasonControllerTest {
 		mockMvc.perform(post("/nonRehireReasons")
 				.header(HttpHeaders.AUTHORIZATION, TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"name\":\" \",\"code\":\"LOW_PERFORMANCE\"}"))
+				.content("{\"name\":\" \"}"))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.error.errorFields.name").exists());
-	}
-
-	@Test
-	void create_conCodigoEnBlanco_retorna400ConErrorFields() throws Exception {
-		mockMvc.perform(post("/nonRehireReasons")
-				.header(HttpHeaders.AUTHORIZATION, TOKEN)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"name\":\"Bajo desempeño\",\"code\":\" \"}"))
-			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.error.errorFields.code").exists());
 	}
 
 	@Test

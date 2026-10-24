@@ -54,7 +54,7 @@ public class NonRehireReasonServiceImpl implements NonRehireReasonService {
 		nonRehireReasonValidation.validateCreate(dto);
 		NonRehireReason reason = new NonRehireReason();
 		reason.setName(dto.getName());
-		reason.setCode(dto.getCode());
+		reason.setCode(nonRehireReasonValidation.resolveCode(dto.getName(), null));
 		reason.setDescription(dto.getDescription());
 		return nonRehireReasonRepository.save(reason).getId();
 	}
@@ -64,8 +64,10 @@ public class NonRehireReasonServiceImpl implements NonRehireReasonService {
 	public void updateNonRehireReason(Long id, UpdateNonRehireReasonDto dto) {
 		nonRehireReasonValidation.validateUpdate(id, dto);
 		NonRehireReason existente = buscarPorId(id);
+		if (!existente.getName().equals(dto.getName())) {
+			existente.setCode(nonRehireReasonValidation.resolveCode(dto.getName(), id));
+		}
 		existente.setName(dto.getName());
-		existente.setCode(dto.getCode());
 		existente.setDescription(dto.getDescription());
 		nonRehireReasonRepository.save(existente);
 	}

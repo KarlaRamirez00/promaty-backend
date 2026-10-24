@@ -42,8 +42,8 @@ class NonRehireReasonServiceImplTest {
 	void createNonRehireReason_conDatosValidos_validaGuardaYRetornaId() {
 		CreateNonRehireReasonDto dto = new CreateNonRehireReasonDto();
 		dto.setName("Bajo desempeño");
-		dto.setCode("LOW_PERFORMANCE");
-		when(nonRehireReasonRepository.save(any(NonRehireReason.class))).thenReturn(reason(7L, "Bajo desempeño", "LOW_PERFORMANCE", true));
+		when(nonRehireReasonValidation.resolveCode("Bajo desempeño", null)).thenReturn("BAJO_DESEMPENO");
+		when(nonRehireReasonRepository.save(any(NonRehireReason.class))).thenReturn(reason(7L, "Bajo desempeño", "BAJO_DESEMPENO", true));
 
 		Long id = service.createNonRehireReason(dto);
 
@@ -55,11 +55,37 @@ class NonRehireReasonServiceImplTest {
 	void updateNonRehireReason_registroNoExiste_lanzaResourceNotFoundException() {
 		UpdateNonRehireReasonDto dto = new UpdateNonRehireReasonDto();
 		dto.setName("Bajo desempeño");
-		dto.setCode("LOW_PERFORMANCE");
 		when(nonRehireReasonRepository.findById(1L)).thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> service.updateNonRehireReason(1L, dto))
 			.isInstanceOf(ResourceNotFoundException.class);
+	}
+
+	@Test
+	void updateNonRehireReason_conNombreSinCambios_mantieneElCodeExistente() {
+		NonRehireReason existente = reason(1L, "Bajo desempeño", "BAJO_DESEMPENO", true);
+		UpdateNonRehireReasonDto dto = new UpdateNonRehireReasonDto();
+		dto.setName("Bajo desempeño");
+		when(nonRehireReasonRepository.findById(1L)).thenReturn(Optional.of(existente));
+		when(nonRehireReasonRepository.save(existente)).thenReturn(existente);
+
+		service.updateNonRehireReason(1L, dto);
+
+		assertThat(existente.getCode()).isEqualTo("BAJO_DESEMPENO");
+	}
+
+	@Test
+	void updateNonRehireReason_conNombreCambiado_regeneraElCode() {
+		NonRehireReason existente = reason(1L, "Bajo desempeño", "BAJO_DESEMPENO", true);
+		UpdateNonRehireReasonDto dto = new UpdateNonRehireReasonDto();
+		dto.setName("Falta de compromiso");
+		when(nonRehireReasonRepository.findById(1L)).thenReturn(Optional.of(existente));
+		when(nonRehireReasonValidation.resolveCode("Falta de compromiso", 1L)).thenReturn("FALTA_DE_COMPROMISO");
+		when(nonRehireReasonRepository.save(existente)).thenReturn(existente);
+
+		service.updateNonRehireReason(1L, dto);
+
+		assertThat(existente.getCode()).isEqualTo("FALTA_DE_COMPROMISO");
 	}
 
 	@Test
