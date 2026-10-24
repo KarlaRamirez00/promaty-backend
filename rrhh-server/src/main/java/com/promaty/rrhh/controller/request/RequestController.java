@@ -38,21 +38,21 @@ public class RequestController {
 	}
 
 	@PostMapping
-	@PreAuthorize("hasAuthority('contract.create')")
+	@PreAuthorize("hasAnyAuthority('contract.create', 'termination.create')")
 	public ResponseEntity<BaseData<Long>> create(@Valid @RequestBody CreateRequestDto dto) {
 		Long id = requestService.createRequest(dto);
 		return ResponseEntity.status(HttpStatus.CREATED).body(BaseData.success(id));
 	}
 
 	@PatchMapping("/{id}/decide")
-	@PreAuthorize("hasAnyAuthority('contract.approve', 'contract.validate')")
+	@PreAuthorize("hasAnyAuthority('contract.approve', 'contract.validate', 'termination.approve', 'termination.validate')")
 	public ResponseEntity<BaseData<Void>> decide(@PathVariable Long id, @Valid @RequestBody DecideRequestDto dto) {
 		requestService.decideRequest(id, dto);
 		return ResponseEntity.ok(BaseData.success(null));
 	}
 
 	@GetMapping
-	@PreAuthorize("hasAuthority('contract.read')")
+	@PreAuthorize("hasAnyAuthority('contract.read', 'termination.read')")
 	public ResponseEntity<BaseListData<RequestListDto>> list(
 		@ModelAttribute RequestFilterParams filters,
 		@PageableDefault(sort = {"createdAt", "id"}, direction = Sort.Direction.DESC) Pageable pageable
@@ -62,7 +62,7 @@ public class RequestController {
 	}
 
 	@GetMapping("/{id}")
-	@PreAuthorize("hasAuthority('contract.read')")
+	@PreAuthorize("hasAnyAuthority('contract.read', 'termination.read')")
 	public ResponseEntity<BaseData<RequestDetailDto>> detail(@PathVariable Long id) {
 		return ResponseEntity.ok(BaseData.success(requestService.getRequestDetail(id)));
 	}

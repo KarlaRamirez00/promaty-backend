@@ -5,6 +5,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -78,5 +80,27 @@ class TerminationQueryBuilderTest {
 
 		assertThat(resultado).isEqualTo(combinado);
 		assertThat(captor.getValue()).containsExactly(statusPredicate);
+	}
+
+	@Test
+	void fromFilters_conRangoDeFechas_agregaAmbosPredicados() {
+		TerminationFilterParams filtros = new TerminationFilterParams();
+		filtros.setTerminationDateFrom(LocalDate.of(2026, 1, 1));
+		filtros.setTerminationDateTo(LocalDate.of(2026, 1, 31));
+
+		var datePath = mock(Path.class);
+		Predicate desdePredicate = mock(Predicate.class);
+		Predicate hastaPredicate = mock(Predicate.class);
+		Predicate combinado = mock(Predicate.class);
+		when(root.get("terminationDate")).thenReturn(datePath);
+		when(cb.greaterThanOrEqualTo(datePath, filtros.getTerminationDateFrom())).thenReturn(desdePredicate);
+		when(cb.lessThanOrEqualTo(datePath, filtros.getTerminationDateTo())).thenReturn(hastaPredicate);
+		ArgumentCaptor<Predicate[]> captor = ArgumentCaptor.forClass(Predicate[].class);
+		when(cb.and(captor.capture())).thenReturn(combinado);
+
+		Predicate resultado = TerminationQueryBuilder.fromFilters(filtros).toPredicate(root, query, cb);
+
+		assertThat(resultado).isEqualTo(combinado);
+		assertThat(captor.getValue()).containsExactly(desdePredicate, hastaPredicate);
 	}
 }

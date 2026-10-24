@@ -141,6 +141,15 @@ public class StaffServiceImpl implements StaffService {
 			.toList();
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public List<StaffSelectorOptionDto> listSelectorOptionsForTermination() {
+		return staffRepository.findWithActiveContractForTerminationSelector(ESTADO_ACTIVO)
+			.stream()
+			.map(StaffMapper::toSelectorOptionDto)
+			.toList();
+	}
+
 	private String resolverCentroCosto(Long staffId) {
 		return contractRepository.findByStaffIdAndStatus_Code(staffId, ESTADO_ACTIVO)
 			.map(Contract::getProject)

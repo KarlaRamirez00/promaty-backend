@@ -224,6 +224,22 @@ class StaffControllerTest {
 	}
 
 	@Test
+	void selectorForTermination_conPermiso_retorna200ConOpciones() throws Exception {
+		when(staffService.listSelectorOptionsForTermination())
+			.thenReturn(List.of(new StaffSelectorOptionDto(1L, "Juan Perez Soto", "12345678-5")));
+
+		mockMvc.perform(get("/staff/selector/terminable").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("termination.create")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data[0].name").value("Juan Perez Soto"));
+	}
+
+	@Test
+	void selectorForTermination_sinPermiso_retorna403() throws Exception {
+		mockMvc.perform(get("/staff/selector/terminable").header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
 	void list_sinPermiso_retorna403() throws Exception {
 		mockMvc.perform(get("/staff").header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS))
 			.andExpect(status().isForbidden());

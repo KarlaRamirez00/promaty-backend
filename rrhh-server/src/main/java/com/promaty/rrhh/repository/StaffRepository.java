@@ -24,4 +24,11 @@ public interface StaffRepository extends JpaRepository<Staff, Long>, JpaSpecific
 		@Param("statusCodeActivo") String statusCodeActivo,
 		@Param("statusCodeBloqueado") String statusCodeBloqueado
 	);
+
+	@Query("""
+		SELECT s FROM Staff s
+		WHERE s.id IN (SELECT c.staff.id FROM Contract c WHERE c.status.code = :statusCodeActivo)
+		ORDER BY s.firstName, s.paternalLastName
+		""")
+	List<Staff> findWithActiveContractForTerminationSelector(@Param("statusCodeActivo") String statusCodeActivo);
 }

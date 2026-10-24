@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -113,7 +114,9 @@ public class RequestServiceImpl implements RequestService {
 	@Override
 	@Transactional(readOnly = true)
 	public Page<RequestListDto> listRequests(RequestFilterParams filters, Pageable pageable) {
+		List<RequestEntityType> tiposLegibles = handlerRegistry.entityTypesReadableBy(CurrentUserAuthorities.get());
 		Specification<Request> especificacion = RequestQueryBuilder.fromFilters(filters)
+			.and(RequestQueryBuilder.restrictToEntityTypes(tiposLegibles))
 			.and(ProjectAccessSpecification.onProject());
 		Page<Request> pagina = requestRepository.findAll(especificacion, pageable);
 
@@ -133,12 +136,15 @@ public class RequestServiceImpl implements RequestService {
 	@Transactional(readOnly = true)
 	public RequestDetailDto getRequestDetail(Long id) {
 		Request request = buscarPorId(id);
+		var handler = handlerRegistry.get(request.getEntityType());
+		if (!CurrentUserAuthorities.get().contains(handler.readPermission())) {
+			throw new AccessDeniedException("No tiene el permiso requerido para ver este tipo de solicitud.");
+		}
 		List<Approval> approvals = approvalRepository.findByRequest_IdOrderByCreatedAtAsc(id);
 		RequestDetailDto dto = RequestMapper.toDetailDto(request, approvals);
 		if (request.getEntityType() == RequestEntityType.CONTRACT) {
 			dto.setContractPendingData(contractPendingDataResolver.resolve(request.getPendingData()));
 		}
-		var handler = handlerRegistry.get(request.getEntityType());
 		dto.setActions(actionsResolver.resolve(
 			dto.getStatus().getCode(), CurrentUserAuthorities.get(), handler.approvePermission(), handler.validatePermission()
 		));

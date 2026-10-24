@@ -41,6 +41,12 @@ public final class TerminationQueryBuilder {
 			if (filters.getStatusId() != null) {
 				predicates.add(cb.equal(root.get("status").get("id"), filters.getStatusId()));
 			}
+			if (filters.getTerminationDateFrom() != null) {
+				predicates.add(cb.greaterThanOrEqualTo(root.get("terminationDate"), filters.getTerminationDateFrom()));
+			}
+			if (filters.getTerminationDateTo() != null) {
+				predicates.add(cb.lessThanOrEqualTo(root.get("terminationDate"), filters.getTerminationDateTo()));
+			}
 
 			return cb.and(predicates.toArray(new Predicate[0]));
 		};

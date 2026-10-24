@@ -67,6 +67,12 @@ public class StaffController {
 		return ResponseEntity.ok(BaseListData.of(staffService.listSelectorOptionsForContract()));
 	}
 
+	@GetMapping("/selector/terminable")
+	@PreAuthorize("hasAuthority('termination.create')")
+	public ResponseEntity<BaseListData<StaffSelectorOptionDto>> selectorForTermination() {
+		return ResponseEntity.ok(BaseListData.of(staffService.listSelectorOptionsForTermination()));
+	}
+
 	@PutMapping("/{id}")
 	@PreAuthorize("hasAuthority('staff.update')")
 	public ResponseEntity<BaseData<StaffDetailDto>> update(

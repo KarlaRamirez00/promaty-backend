@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
 import com.promaty.rrhh.dto.request.ContractPendingDataDto;
@@ -30,6 +31,8 @@ import com.promaty.rrhh.repository.SiteRepository;
 import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.repository.TerminationRepository;
 import com.promaty.rrhh.repository.TransportTypeRepository;
+import com.promaty.rrhh.services.request.handler.RequestHandlerRegistry;
+import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
 
 @Component
 public class RequestValidation {
@@ -52,6 +55,7 @@ public class RequestValidation {
 	private final LegalTerminationCauseRepository legalTerminationCauseRepository;
 	private final NonRehireReasonRepository nonRehireReasonRepository;
 	private final TerminationRepository terminationRepository;
+	private final RequestHandlerRegistry handlerRegistry;
 
 	public RequestValidation(
 		ProjectRepository projectRepository,
@@ -65,7 +69,8 @@ public class RequestValidation {
 		ContractRepository contractRepository,
 		LegalTerminationCauseRepository legalTerminationCauseRepository,
 		NonRehireReasonRepository nonRehireReasonRepository,
-		TerminationRepository terminationRepository
+		TerminationRepository terminationRepository,
+		RequestHandlerRegistry handlerRegistry
 	) {
 		this.projectRepository = projectRepository;
 		this.staffRepository = staffRepository;
@@ -79,9 +84,11 @@ public class RequestValidation {
 		this.legalTerminationCauseRepository = legalTerminationCauseRepository;
 		this.nonRehireReasonRepository = nonRehireReasonRepository;
 		this.terminationRepository = terminationRepository;
+		this.handlerRegistry = handlerRegistry;
 	}
 
 	public void validateCreate(CreateRequestDto dto) {
+		validarPermisoDeCreacion(dto);
 		Map<String, String> errores = new LinkedHashMap<>();
 
 		if (dto.getEntityType() == RequestEntityType.CONTRACT) {
@@ -92,6 +99,22 @@ public class RequestValidation {
 		}
 
 		lanzarSiHayErrores(errores);
+	}
+
+	/**
+	 * El @PreAuthorize del controller solo exige "algún" permiso de creación entre todos los tipos
+	 * de Request (hasAnyAuthority) — acá se verifica el permiso específico del entityType que el
+	 * cliente efectivamente está pidiendo crear, para que tener contract.create no alcance para
+	 * crear un Termination (ni viceversa).
+	 */
+	private void validarPermisoDeCreacion(CreateRequestDto dto) {
+		if (dto.getEntityType() == null) {
+			return;
+		}
+		String permisoRequerido = handlerRegistry.get(dto.getEntityType()).createPermission();
+		if (!CurrentUserAuthorities.get().contains(permisoRequerido)) {
+			throw new AccessDeniedException("No tiene el permiso requerido para crear este tipo de solicitud.");
+		}
 	}
 
 	private void validarProjectId(CreateRequestDto dto, Map<String, String> errores) {

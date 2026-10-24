@@ -233,11 +233,13 @@ class RequestServiceImplTest {
 
 	@Test
 	void getRequestDetail_conIdExistente_retornaDetalleConHistorialDeApprovals() {
+		autenticarCon("contract.read");
 		Request request = requestConId(5L, RequestEntityType.CONTRACT);
 		request.setProject(proyectoConNombre("Edificio Centro"));
 		request.setStatus(statusConCodigo("APPROVED"));
 		when(requestRepository.findById(5L)).thenReturn(Optional.of(request));
 		when(handlerRegistry.get(RequestEntityType.CONTRACT)).thenReturn(contractRequestHandler);
+		when(contractRequestHandler.readPermission()).thenReturn("contract.read");
 		Approval approval = new Approval();
 		approval.setLevel(ApprovalLevel.PROJECT_MANAGER);
 		approval.setDecision(ApprovalDecision.APPROVED);
@@ -252,12 +254,14 @@ class RequestServiceImplTest {
 
 	@Test
 	void getRequestDetail_entityTypeContract_resuelveContractPendingData() {
+		autenticarCon("contract.read");
 		Request request = requestConId(6L, RequestEntityType.CONTRACT);
 		request.setProject(proyectoConNombre("Edificio Centro"));
 		request.setStatus(statusConCodigo("APPROVED"));
 		request.setPendingData("{}");
 		when(requestRepository.findById(6L)).thenReturn(Optional.of(request));
 		when(handlerRegistry.get(RequestEntityType.CONTRACT)).thenReturn(contractRequestHandler);
+		when(contractRequestHandler.readPermission()).thenReturn("contract.read");
 		when(approvalRepository.findByRequest_IdOrderByCreatedAtAsc(6L)).thenReturn(List.of());
 		ContractPendingDataResolvedDto resuelto = mock(ContractPendingDataResolvedDto.class);
 		when(contractPendingDataResolver.resolve("{}")).thenReturn(resuelto);
@@ -273,6 +277,30 @@ class RequestServiceImplTest {
 
 		assertThatThrownBy(() -> requestService.getRequestDetail(99L))
 			.isInstanceOf(ResourceNotFoundException.class);
+	}
+
+	@Test
+	void getRequestDetail_conPermisoDeOtroEntityType_lanzaAccessDenied() {
+		autenticarCon("termination.read");
+		Request request = requestConId(7L, RequestEntityType.CONTRACT);
+		request.setStatus(statusConCodigo("APPROVED"));
+		when(requestRepository.findById(7L)).thenReturn(Optional.of(request));
+		when(handlerRegistry.get(RequestEntityType.CONTRACT)).thenReturn(contractRequestHandler);
+		when(contractRequestHandler.readPermission()).thenReturn("contract.read");
+
+		assertThatThrownBy(() -> requestService.getRequestDetail(7L))
+			.isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+	}
+
+	@Test
+	void listRequests_filtraPorLosEntityTypeQueElUsuarioPuedeLeer() {
+		autenticarCon("termination.read");
+		when(handlerRegistry.entityTypesReadableBy(any())).thenReturn(List.of(RequestEntityType.TERMINATION));
+		when(requestRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
+
+		requestService.listRequests(new RequestFilterParams(), PageRequest.of(0, 20));
+
+		verify(handlerRegistry).entityTypesReadableBy(any());
 	}
 
 	private void autenticarCon(String autoridad) {

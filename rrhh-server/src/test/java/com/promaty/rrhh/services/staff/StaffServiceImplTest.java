@@ -227,6 +227,18 @@ class StaffServiceImplTest {
 	}
 
 	@Test
+	void listSelectorOptionsForTermination_delegaEnRepositoryYMapeaNombreCompleto() {
+		Staff staff = staffCompleto();
+		when(staffRepository.findWithActiveContractForTerminationSelector("ACTIVE")).thenReturn(List.of(staff));
+
+		List<StaffSelectorOptionDto> opciones = service.listSelectorOptionsForTermination();
+
+		assertThat(opciones).hasSize(1);
+		assertThat(opciones.get(0).getName()).isEqualTo("Juan Perez Soto");
+		assertThat(opciones.get(0).getIdentificationNumber()).isEqualTo("12345678-5");
+	}
+
+	@Test
 	void listStaff_conResultados_resuelveCentroDeCostoYFechaDeIngresoEnLote() {
 		Staff staff1 = staffConId(1L);
 		staff1.setStatus(estadoActivo());

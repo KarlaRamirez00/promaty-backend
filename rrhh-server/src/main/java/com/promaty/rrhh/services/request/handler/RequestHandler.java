@@ -20,4 +20,10 @@ public interface RequestHandler {
 
 	/** Permiso que habilita la decisión de nivel 2 (RRHH) para este tipo de solicitud. */
 	String validatePermission();
+
+	/** Permiso que habilita crear una solicitud de este tipo. */
+	String createPermission();
+
+	/** Permiso que habilita leer (listar/ver detalle) una solicitud de este tipo. */
+	String readPermission();
 }

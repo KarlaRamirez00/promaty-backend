@@ -12,11 +12,17 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.promaty.rrhh.dto.request.ContractPendingDataDto;
 import com.promaty.rrhh.dto.request.CreateRequestDto;
@@ -41,6 +47,8 @@ import com.promaty.rrhh.repository.SiteRepository;
 import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.repository.TerminationRepository;
 import com.promaty.rrhh.repository.TransportTypeRepository;
+import com.promaty.rrhh.services.request.handler.RequestHandler;
+import com.promaty.rrhh.services.request.handler.RequestHandlerRegistry;
 
 @ExtendWith(MockitoExtension.class)
 class RequestValidationTest {
@@ -52,6 +60,12 @@ class RequestValidationTest {
 	private static final Long JOB_TITLE_ID = 5L;
 	private static final Long SITE_ID = 6L;
 
+	@Mock
+	private RequestHandlerRegistry handlerRegistry;
+	@Mock
+	private RequestHandler contractHandler;
+	@Mock
+	private RequestHandler terminationHandler;
 	@Mock
 	private ProjectRepository projectRepository;
 	@Mock
@@ -79,6 +93,33 @@ class RequestValidationTest {
 
 	@InjectMocks
 	private RequestValidation requestValidation;
+
+	@BeforeEach
+	void autenticarConPermisosDeCreacion() {
+		lenient().when(handlerRegistry.get(RequestEntityType.CONTRACT)).thenReturn(contractHandler);
+		lenient().when(handlerRegistry.get(RequestEntityType.TERMINATION)).thenReturn(terminationHandler);
+		lenient().when(contractHandler.createPermission()).thenReturn("contract.create");
+		lenient().when(terminationHandler.createPermission()).thenReturn("termination.create");
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+			"usuario", null, List.of(new SimpleGrantedAuthority("contract.create"), new SimpleGrantedAuthority("termination.create"))
+		));
+	}
+
+	@AfterEach
+	void limpiarContextoDeSeguridad() {
+		SecurityContextHolder.clearContext();
+	}
+
+	@Test
+	void validateCreate_sinPermisoDeCreacionParaElEntityType_lanzaAccessDenied() {
+		SecurityContextHolder.clearContext();
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+			"usuario", null, List.of(new SimpleGrantedAuthority("contract.create"))
+		));
+
+		assertThatThrownBy(() -> requestValidation.validateCreate(dtoFiniquitoValido()))
+			.isInstanceOf(AccessDeniedException.class);
+	}
 
 	@Test
 	void validateCreate_conDatosValidos_noLanzaExcepcion() {

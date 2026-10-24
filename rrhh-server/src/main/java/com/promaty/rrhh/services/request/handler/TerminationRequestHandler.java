@@ -46,6 +46,8 @@ public class TerminationRequestHandler implements RequestHandler {
 	private static final String CODE_STAFF_UNLINKED = "UNLINKED";
 	private static final String PERMISO_APROBAR = "termination.approve";
 	private static final String PERMISO_VALIDAR = "termination.validate";
+	private static final String PERMISO_CREAR = "termination.create";
+	private static final String PERMISO_LEER = "termination.read";
 
 	private final ObjectMapper objectMapper;
 	private final StaffRepository staffRepository;
@@ -89,6 +91,16 @@ public class TerminationRequestHandler implements RequestHandler {
 	@Override
 	public String validatePermission() {
 		return PERMISO_VALIDAR;
+	}
+
+	@Override
+	public String createPermission() {
+		return PERMISO_CREAR;
+	}
+
+	@Override
+	public String readPermission() {
+		return PERMISO_LEER;
 	}
 
 	@Override

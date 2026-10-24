@@ -67,4 +67,13 @@ public final class RequestQueryBuilder {
 			return cb.and(predicates.toArray(new Predicate[0]));
 		};
 	}
+
+	/**
+	 * Restringe el resultado a los entityType que el usuario puede leer — GET /requests mezcla todos
+	 * los tipos en una sola página, así que sin esto alguien con solo contract.read vería también
+	 * filas de Termination (y viceversa).
+	 */
+	public static Specification<Request> restrictToEntityTypes(List<RequestEntityType> allowedTypes) {
+		return (root, query, cb) -> root.get("entityType").in(allowedTypes);
+	}
 }

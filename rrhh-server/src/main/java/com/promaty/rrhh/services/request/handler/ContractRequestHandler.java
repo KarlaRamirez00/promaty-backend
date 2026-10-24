@@ -53,6 +53,8 @@ public class ContractRequestHandler implements RequestHandler {
 	private static final int PLAZO_HABIL_GENERAL = 15;
 	private static final String PERMISO_APROBAR = "contract.approve";
 	private static final String PERMISO_VALIDAR = "contract.validate";
+	private static final String PERMISO_CREAR = "contract.create";
+	private static final String PERMISO_LEER = "contract.read";
 
 	private final ObjectMapper objectMapper;
 	private final ContractRepository contractRepository;
@@ -108,6 +110,16 @@ public class ContractRequestHandler implements RequestHandler {
 	@Override
 	public String validatePermission() {
 		return PERMISO_VALIDAR;
+	}
+
+	@Override
+	public String createPermission() {
+		return PERMISO_CREAR;
+	}
+
+	@Override
+	public String readPermission() {
+		return PERMISO_LEER;
 	}
 
 	@Override

@@ -75,6 +75,36 @@ class RequestControllerTest {
 	private RequestService requestService;
 
 	@Test
+	void create_conSoloPermisoDeFiniquito_retorna201ConId() throws Exception {
+		when(requestService.createRequest(any())).thenReturn(10L);
+
+		mockMvc.perform(post("/requests")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("termination.create"))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(REQUEST_JSON))
+			.andExpect(status().isCreated());
+	}
+
+	@Test
+	void list_conSoloPermisoDeFiniquito_retorna200() throws Exception {
+		when(requestService.listRequests(any(), any())).thenReturn(new PageImpl<>(List.of()));
+
+		mockMvc.perform(get("/requests").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("termination.read")))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void decide_conSoloPermisoDeAprobarFiniquito_retorna200() throws Exception {
+		doNothing().when(requestService).decideRequest(eq(1L), any());
+
+		mockMvc.perform(patch("/requests/1/decide")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("termination.approve"))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(DECIDE_JSON))
+			.andExpect(status().isOk());
+	}
+
+	@Test
 	void create_conDatosValidos_retorna201ConId() throws Exception {
 		when(requestService.createRequest(any())).thenReturn(10L);
 

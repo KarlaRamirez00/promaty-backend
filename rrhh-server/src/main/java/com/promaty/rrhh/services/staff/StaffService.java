@@ -26,4 +26,6 @@ public interface StaffService {
 	StaffDetailDto getStaffDetail(Long id);
 
 	List<StaffSelectorOptionDto> listSelectorOptionsForContract();
+
+	List<StaffSelectorOptionDto> listSelectorOptionsForTermination();
 }
