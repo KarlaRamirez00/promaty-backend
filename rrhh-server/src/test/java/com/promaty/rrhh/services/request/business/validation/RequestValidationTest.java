@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -19,19 +20,26 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.promaty.rrhh.dto.request.ContractPendingDataDto;
 import com.promaty.rrhh.dto.request.CreateRequestDto;
+import com.promaty.rrhh.dto.request.TerminationPendingDataDto;
 import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.ContractType;
+import com.promaty.rrhh.entity.LegalTerminationCause;
+import com.promaty.rrhh.entity.NonRehireReason;
 import com.promaty.rrhh.entity.RequestAction;
 import com.promaty.rrhh.entity.RequestEntityType;
+import com.promaty.rrhh.entity.Termination;
 import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.repository.CompanyRepository;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.ContractTypeRepository;
 import com.promaty.rrhh.repository.JobTitleRepository;
+import com.promaty.rrhh.repository.LegalTerminationCauseRepository;
 import com.promaty.rrhh.repository.MealTypeRepository;
+import com.promaty.rrhh.repository.NonRehireReasonRepository;
 import com.promaty.rrhh.repository.ProjectRepository;
 import com.promaty.rrhh.repository.SiteRepository;
 import com.promaty.rrhh.repository.StaffRepository;
+import com.promaty.rrhh.repository.TerminationRepository;
 import com.promaty.rrhh.repository.TransportTypeRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -62,6 +70,12 @@ class RequestValidationTest {
 	private TransportTypeRepository transportTypeRepository;
 	@Mock
 	private ContractRepository contractRepository;
+	@Mock
+	private LegalTerminationCauseRepository legalTerminationCauseRepository;
+	@Mock
+	private NonRehireReasonRepository nonRehireReasonRepository;
+	@Mock
+	private TerminationRepository terminationRepository;
 
 	@InjectMocks
 	private RequestValidation requestValidation;
@@ -173,6 +187,134 @@ class RequestValidationTest {
 			.isInstanceOf(BusinessValidationException.class)
 			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
 				.containsKey("staffId"));
+	}
+
+	@Test
+	void validateCreate_finiquitoConDatosValidos_noLanzaExcepcion() {
+		Contract contratoActivo = contratoActivo();
+		when(contractRepository.findByStaffIdAndStatus_Code(STAFF_ID, "ACTIVE")).thenReturn(Optional.of(contratoActivo));
+		lenient().when(staffRepository.existsById(STAFF_ID)).thenReturn(true);
+		lenient().when(legalTerminationCauseRepository.findById(10L)).thenReturn(Optional.of(causaLegalActiva()));
+		lenient().when(terminationRepository.findByContract_IdAndStatus_CodeIn(any(), any())).thenReturn(List.of());
+
+		assertThatCode(() -> requestValidation.validateCreate(dtoFiniquitoValido()))
+			.doesNotThrowAnyException();
+	}
+
+	@Test
+	void validateCreate_finiquitoStaffSinContratoActivo_lanzaErrorEnStaffId() {
+		when(staffRepository.existsById(STAFF_ID)).thenReturn(true);
+		when(contractRepository.findByStaffIdAndStatus_Code(STAFF_ID, "ACTIVE")).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> requestValidation.validateCreate(dtoFiniquitoValido()))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsKey("staffId"));
+	}
+
+	@Test
+	void validateCreate_finiquitoCausaLegalInexistente_lanzaErrorEnLegalTerminationCauseId() {
+		when(contractRepository.findByStaffIdAndStatus_Code(STAFF_ID, "ACTIVE")).thenReturn(Optional.of(contratoActivo()));
+		lenient().when(staffRepository.existsById(STAFF_ID)).thenReturn(true);
+		when(legalTerminationCauseRepository.findById(10L)).thenReturn(Optional.empty());
+		lenient().when(terminationRepository.findByContract_IdAndStatus_CodeIn(any(), any())).thenReturn(List.of());
+
+		assertThatThrownBy(() -> requestValidation.validateCreate(dtoFiniquitoValido()))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsKey("legalTerminationCauseId"));
+	}
+
+	@Test
+	void validateCreate_finiquitoDefinitivoSinMotivoDeNoRecontratacion_lanzaErrorEnNonRehireReasonId() {
+		when(contractRepository.findByStaffIdAndStatus_Code(STAFF_ID, "ACTIVE")).thenReturn(Optional.of(contratoActivo()));
+		lenient().when(staffRepository.existsById(STAFF_ID)).thenReturn(true);
+		lenient().when(legalTerminationCauseRepository.findById(10L)).thenReturn(Optional.of(causaLegalActiva()));
+		lenient().when(terminationRepository.findByContract_IdAndStatus_CodeIn(any(), any())).thenReturn(List.of());
+
+		CreateRequestDto dto = dtoFiniquitoValido();
+		dto.getTerminationData().setDefinitiveTermination(true);
+		dto.getTerminationData().setNonRehireReasonId(null);
+
+		assertThatThrownBy(() -> requestValidation.validateCreate(dto))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsKey("nonRehireReasonId"));
+	}
+
+	@Test
+	void validateCreate_finiquitoNoDefinitivoConMotivoDeNoRecontratacion_lanzaErrorEnNonRehireReasonId() {
+		when(contractRepository.findByStaffIdAndStatus_Code(STAFF_ID, "ACTIVE")).thenReturn(Optional.of(contratoActivo()));
+		lenient().when(staffRepository.existsById(STAFF_ID)).thenReturn(true);
+		lenient().when(legalTerminationCauseRepository.findById(10L)).thenReturn(Optional.of(causaLegalActiva()));
+		lenient().when(terminationRepository.findByContract_IdAndStatus_CodeIn(any(), any())).thenReturn(List.of());
+
+		CreateRequestDto dto = dtoFiniquitoValido();
+		dto.getTerminationData().setDefinitiveTermination(false);
+		dto.getTerminationData().setNonRehireReasonId(20L);
+
+		assertThatThrownBy(() -> requestValidation.validateCreate(dto))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsKey("nonRehireReasonId"));
+	}
+
+	@Test
+	void validateCreate_finiquitoConFechaMuyRetroactiva_lanzaErrorEnTerminationDate() {
+		when(contractRepository.findByStaffIdAndStatus_Code(STAFF_ID, "ACTIVE")).thenReturn(Optional.of(contratoActivo()));
+		lenient().when(staffRepository.existsById(STAFF_ID)).thenReturn(true);
+		lenient().when(legalTerminationCauseRepository.findById(10L)).thenReturn(Optional.of(causaLegalActiva()));
+		lenient().when(terminationRepository.findByContract_IdAndStatus_CodeIn(any(), any())).thenReturn(List.of());
+
+		CreateRequestDto dto = dtoFiniquitoValido();
+		dto.getTerminationData().setTerminationDate(LocalDate.now().minusDays(30));
+
+		assertThatThrownBy(() -> requestValidation.validateCreate(dto))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsKey("terminationDate"));
+	}
+
+	@Test
+	void validateCreate_finiquitoConFiniquitoYaPendienteParaElContrato_lanzaErrorEnStaffId() {
+		Contract contratoActivo = contratoActivo();
+		contratoActivo.setId(99L);
+		when(contractRepository.findByStaffIdAndStatus_Code(STAFF_ID, "ACTIVE")).thenReturn(Optional.of(contratoActivo));
+		lenient().when(staffRepository.existsById(STAFF_ID)).thenReturn(true);
+		lenient().when(legalTerminationCauseRepository.findById(10L)).thenReturn(Optional.of(causaLegalActiva()));
+		when(terminationRepository.findByContract_IdAndStatus_CodeIn(99L, List.of("PENDING_APPROVAL", "PENDING_VALIDATION")))
+			.thenReturn(List.of(new Termination()));
+
+		assertThatThrownBy(() -> requestValidation.validateCreate(dtoFiniquitoValido()))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsKey("staffId"));
+	}
+
+	private Contract contratoActivo() {
+		Contract contrato = new Contract();
+		contrato.setStartDate(LocalDate.now().minusYears(1));
+		return contrato;
+	}
+
+	private LegalTerminationCause causaLegalActiva() {
+		LegalTerminationCause causa = new LegalTerminationCause();
+		causa.setActive(true);
+		return causa;
+	}
+
+	private CreateRequestDto dtoFiniquitoValido() {
+		TerminationPendingDataDto terminationData = new TerminationPendingDataDto();
+		terminationData.setStaffId(STAFF_ID);
+		terminationData.setTerminationDate(LocalDate.now());
+		terminationData.setLegalTerminationCauseId(10L);
+		terminationData.setDefinitiveTermination(false);
+
+		CreateRequestDto dto = new CreateRequestDto();
+		dto.setEntityType(RequestEntityType.TERMINATION);
+		dto.setAction(RequestAction.CREATE);
+		dto.setTerminationData(terminationData);
+		return dto;
 	}
 
 	private ContractType contractTypePlazoFijo() {

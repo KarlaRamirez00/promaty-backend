@@ -1,5 +1,6 @@
 package com.promaty.rrhh.entity;
 
 public enum RequestEntityType {
-	CONTRACT
+	CONTRACT,
+	TERMINATION
 }

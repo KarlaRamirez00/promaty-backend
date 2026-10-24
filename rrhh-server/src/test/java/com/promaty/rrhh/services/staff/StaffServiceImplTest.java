@@ -192,7 +192,7 @@ class StaffServiceImplTest {
 	void getStaffDetail_conContratoRechazado_hireDateEsNulo() {
 		when(staffRepository.findById(1L)).thenReturn(Optional.of(staffCompleto()));
 		when(contractRepository.findByStaffIdAndStatus_Code(1L, "ACTIVE")).thenReturn(Optional.empty());
-		when(contractRepository.findFirstByStaffIdAndStatus_CodeInOrderByStartDateDesc(1L, List.of("ACTIVE", "EXPIRED", "ANNULLED")))
+		when(contractRepository.findFirstByStaffIdAndStatus_CodeInOrderByStartDateDesc(1L, List.of("ACTIVE", "EXPIRED", "ANNULLED", "TERMINATED")))
 			.thenReturn(Optional.empty());
 
 		StaffDetailDto detalle = service.getStaffDetail(1L);
@@ -206,7 +206,7 @@ class StaffServiceImplTest {
 		when(contractRepository.findByStaffIdAndStatus_Code(1L, "ACTIVE")).thenReturn(Optional.empty());
 		Contract contratoVencido = new Contract();
 		contratoVencido.setStartDate(LocalDate.of(2025, 6, 1));
-		when(contractRepository.findFirstByStaffIdAndStatus_CodeInOrderByStartDateDesc(1L, List.of("ACTIVE", "EXPIRED", "ANNULLED")))
+		when(contractRepository.findFirstByStaffIdAndStatus_CodeInOrderByStartDateDesc(1L, List.of("ACTIVE", "EXPIRED", "ANNULLED", "TERMINATED")))
 			.thenReturn(Optional.of(contratoVencido));
 
 		StaffDetailDto detalle = service.getStaffDetail(1L);
@@ -239,7 +239,7 @@ class StaffServiceImplTest {
 			.thenReturn(pagina);
 		when(contractRepository.findActiveCostCentersByStaffIds(List.of(1L, 2L), "ACTIVE"))
 			.thenReturn(List.of(costCenterProjection(1L, "00824")));
-		when(contractRepository.findStartDatesByStaffIds(List.of(1L, 2L), List.of("ACTIVE", "EXPIRED", "ANNULLED")))
+		when(contractRepository.findStartDatesByStaffIds(List.of(1L, 2L), List.of("ACTIVE", "EXPIRED", "ANNULLED", "TERMINATED")))
 			.thenReturn(List.of(
 				startDateProjection(2L, LocalDate.of(2025, 3, 1)),
 				startDateProjection(2L, LocalDate.of(2026, 1, 10))
@@ -254,7 +254,7 @@ class StaffServiceImplTest {
 		assertThat(contenido.get(1).getHireDate()).isEqualTo(LocalDate.of(2026, 1, 10));
 		verify(contractRepository, org.mockito.Mockito.times(1)).findActiveCostCentersByStaffIds(List.of(1L, 2L), "ACTIVE");
 		verify(contractRepository, org.mockito.Mockito.times(1))
-			.findStartDatesByStaffIds(List.of(1L, 2L), List.of("ACTIVE", "EXPIRED", "ANNULLED"));
+			.findStartDatesByStaffIds(List.of(1L, 2L), List.of("ACTIVE", "EXPIRED", "ANNULLED", "TERMINATED"));
 	}
 
 	private PlatformStatus estadoActivo() {

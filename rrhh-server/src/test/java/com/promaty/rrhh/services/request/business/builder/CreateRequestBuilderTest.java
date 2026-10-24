@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -20,11 +21,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.promaty.rrhh.dto.request.ContractPendingDataDto;
 import com.promaty.rrhh.dto.request.CreateRequestDto;
+import com.promaty.rrhh.dto.request.TerminationPendingDataDto;
+import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.PlatformStatus;
 import com.promaty.rrhh.entity.Project;
 import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.RequestAction;
 import com.promaty.rrhh.entity.RequestEntityType;
+import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.security.JwtPrincipal;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,6 +36,9 @@ class CreateRequestBuilderTest {
 
 	@Mock
 	private RequestRelationsResolver relationsResolver;
+
+	@Mock
+	private ContractRepository contractRepository;
 
 	private CreateRequestBuilder createRequestBuilder;
 
@@ -42,7 +49,9 @@ class CreateRequestBuilderTest {
 
 	@Test
 	void build_conDatosValidos_armaRequestConPendingDataSerializado() {
-		createRequestBuilder = new CreateRequestBuilder(relationsResolver, new ObjectMapper().registerModule(new JavaTimeModule()));
+		createRequestBuilder = new CreateRequestBuilder(
+			relationsResolver, contractRepository, new ObjectMapper().registerModule(new JavaTimeModule())
+		);
 
 		Project project = new Project();
 		project.setId(1L);
@@ -61,6 +70,44 @@ class CreateRequestBuilderTest {
 		assertThat(request.getStatus()).isEqualTo(statusInicial);
 		assertThat(request.getRequesterUserId()).isEqualTo(7L);
 		assertThat(request.getPendingData()).contains("\"staffId\":2");
+	}
+
+	@Test
+	void build_conFiniquito_derivaProjectDesdeElContratoActivoDelStaff() {
+		createRequestBuilder = new CreateRequestBuilder(
+			relationsResolver, contractRepository, new ObjectMapper().registerModule(new JavaTimeModule())
+		);
+
+		Project project = new Project();
+		project.setId(9L);
+		Contract contratoActivo = new Contract();
+		contratoActivo.setProject(project);
+		PlatformStatus statusInicial = new PlatformStatus();
+		statusInicial.setId(1L);
+		statusInicial.setCode("PENDING_APPROVAL");
+		when(contractRepository.findByStaffIdAndStatus_Code(2L, "ACTIVE")).thenReturn(Optional.of(contratoActivo));
+		when(relationsResolver.resolveInitialStatus()).thenReturn(statusInicial);
+		autenticarComo("7");
+
+		Request request = createRequestBuilder.build(dtoFiniquitoValido());
+
+		assertThat(request.getEntityType()).isEqualTo(RequestEntityType.TERMINATION);
+		assertThat(request.getProject()).isEqualTo(project);
+		assertThat(request.getPendingData()).contains("\"staffId\":2");
+	}
+
+	private CreateRequestDto dtoFiniquitoValido() {
+		TerminationPendingDataDto terminationData = new TerminationPendingDataDto();
+		terminationData.setStaffId(2L);
+		terminationData.setTerminationDate(LocalDate.of(2026, 1, 1));
+		terminationData.setLegalTerminationCauseId(3L);
+		terminationData.setDefinitiveTermination(false);
+
+		CreateRequestDto dto = new CreateRequestDto();
+		dto.setEntityType(RequestEntityType.TERMINATION);
+		dto.setAction(RequestAction.CREATE);
+		dto.setTerminationData(terminationData);
+		return dto;
 	}
 
 	private void autenticarComo(String userId) {

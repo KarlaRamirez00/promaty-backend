@@ -44,7 +44,8 @@ public class StaffServiceImpl implements StaffService {
 	private static final String NO_ENCONTRADO = "Colaborador no encontrado.";
 	private static final String ESTADO_ACTIVO = "ACTIVE";
 	private static final String CODIGO_ESTADO_BLOCKED = "BLOCKED";
-	private static final List<String> ESTADOS_CONTRATO_ALGUNA_VEZ_ACTIVO = List.of("ACTIVE", "EXPIRED", "ANNULLED");
+	private static final List<String> ESTADOS_CONTRATO_ALGUNA_VEZ_ACTIVO =
+		List.of("ACTIVE", "EXPIRED", "ANNULLED", "TERMINATED");
 
 	private static final Map<String, Action> REGLAS_ACCIONES = Map.of(
 		"staff.update", Action.UPDATE,

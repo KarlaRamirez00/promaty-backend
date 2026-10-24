@@ -87,15 +87,6 @@ class RequestControllerTest {
 	}
 
 	@Test
-	void create_sinProjectId_retorna400() throws Exception {
-		mockMvc.perform(post("/requests")
-				.header(HttpHeaders.AUTHORIZATION, TOKEN)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(REQUEST_JSON.replace("\"projectId\": 1,", "")))
-			.andExpect(status().isBadRequest());
-	}
-
-	@Test
 	void create_sinPermiso_retorna403() throws Exception {
 		mockMvc.perform(post("/requests")
 				.header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS)

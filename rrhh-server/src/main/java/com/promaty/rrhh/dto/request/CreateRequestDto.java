@@ -18,9 +18,16 @@ public class CreateRequestDto {
 	@NotNull(message = "La acción es obligatoria.")
 	private RequestAction action;
 
-	@NotNull(message = "El centro de costo es obligatorio.")
+	/**
+	 * Obligatorio solo para entityType=CONTRACT (validado en RequestValidation, no acá): para
+	 * TERMINATION el centro de costo se deriva en el servidor desde el contrato activo del
+	 * colaborador, nunca se acepta del cliente (ver termination-architecture-guide.md §9).
+	 */
 	private Long projectId;
 
 	@Valid
 	private ContractPendingDataDto contractData;
+
+	@Valid
+	private TerminationPendingDataDto terminationData;
 }
