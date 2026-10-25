@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.repository.projection.RequestStaffDataProjection;
+import com.promaty.rrhh.repository.projection.StaffActiveContractDateRangeProjection;
 import com.promaty.rrhh.repository.projection.StaffContractStartDateProjection;
 import com.promaty.rrhh.repository.projection.StaffCostCenterProjection;
 
@@ -59,4 +60,14 @@ public interface ContractRepository extends JpaRepository<Contract, Long>, JpaSp
 		where c.id in :contractIds
 		""")
 	List<RequestStaffDataProjection> findStaffDataByContractIds(@Param("contractIds") List<Long> contractIds);
+
+	@Query("""
+		select c.staff.id as staffId, c.startDate as startDate, c.endDate as endDate
+		from Contract c
+		where c.staff.id in :staffIds and c.status.code = :statusCode
+		""")
+	List<StaffActiveContractDateRangeProjection> findActiveContractDateRangesByStaffIds(
+		@Param("staffIds") List<Long> staffIds,
+		@Param("statusCode") String statusCode
+	);
 }

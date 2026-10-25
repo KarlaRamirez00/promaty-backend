@@ -23,6 +23,7 @@ import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffFilterParams;
 import com.promaty.rrhh.dto.staff.StaffListDto;
 import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
+import com.promaty.rrhh.dto.staff.StaffTerminationSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffStatusDto;
 import com.promaty.rrhh.services.staff.StaffService;
@@ -69,7 +70,7 @@ public class StaffController {
 
 	@GetMapping("/selector/terminable")
 	@PreAuthorize("hasAuthority('termination.create')")
-	public ResponseEntity<BaseListData<StaffSelectorOptionDto>> selectorForTermination() {
+	public ResponseEntity<BaseListData<StaffTerminationSelectorOptionDto>> selectorForTermination() {
 		return ResponseEntity.ok(BaseListData.of(staffService.listSelectorOptionsForTermination()));
 	}
 

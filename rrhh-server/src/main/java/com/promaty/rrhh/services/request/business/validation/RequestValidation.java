@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import com.promaty.rrhh.dto.request.ContractPendingDataDto;
 import com.promaty.rrhh.dto.request.CreateRequestDto;
 import com.promaty.rrhh.dto.request.TerminationPendingDataDto;
+import com.promaty.rrhh.dto.termination.TerminationDateRangeDto;
 import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.ContractType;
 import com.promaty.rrhh.entity.LegalTerminationCause;
@@ -33,6 +34,7 @@ import com.promaty.rrhh.repository.TerminationRepository;
 import com.promaty.rrhh.repository.TransportTypeRepository;
 import com.promaty.rrhh.services.request.handler.RequestHandlerRegistry;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
+import com.promaty.rrhh.services.termination.business.TerminationDateRangeCalculator;
 
 @Component
 public class RequestValidation {
@@ -41,7 +43,6 @@ public class RequestValidation {
 	private static final String CODE_PLAZO_FIJO = "F";
 	private static final String CODE_CONTRACT_ACTIVE = "ACTIVE";
 	private static final List<String> CODES_FINIQUITO_PENDIENTE = List.of("PENDING_APPROVAL", "PENDING_VALIDATION");
-	private static final int DIAS_MAXIMO_RETROACTIVO = 15;
 
 	private final ProjectRepository projectRepository;
 	private final StaffRepository staffRepository;
@@ -264,16 +265,12 @@ public class RequestValidation {
 		if (terminationDate == null) {
 			return;
 		}
-		LocalDate minimoRetroactivo = LocalDate.now().minusDays(DIAS_MAXIMO_RETROACTIVO);
-		if (terminationDate.isBefore(minimoRetroactivo)) {
-			errores.put("terminationDate", "La fecha de término no puede ser anterior a " + DIAS_MAXIMO_RETROACTIVO + " días atrás.");
+		TerminationDateRangeDto rango = TerminationDateRangeCalculator.calculate(contrato.getStartDate(), contrato.getEndDate());
+		if (terminationDate.isBefore(rango.getMinTerminationDate())) {
+			errores.put("terminationDate", "La fecha de término no puede ser anterior a " + rango.getMinTerminationDate() + ".");
 			return;
 		}
-		if (terminationDate.isBefore(contrato.getStartDate())) {
-			errores.put("terminationDate", "La fecha de término no puede ser anterior al inicio del contrato.");
-			return;
-		}
-		if (contrato.getEndDate() != null && terminationDate.isAfter(contrato.getEndDate())) {
+		if (rango.getMaxTerminationDate() != null && terminationDate.isAfter(rango.getMaxTerminationDate())) {
 			errores.put("terminationDate", "La fecha de término no puede ser posterior al término del contrato.");
 		}
 	}

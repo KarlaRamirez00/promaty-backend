@@ -7,6 +7,8 @@ import com.promaty.rrhh.dto.staff.RelationSummaryDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffListDto;
 import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
+import com.promaty.rrhh.dto.staff.StaffTerminationSelectorOptionDto;
+import com.promaty.rrhh.dto.termination.TerminationDateRangeDto;
 import com.promaty.rrhh.entity.Afp;
 import com.promaty.rrhh.entity.Bank;
 import com.promaty.rrhh.entity.Comuna;
@@ -18,6 +20,8 @@ import com.promaty.rrhh.entity.Provincia;
 import com.promaty.rrhh.entity.Region;
 import com.promaty.rrhh.entity.RegisteredSex;
 import com.promaty.rrhh.entity.Staff;
+import com.promaty.rrhh.repository.projection.StaffActiveContractDateRangeProjection;
+import com.promaty.rrhh.services.termination.business.TerminationDateRangeCalculator;
 
 public final class StaffMapper {
 
@@ -88,6 +92,22 @@ public final class StaffMapper {
 
 	public static StaffSelectorOptionDto toSelectorOptionDto(Staff staff) {
 		return new StaffSelectorOptionDto(staff.getId(), staff.getFullName(), staff.getIdentificationNumber());
+	}
+
+	public static StaffTerminationSelectorOptionDto toTerminationSelectorOptionDto(
+		Staff staff,
+		StaffActiveContractDateRangeProjection rangoContratoActivo
+	) {
+		TerminationDateRangeDto rango = TerminationDateRangeCalculator.calculate(
+			rangoContratoActivo.getStartDate(), rangoContratoActivo.getEndDate()
+		);
+		return new StaffTerminationSelectorOptionDto(
+			staff.getId(),
+			staff.getFullName(),
+			staff.getIdentificationNumber(),
+			rango.getMinTerminationDate(),
+			rango.getMaxTerminationDate()
+		);
 	}
 
 	private static RelationSummaryDto toRelationSummary(RegisteredSex registeredSex) {

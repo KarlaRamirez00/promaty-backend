@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -26,6 +27,7 @@ import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffFilterParams;
 import com.promaty.rrhh.dto.staff.StaffListDto;
 import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
+import com.promaty.rrhh.dto.staff.StaffTerminationSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffStatusDto;
 import com.promaty.rrhh.entity.Afp;
@@ -46,6 +48,7 @@ import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.StaffRepository;
+import com.promaty.rrhh.repository.projection.StaffActiveContractDateRangeProjection;
 import com.promaty.rrhh.repository.projection.StaffContractStartDateProjection;
 import com.promaty.rrhh.repository.projection.StaffCostCenterProjection;
 import com.promaty.rrhh.services.shared.ActionsResolver;
@@ -227,15 +230,22 @@ class StaffServiceImplTest {
 	}
 
 	@Test
-	void listSelectorOptionsForTermination_delegaEnRepositoryYMapeaNombreCompleto() {
+	void listSelectorOptionsForTermination_delegaEnRepositoryYMapeaNombreCompletoConRangoDeFechas() {
 		Staff staff = staffCompleto();
 		when(staffRepository.findWithActiveContractForTerminationSelector("ACTIVE")).thenReturn(List.of(staff));
+		StaffActiveContractDateRangeProjection rango = mock(StaffActiveContractDateRangeProjection.class);
+		when(rango.getStaffId()).thenReturn(1L);
+		when(rango.getStartDate()).thenReturn(LocalDate.of(2025, 6, 1));
+		when(rango.getEndDate()).thenReturn(null);
+		when(contractRepository.findActiveContractDateRangesByStaffIds(List.of(1L), "ACTIVE")).thenReturn(List.of(rango));
 
-		List<StaffSelectorOptionDto> opciones = service.listSelectorOptionsForTermination();
+		List<StaffTerminationSelectorOptionDto> opciones = service.listSelectorOptionsForTermination();
 
 		assertThat(opciones).hasSize(1);
 		assertThat(opciones.get(0).getName()).isEqualTo("Juan Perez Soto");
 		assertThat(opciones.get(0).getIdentificationNumber()).isEqualTo("12345678-5");
+		assertThat(opciones.get(0).getMinTerminationDate()).isEqualTo(LocalDate.now().minusDays(15));
+		assertThat(opciones.get(0).getMaxTerminationDate()).isNull();
 	}
 
 	@Test

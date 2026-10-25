@@ -19,6 +19,7 @@ import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffFilterParams;
 import com.promaty.rrhh.dto.staff.StaffListDto;
 import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
+import com.promaty.rrhh.dto.staff.StaffTerminationSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffStatusDto;
 import com.promaty.rrhh.entity.Contract;
@@ -27,6 +28,7 @@ import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.StaffRepository;
+import com.promaty.rrhh.repository.projection.StaffActiveContractDateRangeProjection;
 import com.promaty.rrhh.repository.projection.StaffContractStartDateProjection;
 import com.promaty.rrhh.repository.projection.StaffCostCenterProjection;
 import com.promaty.rrhh.services.shared.ActionsResolver;
@@ -143,10 +145,16 @@ public class StaffServiceImpl implements StaffService {
 
 	@Override
 	@Transactional(readOnly = true)
-	public List<StaffSelectorOptionDto> listSelectorOptionsForTermination() {
-		return staffRepository.findWithActiveContractForTerminationSelector(ESTADO_ACTIVO)
+	public List<StaffTerminationSelectorOptionDto> listSelectorOptionsForTermination() {
+		List<Staff> staffConContratoActivo = staffRepository.findWithActiveContractForTerminationSelector(ESTADO_ACTIVO);
+		List<Long> staffIds = staffConContratoActivo.stream().map(Staff::getId).toList();
+		Map<Long, StaffActiveContractDateRangeProjection> rangosPorStaff = contractRepository
+			.findActiveContractDateRangesByStaffIds(staffIds, ESTADO_ACTIVO)
 			.stream()
-			.map(StaffMapper::toSelectorOptionDto)
+			.collect(Collectors.toMap(StaffActiveContractDateRangeProjection::getStaffId, p -> p));
+
+		return staffConContratoActivo.stream()
+			.map(staff -> StaffMapper.toTerminationSelectorOptionDto(staff, rangosPorStaff.get(staff.getId())))
 			.toList();
 	}
 

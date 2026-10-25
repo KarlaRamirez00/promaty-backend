@@ -31,6 +31,7 @@ import com.promaty.rrhh.dto.staff.RelationSummaryDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffListDto;
 import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
+import com.promaty.rrhh.dto.staff.StaffTerminationSelectorOptionDto;
 import com.promaty.rrhh.entity.AccountType;
 import com.promaty.rrhh.entity.ClothingSize;
 import com.promaty.rrhh.entity.IdentificationType;
@@ -226,7 +227,9 @@ class StaffControllerTest {
 	@Test
 	void selectorForTermination_conPermiso_retorna200ConOpciones() throws Exception {
 		when(staffService.listSelectorOptionsForTermination())
-			.thenReturn(List.of(new StaffSelectorOptionDto(1L, "Juan Perez Soto", "12345678-5")));
+			.thenReturn(List.of(new StaffTerminationSelectorOptionDto(
+				1L, "Juan Perez Soto", "12345678-5", LocalDate.now().minusDays(15), null
+			)));
 
 		mockMvc.perform(get("/staff/selector/terminable").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("termination.create")))
 			.andExpect(status().isOk())
