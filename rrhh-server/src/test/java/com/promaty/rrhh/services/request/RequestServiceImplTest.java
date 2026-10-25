@@ -33,6 +33,7 @@ import com.promaty.rrhh.dto.request.RequestCountersDto;
 import com.promaty.rrhh.dto.request.RequestDetailDto;
 import com.promaty.rrhh.dto.request.RequestFilterParams;
 import com.promaty.rrhh.dto.request.RequestListDto;
+import com.promaty.rrhh.dto.request.TerminationPendingDataResolvedDto;
 import com.promaty.rrhh.entity.Approval;
 import com.promaty.rrhh.entity.ApprovalDecision;
 import com.promaty.rrhh.entity.ApprovalLevel;
@@ -51,6 +52,7 @@ import com.promaty.rrhh.repository.projection.RequestStaffDataProjection;
 import com.promaty.rrhh.services.request.business.builder.CreateRequestBuilder;
 import com.promaty.rrhh.services.request.business.builder.RequestRelationsResolver;
 import com.promaty.rrhh.services.request.business.mapper.ContractPendingDataResolver;
+import com.promaty.rrhh.services.request.business.mapper.TerminationPendingDataResolver;
 import com.promaty.rrhh.services.request.business.validation.RequestDecisionValidation;
 import com.promaty.rrhh.services.request.business.validation.RequestValidation;
 import com.promaty.rrhh.services.request.handler.RequestHandler;
@@ -82,6 +84,8 @@ class RequestServiceImplTest {
 	private RequestHandler contractRequestHandler;
 	@Mock
 	private ContractPendingDataResolver contractPendingDataResolver;
+	@Mock
+	private TerminationPendingDataResolver terminationPendingDataResolver;
 	@Spy
 	private RequestApprovalActionsResolver actionsResolver = new RequestApprovalActionsResolver();
 
@@ -269,6 +273,25 @@ class RequestServiceImplTest {
 		RequestDetailDto detalle = requestService.getRequestDetail(6L);
 
 		assertThat(detalle.getContractPendingData()).isEqualTo(resuelto);
+	}
+
+	@Test
+	void getRequestDetail_entityTypeTermination_resuelveTerminationPendingData() {
+		autenticarCon("termination.read");
+		Request request = requestConId(8L, RequestEntityType.TERMINATION);
+		request.setProject(proyectoConNombre("Edificio Centro"));
+		request.setStatus(statusConCodigo("APPROVED"));
+		request.setPendingData("{}");
+		when(requestRepository.findById(8L)).thenReturn(Optional.of(request));
+		when(handlerRegistry.get(RequestEntityType.TERMINATION)).thenReturn(contractRequestHandler);
+		when(contractRequestHandler.readPermission()).thenReturn("termination.read");
+		when(approvalRepository.findByRequest_IdOrderByCreatedAtAsc(8L)).thenReturn(List.of());
+		TerminationPendingDataResolvedDto resuelto = mock(TerminationPendingDataResolvedDto.class);
+		when(terminationPendingDataResolver.resolve("{}")).thenReturn(resuelto);
+
+		RequestDetailDto detalle = requestService.getRequestDetail(8L);
+
+		assertThat(detalle.getTerminationPendingData()).isEqualTo(resuelto);
 	}
 
 	@Test

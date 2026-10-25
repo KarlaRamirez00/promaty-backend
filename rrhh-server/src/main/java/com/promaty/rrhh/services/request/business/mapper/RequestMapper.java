@@ -49,6 +49,7 @@ public final class RequestMapper {
 			request.getEntityId(),
 			request.getPendingData(),
 			null, // contractPendingData: lo completa el service (necesita repositorios para resolver nombres)
+			null, // terminationPendingData: idem
 			request.getProject().getId(),
 			request.getProject().getName(),
 			request.getProject().getCostCenterCode(),

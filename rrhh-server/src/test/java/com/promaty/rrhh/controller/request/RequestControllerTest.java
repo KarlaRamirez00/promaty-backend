@@ -180,7 +180,7 @@ class RequestControllerTest {
 	@Test
 	void detail_conPermisoDeLectura_retorna200ConDetalle() throws Exception {
 		RequestDetailDto dto = new RequestDetailDto(
-			1L, RequestEntityType.CONTRACT, RequestAction.CREATE, "Nuevo contrato", null, "{}", null, 7L,
+			1L, RequestEntityType.CONTRACT, RequestAction.CREATE, "Nuevo contrato", null, "{}", null, null, 7L,
 			"Edificio Centro", "CC-01", 7L, "Juan Pérez", null, List.of(), null, null, null, null, List.of()
 		);
 		when(requestService.getRequestDetail(1L)).thenReturn(dto);

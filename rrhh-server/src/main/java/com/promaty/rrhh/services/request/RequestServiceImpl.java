@@ -34,6 +34,7 @@ import com.promaty.rrhh.services.request.business.builder.RequestQueryBuilder;
 import com.promaty.rrhh.services.request.business.builder.RequestRelationsResolver;
 import com.promaty.rrhh.services.request.business.mapper.ContractPendingDataResolver;
 import com.promaty.rrhh.services.request.business.mapper.RequestMapper;
+import com.promaty.rrhh.services.request.business.mapper.TerminationPendingDataResolver;
 import com.promaty.rrhh.services.request.business.validation.RequestDecisionValidation;
 import com.promaty.rrhh.services.request.business.validation.RequestValidation;
 import com.promaty.rrhh.services.request.handler.RequestHandlerRegistry;
@@ -59,6 +60,7 @@ public class RequestServiceImpl implements RequestService {
 	private final RequestRelationsResolver relationsResolver;
 	private final RequestHandlerRegistry handlerRegistry;
 	private final ContractPendingDataResolver contractPendingDataResolver;
+	private final TerminationPendingDataResolver terminationPendingDataResolver;
 	private final RequestApprovalActionsResolver actionsResolver;
 
 	public RequestServiceImpl(
@@ -72,6 +74,7 @@ public class RequestServiceImpl implements RequestService {
 		RequestRelationsResolver relationsResolver,
 		RequestHandlerRegistry handlerRegistry,
 		ContractPendingDataResolver contractPendingDataResolver,
+		TerminationPendingDataResolver terminationPendingDataResolver,
 		RequestApprovalActionsResolver actionsResolver
 	) {
 		this.requestRepository = requestRepository;
@@ -84,6 +87,7 @@ public class RequestServiceImpl implements RequestService {
 		this.relationsResolver = relationsResolver;
 		this.handlerRegistry = handlerRegistry;
 		this.contractPendingDataResolver = contractPendingDataResolver;
+		this.terminationPendingDataResolver = terminationPendingDataResolver;
 		this.actionsResolver = actionsResolver;
 	}
 
@@ -144,6 +148,9 @@ public class RequestServiceImpl implements RequestService {
 		RequestDetailDto dto = RequestMapper.toDetailDto(request, approvals);
 		if (request.getEntityType() == RequestEntityType.CONTRACT) {
 			dto.setContractPendingData(contractPendingDataResolver.resolve(request.getPendingData()));
+		}
+		if (request.getEntityType() == RequestEntityType.TERMINATION) {
+			dto.setTerminationPendingData(terminationPendingDataResolver.resolve(request.getPendingData()));
 		}
 		dto.setActions(actionsResolver.resolve(
 			dto.getStatus().getCode(), CurrentUserAuthorities.get(), handler.approvePermission(), handler.validatePermission()

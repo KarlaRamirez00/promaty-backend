@@ -26,6 +26,7 @@ public class RequestDetailDto {
 	private Long entityId;
 	private String pendingData;
 	private ContractPendingDataResolvedDto contractPendingData;
+	private TerminationPendingDataResolvedDto terminationPendingData;
 	private Long projectId;
 	private String projectName;
 	private String costCenterCode;
