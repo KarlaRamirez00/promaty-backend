@@ -50,6 +50,7 @@ public final class TerminationMapper {
 				termination.getStatus().getId(), termination.getStatus().getCode(), termination.getStatus().getName()
 			),
 			termination.getRexTerminationNumber(),
+			termination.getAnnulmentReason(),
 			termination.getCreatedAt(),
 			termination.getUpdatedAt(),
 			termination.getCreatedBy(),

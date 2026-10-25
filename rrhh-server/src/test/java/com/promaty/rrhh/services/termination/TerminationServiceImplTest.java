@@ -22,6 +22,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.promaty.rrhh.dto.shared.Action;
+import com.promaty.rrhh.dto.termination.AnnulTerminationDto;
 import com.promaty.rrhh.dto.termination.TerminationDetailDto;
 import com.promaty.rrhh.dto.termination.UpdateTerminationDto;
 import com.promaty.rrhh.entity.Contract;
@@ -34,12 +35,19 @@ import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.entity.Termination;
+import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
+import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.LegalTerminationCauseRepository;
 import com.promaty.rrhh.repository.NonRehireReasonRepository;
+import com.promaty.rrhh.repository.PlatformStatusRepository;
 import com.promaty.rrhh.repository.RequestRepository;
+import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.repository.TerminationRepository;
+import com.promaty.rrhh.services.rexplus.RexPlusClient;
+import com.promaty.rrhh.services.rexplus.RexSyncResult;
 import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
+import com.promaty.rrhh.services.termination.business.validation.TerminationAnnulmentValidation;
 import com.promaty.rrhh.services.termination.business.validation.TerminationValidation;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,11 +58,21 @@ class TerminationServiceImplTest {
 	@Mock
 	private RequestRepository requestRepository;
 	@Mock
+	private ContractRepository contractRepository;
+	@Mock
+	private StaffRepository staffRepository;
+	@Mock
+	private PlatformStatusRepository platformStatusRepository;
+	@Mock
 	private LegalTerminationCauseRepository legalTerminationCauseRepository;
 	@Mock
 	private NonRehireReasonRepository nonRehireReasonRepository;
 	@Mock
 	private TerminationValidation terminationValidation;
+	@Mock
+	private TerminationAnnulmentValidation terminationAnnulmentValidation;
+	@Mock
+	private RexPlusClient rexPlusClient;
 	@Spy
 	private RequestApprovalActionsResolver actionsResolver = new RequestApprovalActionsResolver();
 
@@ -140,6 +158,86 @@ class TerminationServiceImplTest {
 		verify(terminationValidation).validateUpdate(existente, dto);
 		verify(terminationRepository).save(existente);
 		assertThat(existente.getLegalTerminationCause()).isEqualTo(nuevaCausa);
+	}
+
+	@Test
+	void annulTermination_sincronizacionExitosa_revierteContratoStaffYMarcaAnulado() {
+		Termination termination = terminacionAprobada();
+		Contract contrato = termination.getContract();
+		Staff staff = termination.getStaff();
+		Request request = new Request();
+		PlatformStatus statusRequestApproved = new PlatformStatus();
+		statusRequestApproved.setCode("APPROVED");
+		request.setStatus(statusRequestApproved);
+
+		when(terminationRepository.findById(1L)).thenReturn(Optional.of(termination));
+		when(rexPlusClient.annulTermination(termination)).thenReturn(RexSyncResult.success("REX-TERM-1"));
+		when(platformStatusRepository.findBySubModuleAndCode("contract", "ACTIVE")).thenReturn(Optional.of(statusCon("contract", "ACTIVE")));
+		when(platformStatusRepository.findBySubModuleAndCode("staff", "ACTIVE")).thenReturn(Optional.of(statusCon("staff", "ACTIVE")));
+		when(platformStatusRepository.findBySubModuleAndCode("termination", "ANNULLED")).thenReturn(Optional.of(statusCon("termination", "ANNULLED")));
+		when(platformStatusRepository.findBySubModuleAndCode("request", "ANNULLED")).thenReturn(Optional.of(statusCon("request", "ANNULLED")));
+		when(requestRepository.findByEntityTypeAndEntityId(RequestEntityType.TERMINATION, 1L)).thenReturn(Optional.of(request));
+
+		AnnulTerminationDto dto = new AnnulTerminationDto();
+		dto.setReason("Error administrativo al aprobar.");
+		service.annulTermination(1L, dto);
+
+		assertThat(contrato.getEndDate()).isNull();
+		assertThat(contrato.getStatus().getCode()).isEqualTo("ACTIVE");
+		assertThat(staff.getStatus().getCode()).isEqualTo("ACTIVE");
+		assertThat(staff.getBlockReason()).isNull();
+		assertThat(termination.getStatus().getCode()).isEqualTo("ANNULLED");
+		assertThat(termination.getAnnulmentReason()).isEqualTo("Error administrativo al aprobar.");
+		assertThat(request.getStatus().getCode()).isEqualTo("ANNULLED");
+		verify(terminationRepository).save(termination);
+		verify(requestRepository).save(request);
+	}
+
+	@Test
+	void annulTermination_fallaSincronizacionConRex_marcaSyncErrorYLanzaExcepcion() {
+		Termination termination = terminacionAprobada();
+		when(terminationRepository.findById(1L)).thenReturn(Optional.of(termination));
+		when(rexPlusClient.annulTermination(termination)).thenReturn(RexSyncResult.failure("Rex+ no respondió."));
+		when(platformStatusRepository.findBySubModuleAndCode("termination", "SYNC_ERROR"))
+			.thenReturn(Optional.of(statusCon("termination", "SYNC_ERROR")));
+
+		AnnulTerminationDto dto = new AnnulTerminationDto();
+		dto.setReason("Error administrativo al aprobar.");
+
+		assertThatThrownBy(() -> service.annulTermination(1L, dto))
+			.isInstanceOf(BusinessValidationException.class);
+
+		assertThat(termination.getStatus().getCode()).isEqualTo("SYNC_ERROR");
+		verify(contractRepository, org.mockito.Mockito.never()).save(any());
+		verify(staffRepository, org.mockito.Mockito.never()).save(any());
+	}
+
+	private PlatformStatus statusCon(String subModule, String code) {
+		PlatformStatus status = new PlatformStatus();
+		status.setSubModule(subModule);
+		status.setCode(code);
+		return status;
+	}
+
+	private Termination terminacionAprobada() {
+		Termination termination = terminacionCompleta();
+		PlatformStatus statusAprobado = new PlatformStatus();
+		statusAprobado.setCode("APPROVED");
+		termination.setStatus(statusAprobado);
+		termination.setUpdatedAt(java.time.LocalDateTime.now());
+
+		Staff staff = termination.getStaff();
+		PlatformStatus statusStaffBloqueado = new PlatformStatus();
+		statusStaffBloqueado.setCode("BLOCKED");
+		staff.setStatus(statusStaffBloqueado);
+		staff.setBlockReason("Finiquito aprobado.");
+
+		Contract contrato = termination.getContract();
+		PlatformStatus statusContratoTerminado = new PlatformStatus();
+		statusContratoTerminado.setCode("TERMINATED");
+		contrato.setStatus(statusContratoTerminado);
+		contrato.setEndDate(termination.getTerminationDate());
+		return termination;
 	}
 
 	private void autenticarCon(String autoridad) {

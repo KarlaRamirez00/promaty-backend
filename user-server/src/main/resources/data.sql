@@ -76,6 +76,7 @@ FROM (VALUES
   ('termination.update', 'Editar finiquitos', 'terminations'),
   ('termination.approve', 'Aprobar solicitud de finiquito (gerente de obra)', 'terminations'),
   ('termination.validate', 'Validar solicitud de finiquito (RRHH)', 'terminations'),
+  ('termination.annul', 'Anular finiquito aprobado', 'terminations'),
   ('nonRehireReason.read', 'Ver motivos de no recontratación', 'nonRehireReasons'),
   ('nonRehireReason.create', 'Crear motivos de no recontratación', 'nonRehireReasons'),
   ('nonRehireReason.update', 'Editar motivos de no recontratación', 'nonRehireReasons'),

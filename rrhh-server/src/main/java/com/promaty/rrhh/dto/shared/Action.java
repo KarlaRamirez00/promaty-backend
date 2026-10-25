@@ -7,5 +7,6 @@ public enum Action {
 	ACTIVE,
 	STATUS,
 	APPROVE,
-	VALIDATE
+	VALIDATE,
+	ANNUL
 }

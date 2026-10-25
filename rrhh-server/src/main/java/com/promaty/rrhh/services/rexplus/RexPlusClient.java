@@ -12,4 +12,6 @@ public interface RexPlusClient {
 	RexSyncResult syncContract(Contract contract);
 
 	RexSyncResult syncTermination(Termination termination);
+
+	RexSyncResult annulTermination(Termination termination);
 }

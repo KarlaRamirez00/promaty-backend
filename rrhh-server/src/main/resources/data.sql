@@ -17,6 +17,7 @@ VALUES
 	('Pendiente de validación', 'PENDING_VALIDATION', 'Aprobada por jefatura, esperando validación de RRHH.', 2, 'request', true, now(), now(), 'system', 'system'),
 	('Aprobada',                'APPROVED',           'Validada por RRHH, cambios ya aplicados.', 3, 'request', true, now(), now(), 'system', 'system'),
 	('Rechazada',               'REJECTED',           'Rechazada en algún nivel de aprobación.',  4, 'request', true, now(), now(), 'system', 'system'),
+	('Anulada',                 'ANNULLED',           'Aprobada, pero sus efectos fueron revertidos.', 5, 'request', true, now(), now(), 'system', 'system'),
 	('Pendiente de aprobación', 'PENDING_APPROVAL',   'Esperando aprobación de jefatura.',                    1, 'contract', true, now(), now(), 'system', 'system'),
 	('Pendiente de validación', 'PENDING_VALIDATION', 'Aprobado por jefatura, esperando validación de RRHH.', 2, 'contract', true, now(), now(), 'system', 'system'),
 	('Activo',                  'ACTIVE',              'Validado por RRHH, colaborador activo bajo este contrato.', 3, 'contract', true, now(), now(), 'system', 'system'),
@@ -34,7 +35,8 @@ VALUES
 	('Pendiente de validación', 'PENDING_VALIDATION', 'Aprobado por jefatura, esperando validación de RRHH.', 2, 'termination', true, now(), now(), 'system', 'system'),
 	('Aprobado',                'APPROVED',           'Validado por RRHH, efectos ya aplicados.',             3, 'termination', true, now(), now(), 'system', 'system'),
 	('Rechazado',               'REJECTED',           'Rechazado en algún nivel de aprobación.',              4, 'termination', true, now(), now(), 'system', 'system'),
-	('Error de sincronización', 'SYNC_ERROR',         'Falló la sincronización con el ERP de RRHH.',          5, 'termination', true, now(), now(), 'system', 'system')
+	('Error de sincronización', 'SYNC_ERROR',         'Falló la sincronización con el ERP de RRHH.',          5, 'termination', true, now(), now(), 'system', 'system'),
+	('Anulado',                 'ANNULLED',           'Aprobado, pero sus efectos fueron revertidos.',        6, 'termination', true, now(), now(), 'system', 'system')
 ON CONFLICT (sub_module, code) DO NOTHING;
 
 -- Catálogos de solo lectura para la ficha de Staff (HU-B23, extensión legal). Valores editables por

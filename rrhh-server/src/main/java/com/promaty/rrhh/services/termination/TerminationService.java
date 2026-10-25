@@ -3,6 +3,7 @@ package com.promaty.rrhh.services.termination;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import com.promaty.rrhh.dto.termination.AnnulTerminationDto;
 import com.promaty.rrhh.dto.termination.TerminationDetailDto;
 import com.promaty.rrhh.dto.termination.TerminationFilterParams;
 import com.promaty.rrhh.dto.termination.TerminationListDto;
@@ -15,4 +16,6 @@ public interface TerminationService {
 	TerminationDetailDto getTerminationDetail(Long id);
 
 	void updateTermination(Long id, UpdateTerminationDto dto);
+
+	void annulTermination(Long id, AnnulTerminationDto dto);
 }

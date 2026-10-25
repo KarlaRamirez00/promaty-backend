@@ -48,4 +48,26 @@ class RexPlusStubClientTest {
 		assertThat(resultado.success()).isFalse();
 		assertThat(resultado.errorMessage()).isNotBlank();
 	}
+
+	@Test
+	void annulTermination_sinForzarError_retornaExitoConElMismoNumeroDeReferencia() {
+		RexPlusStubClient client = new RexPlusStubClient(false);
+		Termination termination = new Termination();
+		termination.setRexTerminationNumber("REX-TERM-123");
+
+		RexSyncResult resultado = client.annulTermination(termination);
+
+		assertThat(resultado.success()).isTrue();
+		assertThat(resultado.externalReferenceNumber()).isEqualTo("REX-TERM-123");
+	}
+
+	@Test
+	void annulTermination_forzandoError_retornaFallo() {
+		RexPlusStubClient client = new RexPlusStubClient(true);
+
+		RexSyncResult resultado = client.annulTermination(new Termination());
+
+		assertThat(resultado.success()).isFalse();
+		assertThat(resultado.errorMessage()).isNotBlank();
+	}
 }

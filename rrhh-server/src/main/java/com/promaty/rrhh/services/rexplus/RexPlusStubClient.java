@@ -34,4 +34,12 @@ public class RexPlusStubClient implements RexPlusClient {
 		}
 		return RexSyncResult.success(PREFIJO_NUMERO_FINIQUITO + System.currentTimeMillis());
 	}
+
+	@Override
+	public RexSyncResult annulTermination(Termination termination) {
+		if (forzarError) {
+			return RexSyncResult.failure(MENSAJE_ERROR_SIMULADO);
+		}
+		return RexSyncResult.success(termination.getRexTerminationNumber());
+	}
 }

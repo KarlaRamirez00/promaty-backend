@@ -31,6 +31,7 @@ public class TerminationDetailDto {
 	private String notes;
 	private PlatformStatusOptionDto status;
 	private String rexTerminationNumber;
+	private String annulmentReason;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
 	private String createdBy;

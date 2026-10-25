@@ -55,8 +55,11 @@ public class Termination extends BaseDatedEntity {
 	@JoinColumn(name = "status_id", nullable = false)
 	private PlatformStatus status;
 
-	@Column(name = "rex_termination_number", unique = true, length = 20)
+	@Column(name = "rex_termination_number", unique = true, length = 30)
 	private String rexTerminationNumber;
+
+	@Column(name = "annulment_reason", length = 250)
+	private String annulmentReason;
 
 	@Version
 	@Column(nullable = false)

@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.promaty.rrhh.dto.response.BaseData;
 import com.promaty.rrhh.dto.response.BaseListData;
+import com.promaty.rrhh.dto.termination.AnnulTerminationDto;
 import com.promaty.rrhh.dto.termination.TerminationDetailDto;
 import com.promaty.rrhh.dto.termination.TerminationFilterParams;
 import com.promaty.rrhh.dto.termination.TerminationListDto;
@@ -55,6 +57,16 @@ public class TerminationController {
 		@Valid @RequestBody UpdateTerminationDto dto
 	) {
 		terminationService.updateTermination(id, dto);
+		return ResponseEntity.ok(BaseData.success(terminationService.getTerminationDetail(id)));
+	}
+
+	@PatchMapping("/{id}/annul")
+	@PreAuthorize("hasAuthority('termination.annul')")
+	public ResponseEntity<BaseData<TerminationDetailDto>> annul(
+		@PathVariable Long id,
+		@Valid @RequestBody AnnulTerminationDto dto
+	) {
+		terminationService.annulTermination(id, dto);
 		return ResponseEntity.ok(BaseData.success(terminationService.getTerminationDetail(id)));
 	}
 }
