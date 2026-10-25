@@ -194,6 +194,27 @@ class TerminationServiceImplTest {
 	}
 
 	@Test
+	void annulTermination_contratoAPlazoFijo_restauraEndDateOriginalEnVezDeDejarloNull() {
+		Termination termination = terminacionAprobada();
+		LocalDate endDateOriginal = LocalDate.of(2027, 11, 20);
+		termination.setContractEndDateBeforeTermination(endDateOriginal);
+		Contract contrato = termination.getContract();
+
+		when(terminationRepository.findById(1L)).thenReturn(Optional.of(termination));
+		when(rexPlusClient.annulTermination(termination)).thenReturn(RexSyncResult.success("REX-TERM-1"));
+		when(platformStatusRepository.findBySubModuleAndCode("contract", "ACTIVE")).thenReturn(Optional.of(statusCon("contract", "ACTIVE")));
+		when(platformStatusRepository.findBySubModuleAndCode("staff", "ACTIVE")).thenReturn(Optional.of(statusCon("staff", "ACTIVE")));
+		when(platformStatusRepository.findBySubModuleAndCode("termination", "ANNULLED")).thenReturn(Optional.of(statusCon("termination", "ANNULLED")));
+		when(requestRepository.findByEntityTypeAndEntityId(RequestEntityType.TERMINATION, 1L)).thenReturn(Optional.empty());
+
+		AnnulTerminationDto dto = new AnnulTerminationDto();
+		dto.setReason("Error administrativo al aprobar.");
+		service.annulTermination(1L, dto);
+
+		assertThat(contrato.getEndDate()).isEqualTo(endDateOriginal);
+	}
+
+	@Test
 	void annulTermination_fallaSincronizacionConRex_marcaSyncErrorYLanzaExcepcion() {
 		Termination termination = terminacionAprobada();
 		when(terminationRepository.findById(1L)).thenReturn(Optional.of(termination));

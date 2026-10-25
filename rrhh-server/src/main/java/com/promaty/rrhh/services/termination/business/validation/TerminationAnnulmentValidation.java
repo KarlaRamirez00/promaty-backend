@@ -13,9 +13,9 @@ import com.promaty.rrhh.services.holidayprovider.BusinessDayCalculator;
 @Component
 public class TerminationAnnulmentValidation {
 
-	private static final String MENSAJE_VALIDACION = "La validacion fallo para uno o mas campos.";
+	private static final String VALIDATION_MESSAGE = "La validacion fallo para uno o mas campos.";
 	private static final String CODE_APPROVED = "APPROVED";
-	private static final long PLAZO_MAXIMO_DIAS_HABILES = 5;
+	private static final long MAX_BUSINESS_DAYS = 5;
 
 	private final BusinessDayCalculator businessDayCalculator;
 
@@ -24,26 +24,26 @@ public class TerminationAnnulmentValidation {
 	}
 
 	public void validateAnnul(Termination termination) {
-		Map<String, String> errores = new LinkedHashMap<>();
+		Map<String, String> errors = new LinkedHashMap<>();
 
 		if (!CODE_APPROVED.equals(termination.getStatus().getCode())) {
-			errores.put("status", "Solo un finiquito aprobado puede ser anulado.");
-			lanzarSiHayErrores(errores);
+			errors.put("status", "Solo un finiquito aprobado puede ser anulado.");
+			throwIfErrors(errors);
 			return;
 		}
 
-		LocalDate fechaAprobacion = termination.getUpdatedAt().toLocalDate();
-		long diasHabilesTranscurridos = businessDayCalculator.countBusinessDaysBetween(fechaAprobacion, LocalDate.now());
-		if (diasHabilesTranscurridos > PLAZO_MAXIMO_DIAS_HABILES) {
-			errores.put("status", "El plazo de " + PLAZO_MAXIMO_DIAS_HABILES + " días hábiles para anular este finiquito ya venció.");
+		LocalDate approvalDate = termination.getUpdatedAt().toLocalDate();
+		long businessDaysElapsed = businessDayCalculator.countBusinessDaysBetween(approvalDate, LocalDate.now());
+		if (businessDaysElapsed > MAX_BUSINESS_DAYS) {
+			errors.put("status", "El plazo de " + MAX_BUSINESS_DAYS + " días hábiles para anular este finiquito ya venció.");
 		}
 
-		lanzarSiHayErrores(errores);
+		throwIfErrors(errors);
 	}
 
-	private void lanzarSiHayErrores(Map<String, String> errores) {
-		if (!errores.isEmpty()) {
-			throw new BusinessValidationException(MENSAJE_VALIDACION, errores);
+	private void throwIfErrors(Map<String, String> errors) {
+		if (!errors.isEmpty()) {
+			throw new BusinessValidationException(VALIDATION_MESSAGE, errors);
 		}
 	}
 }

@@ -61,6 +61,9 @@ public class Termination extends BaseDatedEntity {
 	@Column(name = "annulment_reason", length = 250)
 	private String annulmentReason;
 
+	@Column(name = "contract_end_date_before_termination")
+	private LocalDate contractEndDateBeforeTermination;
+
 	@Version
 	@Column(nullable = false)
 	private Long version;

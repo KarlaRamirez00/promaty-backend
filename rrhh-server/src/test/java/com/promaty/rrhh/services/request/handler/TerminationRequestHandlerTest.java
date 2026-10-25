@@ -147,6 +147,7 @@ class TerminationRequestHandlerTest {
 		termination.setTerminationDate(LocalDate.of(2026, 3, 1));
 		termination.setDefinitiveTermination(true);
 		Contract contract = new Contract();
+		contract.setEndDate(LocalDate.of(2027, 11, 20));
 		termination.setContract(contract);
 		Staff staff = new Staff();
 		termination.setStaff(staff);
@@ -163,6 +164,7 @@ class TerminationRequestHandlerTest {
 
 		assertThat(contract.getStatus()).isEqualTo(contratoTerminado);
 		assertThat(contract.getEndDate()).isEqualTo(LocalDate.of(2026, 3, 1));
+		assertThat(termination.getContractEndDateBeforeTermination()).isEqualTo(LocalDate.of(2027, 11, 20));
 		assertThat(staff.getStatus()).isEqualTo(staffBloqueado);
 		assertThat(termination.getStatus()).isEqualTo(aprobado);
 		assertThat(termination.getRexTerminationNumber()).isEqualTo("REX-TERM-123");

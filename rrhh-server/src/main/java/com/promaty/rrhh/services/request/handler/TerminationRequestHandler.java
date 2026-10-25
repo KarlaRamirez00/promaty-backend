@@ -157,6 +157,7 @@ public class TerminationRequestHandler implements RequestHandler {
 		}
 
 		Contract contrato = termination.getContract();
+		termination.setContractEndDateBeforeTermination(contrato.getEndDate());
 		contrato.setEndDate(termination.getTerminationDate());
 		contrato.setStatus(resolveEstadoContrato(CODE_CONTRACT_TERMINATED));
 		contractRepository.save(contrato);
