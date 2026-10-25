@@ -17,6 +17,20 @@ class RequestTypeLabelResolverTest {
 	}
 
 	@Test
+	void resolve_terminationCreate_retornaEtiquetaEspanola() {
+		String etiqueta = RequestTypeLabelResolver.resolve(RequestEntityType.TERMINATION, RequestAction.CREATE);
+
+		assertThat(etiqueta).isEqualTo("Nuevo finiquito");
+	}
+
+	@Test
+	void resolve_combinacionSinEtiquetaEspecifica_retornaNombreGenericoSinExponerElEnum() {
+		String etiqueta = RequestTypeLabelResolver.resolve(RequestEntityType.TERMINATION, RequestAction.EDIT);
+
+		assertThat(etiqueta).isEqualTo("Finiquito");
+	}
+
+	@Test
 	void resolve_conEntityTypeNulo_retornaNullSinLanzarExcepcion() {
 		String etiqueta = RequestTypeLabelResolver.resolve(null, RequestAction.CREATE);
 

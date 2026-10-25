@@ -33,8 +33,8 @@ class RequestRejectionReasonServiceImplTest {
 		List<RequestRejectionReasonSubModuleOptionDto> opciones = service.listSubModules();
 
 		assertThat(opciones).extracting(RequestRejectionReasonSubModuleOptionDto::getCode)
-			.containsExactly("contracts");
+			.containsExactly("contracts", "terminations");
 		assertThat(opciones).extracting(RequestRejectionReasonSubModuleOptionDto::getName)
-			.containsExactly("Contratos");
+			.containsExactly("Contratos", "Finiquitos");
 	}
 }
