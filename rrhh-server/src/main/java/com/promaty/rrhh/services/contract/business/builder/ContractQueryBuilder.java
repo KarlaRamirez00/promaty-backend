@@ -41,6 +41,9 @@ public final class ContractQueryBuilder {
 			if (filters.getStatusId() != null) {
 				predicates.add(cb.equal(root.get("status").get("id"), filters.getStatusId()));
 			}
+			if (filters.getContractTypeId() != null) {
+				predicates.add(cb.equal(root.get("contractType").get("id"), filters.getContractTypeId()));
+			}
 
 			return cb.and(predicates.toArray(new Predicate[0]));
 		};

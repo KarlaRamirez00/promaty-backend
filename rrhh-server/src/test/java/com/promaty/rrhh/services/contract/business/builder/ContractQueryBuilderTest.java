@@ -142,4 +142,25 @@ class ContractQueryBuilderTest {
 		assertThat(resultado).isEqualTo(combinado);
 		assertThat(captor.getValue()).containsExactly(statusPredicate);
 	}
+
+	@Test
+	void fromFilters_conContractTypeId_agregaPredicadoDeIgualdad() {
+		ContractFilterParams filtros = new ContractFilterParams();
+		filtros.setContractTypeId(2L);
+
+		Path<Object> contractTypePath = mock(Path.class);
+		Path<Long> contractTypeIdPath = mock(Path.class);
+		Predicate contractTypePredicate = mock(Predicate.class);
+		Predicate combinado = mock(Predicate.class);
+		when(root.<Object>get("contractType")).thenReturn(contractTypePath);
+		when(contractTypePath.<Long>get("id")).thenReturn(contractTypeIdPath);
+		when(cb.equal(contractTypeIdPath, 2L)).thenReturn(contractTypePredicate);
+		ArgumentCaptor<Predicate[]> captor = ArgumentCaptor.forClass(Predicate[].class);
+		when(cb.and(captor.capture())).thenReturn(combinado);
+
+		Predicate resultado = ContractQueryBuilder.fromFilters(filtros).toPredicate(root, query, cb);
+
+		assertThat(resultado).isEqualTo(combinado);
+		assertThat(captor.getValue()).containsExactly(contractTypePredicate);
+	}
 }

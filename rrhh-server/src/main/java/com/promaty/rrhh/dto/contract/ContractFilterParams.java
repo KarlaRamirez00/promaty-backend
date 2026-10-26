@@ -10,4 +10,5 @@ public class ContractFilterParams {
 	private String search;
 	private Long projectId;
 	private Long statusId;
+	private Long contractTypeId;
 }
