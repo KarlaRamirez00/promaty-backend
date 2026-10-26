@@ -3,7 +3,7 @@ package com.promaty.rrhh.repository.projection;
 import com.promaty.rrhh.entity.IdentificationType;
 
 public interface RequestStaffDataProjection {
-	Long getContractId();
+	Long getEntityId();
 	IdentificationType getStaffIdentificationType();
 	String getStaffIdentificationNumber();
 	String getStaffFirstName();

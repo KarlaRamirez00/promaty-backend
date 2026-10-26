@@ -49,7 +49,7 @@ public interface ContractRepository extends JpaRepository<Contract, Long>, JpaSp
 	);
 
 	@Query("""
-		select c.id as contractId,
+		select c.id as entityId,
 			c.staff.identificationType as staffIdentificationType,
 			c.staff.identificationNumber as staffIdentificationNumber,
 			c.staff.firstName as staffFirstName,

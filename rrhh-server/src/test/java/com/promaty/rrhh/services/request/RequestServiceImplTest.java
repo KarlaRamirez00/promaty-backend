@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,6 +49,7 @@ import com.promaty.rrhh.repository.ApprovalRepository;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.RequestRejectionReasonRepository;
 import com.promaty.rrhh.repository.RequestRepository;
+import com.promaty.rrhh.repository.TerminationRepository;
 import com.promaty.rrhh.repository.projection.RequestStaffDataProjection;
 import com.promaty.rrhh.services.request.business.builder.CreateRequestBuilder;
 import com.promaty.rrhh.services.request.business.builder.RequestRelationsResolver;
@@ -70,6 +72,8 @@ class RequestServiceImplTest {
 	private RequestRejectionReasonRepository requestRejectionReasonRepository;
 	@Mock
 	private ContractRepository contractRepository;
+	@Mock
+	private TerminationRepository terminationRepository;
 	@Mock
 	private RequestValidation requestValidation;
 	@Mock
@@ -226,6 +230,27 @@ class RequestServiceImplTest {
 	}
 
 	@Test
+	void listRequests_conSolicitudDeFiniquito_resuelveDatosDeStaffPorTerminationIdNoPorContractId() {
+		Request request = requestConId(9L, RequestEntityType.TERMINATION);
+		request.setEntityId(7L);
+		request.setProject(proyectoConNombre("Edificio Los Alerces"));
+		request.setStatus(statusConCodigo("PENDING_APPROVAL"));
+		Pageable pageable = PageRequest.of(0, 20);
+		when(requestRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(new PageImpl<>(List.of(request)));
+		when(terminationRepository.findStaffDataByTerminationIds(List.of(7L)))
+			.thenReturn(List.of(staffDataProjection(7L, "Omar", "Ulloa", "Medina", "82648545-0", "Cristaleros")));
+
+		RequestListDto dto = requestService.listRequests(new RequestFilterParams(), pageable).getContent().get(0);
+
+		assertThat(dto.getStaffFirstName()).isEqualTo("Omar");
+		assertThat(dto.getStaffPaternalLastName()).isEqualTo("Ulloa");
+		assertThat(dto.getStaffMaternalLastName()).isEqualTo("Medina");
+		assertThat(dto.getStaffIdentificationNumber()).isEqualTo("82648545-0");
+		assertThat(dto.getStaffPosition()).isEqualTo("Cristaleros");
+		verify(contractRepository, never()).findStaffDataByContractIds(any());
+	}
+
+	@Test
 	void getCounters_delegaEnRepositoryConteoPorStatus() {
 		when(requestRepository.count(any(Specification.class))).thenReturn(3L, 5L);
 
@@ -352,13 +377,13 @@ class RequestServiceImplTest {
 	}
 
 	private RequestStaffDataProjection staffDataProjection(
-		Long contractId, String firstName, String paternalLastName, String maternalLastName,
+		Long entityId, String firstName, String paternalLastName, String maternalLastName,
 		String identificationNumber, String jobTitleName
 	) {
 		return new RequestStaffDataProjection() {
 			@Override
-			public Long getContractId() {
-				return contractId;
+			public Long getEntityId() {
+				return entityId;
 			}
 
 			@Override
