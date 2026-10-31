@@ -3,6 +3,8 @@ package com.promaty.rrhh.services.contract;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
@@ -14,10 +16,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
 import com.promaty.rrhh.dto.contract.ContractCountersDto;
 import com.promaty.rrhh.dto.contract.ContractDetailDto;
+import com.promaty.rrhh.dto.contract.ContractFilterParams;
 import com.promaty.rrhh.entity.Company;
 import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.ContractType;
@@ -27,9 +32,11 @@ import com.promaty.rrhh.entity.PlatformStatus;
 import com.promaty.rrhh.entity.Project;
 import com.promaty.rrhh.entity.Site;
 import com.promaty.rrhh.entity.Staff;
+import com.promaty.rrhh.entity.SettingKey;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.RequestRepository;
+import com.promaty.rrhh.services.setting.SettingProvider;
 import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,6 +46,8 @@ class ContractServiceImplTest {
 	private ContractRepository contractRepository;
 	@Mock
 	private RequestRepository requestRepository;
+	@Mock
+	private SettingProvider settingProvider;
 	@Spy
 	private RequestApprovalActionsResolver actionsResolver = new RequestApprovalActionsResolver();
 
@@ -68,11 +77,34 @@ class ContractServiceImplTest {
 	@Test
 	void getCounters_delegaEnRepositoryConteoPorStatusYRangoDeFechas() {
 		when(contractRepository.count(any(Specification.class))).thenReturn(4L, 2L);
+		when(settingProvider.getInt(SettingKey.EXPIRING_CONTRACT_DAYS)).thenReturn(15);
 
 		ContractCountersDto contadores = service.getCounters();
 
 		assertThat(contadores.getExpired()).isEqualTo(4L);
 		assertThat(contadores.getExpiringSoon()).isEqualTo(2L);
+		assertThat(contadores.getExpiringSoonDays()).isEqualTo(15);
+	}
+
+	@Test
+	void listContracts_conExpiringSoonTrue_leeLosDiasDelSettingYConsultaElRepository() {
+		ContractFilterParams filtros = new ContractFilterParams();
+		filtros.setExpiringSoon(true);
+		when(settingProvider.getInt(SettingKey.EXPIRING_CONTRACT_DAYS)).thenReturn(15);
+		when(contractRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
+
+		service.listContracts(filtros, Pageable.unpaged());
+
+		verify(settingProvider).getInt(SettingKey.EXPIRING_CONTRACT_DAYS);
+	}
+
+	@Test
+	void listContracts_sinExpiringSoon_noConsultaElSetting() {
+		when(contractRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
+
+		service.listContracts(new ContractFilterParams(), Pageable.unpaged());
+
+		verifyNoInteractions(settingProvider);
 	}
 
 	private Contract contratoCompleto() {

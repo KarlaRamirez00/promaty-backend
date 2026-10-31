@@ -20,11 +20,14 @@ import com.promaty.rrhh.dto.contract.ContractListDto;
 import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.RequestEntityType;
+import com.promaty.rrhh.entity.SettingKey;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.RequestRepository;
+import com.promaty.rrhh.services.contract.business.builder.ContractExpirationSpecification;
 import com.promaty.rrhh.services.contract.business.builder.ContractQueryBuilder;
 import com.promaty.rrhh.services.contract.business.mapper.ContractMapper;
+import com.promaty.rrhh.services.setting.SettingProvider;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
 import com.promaty.rrhh.services.shared.ProjectAccessSpecification;
 import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
@@ -33,33 +36,34 @@ import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
 public class ContractServiceImpl implements ContractService {
 
 	private static final String NO_ENCONTRADO = "Contrato no encontrado.";
-	private static final String CODE_ACTIVE = "ACTIVE";
 	private static final String CODE_EXPIRED = "EXPIRED";
 	private static final String PERMISO_APROBAR = "contract.approve";
 	private static final String PERMISO_VALIDAR = "contract.validate";
-	// Próximos N días para "por vencer" — fijo por ahora, ver rrhh-domain.md §8 para la idea de
-	// hacerlo configurable en el panel de parámetros del sistema (no construido todavía).
-	private static final int DIAS_POR_VENCER = 7;
 
 	private final ContractRepository contractRepository;
 	private final RequestRepository requestRepository;
 	private final RequestApprovalActionsResolver actionsResolver;
+	private final SettingProvider settingProvider;
 
 	public ContractServiceImpl(
 		ContractRepository contractRepository,
 		RequestRepository requestRepository,
-		RequestApprovalActionsResolver actionsResolver
+		RequestApprovalActionsResolver actionsResolver,
+		SettingProvider settingProvider
 	) {
 		this.contractRepository = contractRepository;
 		this.requestRepository = requestRepository;
 		this.actionsResolver = actionsResolver;
+		this.settingProvider = settingProvider;
 	}
 
 	@Override
 	@Transactional(readOnly = true)
 	public Page<ContractListDto> listContracts(ContractFilterParams filters, Pageable pageable) {
-		Specification<Contract> especificacion = ContractQueryBuilder.fromFilters(filters)
-			.and(ProjectAccessSpecification.onProject());
+		Specification<Contract> especificacion = withExpiringSoonFilter(
+			ContractQueryBuilder.fromFilters(filters).and(ProjectAccessSpecification.onProject()),
+			filters
+		);
 		Page<ContractListDto> pagina = contractRepository.findAll(especificacion, pageable).map(ContractMapper::toListDto);
 		Map<Long, Request> requestsPorContrato = buscarRequestsPorContrato(pagina.map(ContractListDto::getId).getContent());
 		Set<String> autoridades = CurrentUserAuthorities.get();
@@ -81,7 +85,8 @@ public class ContractServiceImpl implements ContractService {
 	@Override
 	@Transactional(readOnly = true)
 	public ContractCountersDto getCounters() {
-		return new ContractCountersDto(contarVencidos(), contarPorVencer());
+		int expiringSoonDays = settingProvider.getInt(SettingKey.EXPIRING_CONTRACT_DAYS);
+		return new ContractCountersDto(contarVencidos(), contarPorVencer(expiringSoonDays), expiringSoonDays);
 	}
 
 	private long contarVencidos() {
@@ -90,13 +95,18 @@ public class ContractServiceImpl implements ContractService {
 		return contractRepository.count(especificacion);
 	}
 
-	private long contarPorVencer() {
-		LocalDate hoy = LocalDate.now();
-		LocalDate limite = hoy.plusDays(DIAS_POR_VENCER);
+	private long contarPorVencer(int expiringSoonDays) {
 		Specification<Contract> especificacion = ProjectAccessSpecification.<Contract>onProject()
-			.and((root, query, cb) -> cb.equal(root.get("status").get("code"), CODE_ACTIVE))
-			.and((root, query, cb) -> cb.between(root.get("endDate"), hoy, limite));
+			.and(ContractExpirationSpecification.expiringSoon(LocalDate.now(), expiringSoonDays));
 		return contractRepository.count(especificacion);
+	}
+
+	private Specification<Contract> withExpiringSoonFilter(Specification<Contract> base, ContractFilterParams filters) {
+		if (!Boolean.TRUE.equals(filters.getExpiringSoon())) {
+			return base;
+		}
+		int expiringSoonDays = settingProvider.getInt(SettingKey.EXPIRING_CONTRACT_DAYS);
+		return base.and(ContractExpirationSpecification.expiringSoon(LocalDate.now(), expiringSoonDays));
 	}
 
 	private Contract buscarPorId(Long id) {

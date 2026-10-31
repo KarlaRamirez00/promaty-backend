@@ -9,4 +9,5 @@ public class ContractCountersDto {
 
 	private long expired;
 	private long expiringSoon;
+	private int expiringSoonDays;
 }

@@ -1,6 +1,8 @@
 package com.promaty.rrhh.controller.contract;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -10,6 +12,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -24,6 +27,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.promaty.rrhh.config.SecurityConfig;
 import com.promaty.rrhh.dto.contract.ContractCountersDto;
 import com.promaty.rrhh.dto.contract.ContractDetailDto;
+import com.promaty.rrhh.dto.contract.ContractFilterParams;
 import com.promaty.rrhh.dto.contract.ContractListDto;
 import com.promaty.rrhh.dto.contract.StaffSummaryDto;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
@@ -53,13 +57,27 @@ class ContractControllerTest {
 				"Pendiente de aprobación", LocalDate.of(2026, 1, 1), null, null, null, null, "system", null, null, List.of())
 		));
 		when(contractService.listContracts(any(), any())).thenReturn(pagina);
-		when(contractService.getCounters()).thenReturn(new ContractCountersDto(3, 1));
+		when(contractService.getCounters()).thenReturn(new ContractCountersDto(3, 1, 7));
 
 		mockMvc.perform(get("/contracts").header(HttpHeaders.AUTHORIZATION, TOKEN))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data[0].costCenterCode").value("00824"))
 			.andExpect(jsonPath("$.meta.otherData.expired").value(3))
-			.andExpect(jsonPath("$.meta.otherData.expiringSoon").value(1));
+			.andExpect(jsonPath("$.meta.otherData.expiringSoon").value(1))
+			.andExpect(jsonPath("$.meta.otherData.expiringSoonDays").value(7));
+	}
+
+	@Test
+	void list_conExpiringSoon_pasaElFiltroAlService() throws Exception {
+		when(contractService.listContracts(any(), any())).thenReturn(Page.empty());
+		when(contractService.getCounters()).thenReturn(new ContractCountersDto(0, 0, 7));
+
+		mockMvc.perform(get("/contracts").param("expiringSoon", "true").header(HttpHeaders.AUTHORIZATION, TOKEN))
+			.andExpect(status().isOk());
+
+		ArgumentCaptor<ContractFilterParams> captor = ArgumentCaptor.forClass(ContractFilterParams.class);
+		verify(contractService).listContracts(captor.capture(), any());
+		assertThat(captor.getValue().getExpiringSoon()).isTrue();
 	}
 
 	@Test

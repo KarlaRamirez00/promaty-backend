@@ -11,4 +11,5 @@ public class ContractFilterParams {
 	private Long projectId;
 	private Long statusId;
 	private Long contractTypeId;
+	private Boolean expiringSoon;
 }
