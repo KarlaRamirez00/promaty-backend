@@ -54,7 +54,8 @@ public class GatewayRoutesConfig {
 				.or(path("/contracts/**"))
 				.or(path("/terminations/**"))
 				.or(path("/legalTerminationCauses/**"))
-				.or(path("/nonRehireReasons/**")), http())
+				.or(path("/nonRehireReasons/**"))
+				.or(path("/settings/**")), http())
 			.filter(lb("rrhh-server"));
 	}
 }

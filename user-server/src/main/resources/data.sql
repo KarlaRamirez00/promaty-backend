@@ -24,7 +24,8 @@ FROM (VALUES
   ('contracts', 'Contratos', '/contratos'),
   ('requestRejectionReasons', 'Motivos de rechazo', '/motivos-rechazo'),
   ('terminations', 'Finiquitos', '/finiquitos'),
-  ('nonRehireReasons', 'Motivos de no recontratación', '/motivos-no-recontratacion')
+  ('nonRehireReasons', 'Motivos de no recontratación', '/motivos-no-recontratacion'),
+  ('settings', 'Configuración del sistema', '/configuracion')
 ) AS s(name, alias, path)
 CROSS JOIN (SELECT id FROM modules WHERE name = 'sistema') m
 WHERE NOT EXISTS (SELECT 1 FROM sub_modules sm WHERE sm.name = s.name);
@@ -80,7 +81,9 @@ FROM (VALUES
   ('nonRehireReason.read', 'Ver motivos de no recontratación', 'nonRehireReasons'),
   ('nonRehireReason.create', 'Crear motivos de no recontratación', 'nonRehireReasons'),
   ('nonRehireReason.update', 'Editar motivos de no recontratación', 'nonRehireReasons'),
-  ('nonRehireReason.active', 'Activar motivos de no recontratación', 'nonRehireReasons')
+  ('nonRehireReason.active', 'Activar motivos de no recontratación', 'nonRehireReasons'),
+  ('setting.read', 'Ver configuración del sistema', 'settings'),
+  ('setting.update', 'Editar configuración del sistema', 'settings')
 ) AS p(name, alias, sub)
 JOIN sub_modules sm ON sm.name = p.sub
 WHERE NOT EXISTS (SELECT 1 FROM permissions pe WHERE pe.name = p.name);
