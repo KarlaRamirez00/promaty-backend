@@ -66,7 +66,7 @@ class UserControllerTest {
 		dto.setFirstName("Ana");
 		dto.setLastName("Perez");
 		dto.setEmail("ana.perez@promaty.cl");
-		dto.setPassword("clave1234");
+		dto.setPassword("Clave1234!");
 		dto.setRoleId(1L);
 		return dto;
 	}
@@ -109,6 +109,19 @@ class UserControllerTest {
 				.content(objectMapper.writeValueAsString(dto)))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.error.errorFields.email").exists());
+	}
+
+	@Test
+	void create_conContrasenaDebil_retorna400ConErrorFieldsDeContrasena() throws Exception {
+		CreateUserDto dto = createDtoValido();
+		dto.setPassword("clave1234");
+
+		mockMvc.perform(post("/users")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(dto)))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.error.errorFields.password").exists());
 	}
 
 	@Test

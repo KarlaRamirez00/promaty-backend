@@ -27,6 +27,12 @@ eureka:
   instance:
     prefer-ip-address: true
 
+mail:
+  # false: LoggingEmailSender escribe el correo en el log (solo desarrollo). true: SmtpEmailSender, que
+  # exige SPRING_MAIL_HOST/PORT/USERNAME/PASSWORD en el entorno (Spring Boot los mapea solo).
+  enabled: ${MAIL_ENABLED:false}
+  from: ${MAIL_FROM:no-reply@promaty.local}
+
 jwt:
   # Misma clave que usa authorizer-server para firmar. Cada servicio valida el token localmente
   # contra ella, sin llamar a authorizer (ver docs/rbac.md). Sin default: nunca commitear el secreto.
