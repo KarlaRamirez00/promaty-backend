@@ -15,6 +15,7 @@ import com.promaty.user.dto.user.UpdateUserDto;
 import com.promaty.user.dto.user.UserDetailDto;
 import com.promaty.user.dto.user.UserFilterParams;
 import com.promaty.user.dto.user.UserListDto;
+import com.promaty.user.entity.OneTimeCodePurpose;
 import com.promaty.user.entity.Role;
 import com.promaty.user.entity.User;
 import com.promaty.user.entity.UserProjectAccess;
@@ -22,6 +23,8 @@ import com.promaty.user.exception.ResourceNotFoundException;
 import com.promaty.user.repository.RoleRepository;
 import com.promaty.user.repository.UserProjectAccessRepository;
 import com.promaty.user.repository.UserRepository;
+import com.promaty.user.services.credential.OneTimeCodeGenerator;
+import com.promaty.user.services.credential.OneTimeCodeIssuer;
 import com.promaty.user.services.shared.ActionsResolver;
 import com.promaty.user.services.shared.CurrentUserAuthorities;
 import com.promaty.user.services.user.business.builder.CreateUserBuilder;
@@ -46,6 +49,8 @@ public class UserServiceImpl implements UserService {
 	private final UserValidation userValidation;
 	private final CreateUserBuilder createUserBuilder;
 	private final ActionsResolver actionsResolver;
+	private final OneTimeCodeGenerator oneTimeCodeGenerator;
+	private final OneTimeCodeIssuer oneTimeCodeIssuer;
 
 	public UserServiceImpl(
 		UserRepository userRepository,
@@ -53,7 +58,9 @@ public class UserServiceImpl implements UserService {
 		UserProjectAccessRepository userProjectAccessRepository,
 		UserValidation userValidation,
 		CreateUserBuilder createUserBuilder,
-		ActionsResolver actionsResolver
+		ActionsResolver actionsResolver,
+		OneTimeCodeGenerator oneTimeCodeGenerator,
+		OneTimeCodeIssuer oneTimeCodeIssuer
 	) {
 		this.userRepository = userRepository;
 		this.roleRepository = roleRepository;
@@ -61,14 +68,17 @@ public class UserServiceImpl implements UserService {
 		this.userValidation = userValidation;
 		this.createUserBuilder = createUserBuilder;
 		this.actionsResolver = actionsResolver;
+		this.oneTimeCodeGenerator = oneTimeCodeGenerator;
+		this.oneTimeCodeIssuer = oneTimeCodeIssuer;
 	}
 
 	@Override
 	@Transactional
 	public Long createUser(CreateUserDto dto) {
 		userValidation.validateCreate(dto);
-		User user = createUserBuilder.build(dto);
-		User guardado = userRepository.save(user);
+		String temporaryCode = oneTimeCodeGenerator.generate();
+		User guardado = userRepository.save(createUserBuilder.build(dto, temporaryCode));
+		oneTimeCodeIssuer.issue(guardado, OneTimeCodePurpose.CREATION, guardado.getPassword());
 		guardarAccesoAProyectos(guardado, dto.getProjectIds());
 		return guardado.getId();
 	}

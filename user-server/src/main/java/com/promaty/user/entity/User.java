@@ -37,6 +37,10 @@ public class User extends BaseDatedEntity {
 	@Column(nullable = false)
 	private Boolean active = true;
 
+	// columnDefinition con DEFAULT: ddl-auto no puede agregar un NOT NULL sin default a una tabla con filas.
+	@Column(nullable = false, columnDefinition = "boolean not null default false")
+	private Boolean mustChangePassword = false;
+
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "role_id", nullable = false)
 	private Role role;

@@ -66,7 +66,6 @@ class UserControllerTest {
 		dto.setFirstName("Ana");
 		dto.setLastName("Perez");
 		dto.setEmail("ana.perez@promaty.cl");
-		dto.setPassword("Clave1234!");
 		dto.setRoleId(1L);
 		return dto;
 	}
@@ -112,16 +111,17 @@ class UserControllerTest {
 	}
 
 	@Test
-	void create_conContrasenaDebil_retorna400ConErrorFieldsDeContrasena() throws Exception {
-		CreateUserDto dto = createDtoValido();
-		dto.setPassword("clave1234");
+	void create_conPasswordEnElBodyDeUnClienteAntiguo_loIgnoraYRetorna201() throws Exception {
+		when(userService.createUser(any())).thenReturn(10L);
+		String bodyConPassword = """
+			{"firstName":"Ana","lastName":"Perez","email":"ana.perez@promaty.cl","password":"cualquiera","roleId":1}
+			""";
 
 		mockMvc.perform(post("/users")
 				.header(HttpHeaders.AUTHORIZATION, TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(dto)))
-			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.error.errorFields.password").exists());
+				.content(bodyConPassword))
+			.andExpect(status().isCreated());
 	}
 
 	@Test

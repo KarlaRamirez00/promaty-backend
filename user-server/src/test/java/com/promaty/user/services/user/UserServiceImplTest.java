@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -20,15 +21,19 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
 import com.promaty.user.dto.shared.Action;
+import com.promaty.user.dto.user.CreateUserDto;
 import com.promaty.user.dto.user.UserDetailDto;
 import com.promaty.user.dto.user.UserFilterParams;
 import com.promaty.user.dto.user.UserListDto;
+import com.promaty.user.entity.OneTimeCodePurpose;
 import com.promaty.user.entity.Role;
 import com.promaty.user.entity.User;
 import com.promaty.user.exception.ResourceNotFoundException;
 import com.promaty.user.repository.RoleRepository;
 import com.promaty.user.repository.UserProjectAccessRepository;
 import com.promaty.user.repository.UserRepository;
+import com.promaty.user.services.credential.OneTimeCodeGenerator;
+import com.promaty.user.services.credential.OneTimeCodeIssuer;
 import com.promaty.user.services.shared.ActionsResolver;
 import com.promaty.user.services.user.business.builder.CreateUserBuilder;
 import com.promaty.user.services.user.business.validation.UserValidation;
@@ -54,8 +59,31 @@ class UserServiceImplTest {
 	@Mock
 	private ActionsResolver actionsResolver;
 
+	@Mock
+	private OneTimeCodeGenerator oneTimeCodeGenerator;
+
+	@Mock
+	private OneTimeCodeIssuer oneTimeCodeIssuer;
+
 	@InjectMocks
 	private UserServiceImpl userService;
+
+	@Test
+	void createUser_generaCodigoTemporalYRegistraSuHashComoCodigoDeCreacion() {
+		CreateUserDto dto = new CreateUserDto();
+		User construido = new User();
+		User guardado = usuarioConId(7L);
+		guardado.setPassword("$2a$hashDelCodigo");
+		when(oneTimeCodeGenerator.generate()).thenReturn("ABCD2345");
+		when(createUserBuilder.build(dto, "ABCD2345")).thenReturn(construido);
+		when(userRepository.save(construido)).thenReturn(guardado);
+
+		Long id = userService.createUser(dto);
+
+		assertThat(id).isEqualTo(7L);
+		verify(userValidation).validateCreate(dto);
+		verify(oneTimeCodeIssuer).issue(guardado, OneTimeCodePurpose.CREATION, "$2a$hashDelCodigo");
+	}
 
 	@Test
 	void getUserDetail_usuarioNoExiste_lanzaResourceNotFoundException() {

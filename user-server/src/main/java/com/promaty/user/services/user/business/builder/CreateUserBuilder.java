@@ -19,7 +19,7 @@ public class CreateUserBuilder {
 		this.passwordEncoder = passwordEncoder;
 	}
 
-	public User build(CreateUserDto dto) {
+	public User build(CreateUserDto dto, String temporaryCode) {
 		// getReferenceById: UserValidation ya confirmo que el rol existe, evita un SELECT extra.
 		Role role = roleRepository.getReferenceById(dto.getRoleId());
 
@@ -27,7 +27,8 @@ public class CreateUserBuilder {
 		user.setFirstName(dto.getFirstName());
 		user.setLastName(dto.getLastName());
 		user.setEmail(dto.getEmail());
-		user.setPassword(passwordEncoder.encode(dto.getPassword()));
+		user.setPassword(passwordEncoder.encode(temporaryCode));
+		user.setMustChangePassword(true);
 		user.setPhoneNumber(dto.getPhoneNumber());
 		user.setActive(true);
 		user.setRole(role);

@@ -2,8 +2,6 @@ package com.promaty.user.dto.user;
 
 import java.util.List;
 
-import com.promaty.user.dto.shared.StrongPassword;
-
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -23,10 +21,6 @@ public class CreateUserDto {
 	@NotBlank(message = "El email es obligatorio.")
 	@Email(message = "El email no tiene un formato valido.")
 	private String email;
-
-	@NotBlank(message = "La contrasena es obligatoria.")
-	@StrongPassword
-	private String password;
 
 	private String phoneNumber;
 

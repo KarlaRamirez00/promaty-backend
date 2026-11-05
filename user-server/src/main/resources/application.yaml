@@ -33,6 +33,9 @@ mail:
   enabled: ${MAIL_ENABLED:false}
   from: ${MAIL_FROM:no-reply@promaty.local}
 
+one-time-code:
+  expiration-minutes: ${ONE_TIME_CODE_EXPIRATION_MINUTES:30}
+
 jwt:
   # Misma clave que usa authorizer-server para firmar. Cada servicio valida el token localmente
   # contra ella, sin llamar a authorizer (ver docs/rbac.md). Sin default: nunca commitear el secreto.

@@ -120,7 +120,6 @@ class UserValidationTest {
 		dto.setFirstName("Ana");
 		dto.setLastName("Perez");
 		dto.setEmail(email);
-		dto.setPassword("claveSegura123");
 		dto.setRoleId(roleId);
 		return dto;
 	}
