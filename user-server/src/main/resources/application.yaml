@@ -4,6 +4,18 @@ server:
 spring:
   application:
     name: user-server
+  mail:
+    # Host, puerto, usuario y clave llegan por SPRING_MAIL_*. Spring Boot no activa auth ni STARTTLS solo, y
+    # Gmail (587) exige ambos. Los timeouts evitan que un SMTP caido deje colgada la peticion.
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:5432/promaty_user
     username: ${DB_USERNAME}
@@ -35,6 +47,14 @@ mail:
 
 one-time-code:
   expiration-minutes: ${ONE_TIME_CODE_EXPIRATION_MINUTES:30}
+  max-attempts: ${ONE_TIME_CODE_MAX_ATTEMPTS:5}
+  recovery-cooldown-seconds: ${ONE_TIME_CODE_RECOVERY_COOLDOWN_SECONDS:60}
+
+login:
+  max-failed-attempts: ${LOGIN_MAX_FAILED_ATTEMPTS:5}
+  lock-minutes: ${LOGIN_LOCK_MINUTES:15}
+  attempt-retention-hours: ${LOGIN_ATTEMPT_RETENTION_HOURS:24}
+  attempt-cleanup-cron: ${LOGIN_ATTEMPT_CLEANUP_CRON:0 0 * * * *}
 
 jwt:
   # Misma clave que usa authorizer-server para firmar. Cada servicio valida el token localmente

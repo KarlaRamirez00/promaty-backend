@@ -22,4 +22,8 @@ public class BaseData<T> {
 	public static <T> BaseData<T> error(ErrorResponse error) {
 		return new BaseData<>(null, error, Meta.empty());
 	}
+
+	public static <T> BaseData<T> error(ErrorResponse error, Meta meta) {
+		return new BaseData<>(null, error, meta);
+	}
 }

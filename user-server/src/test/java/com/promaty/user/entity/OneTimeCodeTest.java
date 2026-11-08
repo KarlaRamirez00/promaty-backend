@@ -2,6 +2,7 @@ package com.promaty.user.entity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,26 @@ class OneTimeCodeTest {
 		assertThat(code.getExpiresAt()).isEqualTo(NOW.plusMinutes(30));
 		assertThat(code.getAttempts()).isZero();
 		assertThat(code.getUsedAt()).isNull();
+	}
+
+	@Test
+	void isExpired_antesDelVencimientoRetornaFalse_enElInstanteExactoYDespuesRetornaTrue() {
+		OneTimeCode code = vigente();
+
+		assertThat(code.isExpired(NOW)).isFalse();
+		assertThat(code.isExpired(NOW.plusMinutes(30))).isTrue();
+		assertThat(code.isExpired(NOW.plusMinutes(31))).isTrue();
+	}
+
+	@Test
+	void wasIssuedWithin_dentroDeLaVentanaRetornaTrue_enElLimiteExactoYDespuesRetornaFalse() {
+		OneTimeCode code = vigente();
+		code.setCreatedAt(NOW);
+		Duration window = Duration.ofSeconds(60);
+
+		assertThat(code.wasIssuedWithin(window, NOW.plusSeconds(59))).isTrue();
+		assertThat(code.wasIssuedWithin(window, NOW.plusSeconds(60))).isFalse();
+		assertThat(code.wasIssuedWithin(window, NOW.plusSeconds(61))).isFalse();
 	}
 
 	@Test

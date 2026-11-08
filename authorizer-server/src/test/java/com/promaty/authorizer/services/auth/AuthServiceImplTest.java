@@ -20,7 +20,11 @@ import com.promaty.authorizer.client.UserServerClient;
 import com.promaty.authorizer.dto.auth.LoginRequestDto;
 import com.promaty.authorizer.dto.auth.LoginResponseDto;
 import com.promaty.authorizer.dto.response.BaseData;
+import com.promaty.authorizer.exception.AccountLockedException;
 import com.promaty.authorizer.exception.InvalidCredentialsException;
+import com.promaty.authorizer.exception.PasswordChangeRequiredException;
+import com.promaty.authorizer.exception.TemporaryPasswordExpiredException;
+import com.promaty.contracts.auth.AuthOutcome;
 import com.promaty.contracts.auth.AuthValidationResponseDto;
 
 import io.jsonwebtoken.Claims;
@@ -83,12 +87,56 @@ class AuthServiceImplTest {
 	@Test
 	void login_conCredencialesInvalidas_lanzaInvalidCredentialsException() {
 		LoginRequestDto dto = loginDto("ana@promaty.com", "claveIncorrecta");
-		AuthValidationResponseDto invalida = new AuthValidationResponseDto();
-		invalida.setValid(false);
-		when(userServerClient.validate(any())).thenReturn(BaseData.success(invalida));
+		when(userServerClient.validate(any())).thenReturn(
+			BaseData.success(AuthValidationResponseDto.rejected(AuthOutcome.INVALID_CREDENTIALS)));
 
 		assertThatThrownBy(() -> authService.login(dto))
 			.isInstanceOf(InvalidCredentialsException.class);
+	}
+
+	@Test
+	void login_conClaveTemporalVigente_lanzaPasswordChangeRequiredExceptionSinEmitirToken() {
+		LoginRequestDto dto = loginDto("ana@promaty.com", "ABCD2345");
+		when(userServerClient.validate(any())).thenReturn(
+			BaseData.success(AuthValidationResponseDto.rejected(AuthOutcome.PASSWORD_CHANGE_REQUIRED)));
+
+		assertThatThrownBy(() -> authService.login(dto))
+			.isInstanceOf(PasswordChangeRequiredException.class);
+	}
+
+	@Test
+	void login_conClaveTemporalExpirada_lanzaTemporaryPasswordExpiredException() {
+		LoginRequestDto dto = loginDto("ana@promaty.com", "ABCD2345");
+		when(userServerClient.validate(any())).thenReturn(
+			BaseData.success(AuthValidationResponseDto.rejected(AuthOutcome.TEMPORARY_PASSWORD_EXPIRED)));
+
+		assertThatThrownBy(() -> authService.login(dto))
+			.isInstanceOf(TemporaryPasswordExpiredException.class);
+	}
+
+	@Test
+	void login_conCuentaBloqueada_lanzaAccountLockedExceptionConElTiempoRestante() {
+		LoginRequestDto dto = loginDto("ana@promaty.com", "clave123");
+		when(userServerClient.validate(any())).thenReturn(BaseData.success(AuthValidationResponseDto.locked(900)));
+
+		assertThatThrownBy(() -> authService.login(dto))
+			.isInstanceOfSatisfying(AccountLockedException.class, ex -> {
+				assertThat(ex.getRetryAfterSeconds()).isEqualTo(900);
+				assertThat(ex.getMessage()).isEqualTo("Demasiados intentos fallidos. Intenta de nuevo en 15 minutos.");
+			});
+	}
+
+	@Test
+	void login_conCuentaBloqueada_redondeaLosMinutosHaciaArribaYUsaSingularParaUno() {
+		LoginRequestDto dto = loginDto("ana@promaty.com", "clave123");
+		when(userServerClient.validate(any()))
+			.thenReturn(BaseData.success(AuthValidationResponseDto.locked(61)))
+			.thenReturn(BaseData.success(AuthValidationResponseDto.locked(60)));
+
+		assertThatThrownBy(() -> authService.login(dto))
+			.hasMessage("Demasiados intentos fallidos. Intenta de nuevo en 2 minutos.");
+		assertThatThrownBy(() -> authService.login(dto))
+			.hasMessage("Demasiados intentos fallidos. Intenta de nuevo en 1 minuto.");
 	}
 
 	private Claims parseClaims(String token) {
@@ -98,7 +146,7 @@ class AuthServiceImplTest {
 
 	private AuthValidationResponseDto validacionValida() {
 		AuthValidationResponseDto validacion = new AuthValidationResponseDto();
-		validacion.setValid(true);
+		validacion.setOutcome(AuthOutcome.AUTHENTICATED);
 		validacion.setUserId(1L);
 		validacion.setRole("Editor");
 		validacion.setFullName("Ana Pérez");

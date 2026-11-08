@@ -21,6 +21,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.promaty.contracts.auth.AuthOutcome;
 import com.promaty.contracts.auth.AuthValidationResponseDto;
 import com.promaty.user.config.SecurityConfig;
 import com.promaty.user.controller.auth.AuthInternalController;
@@ -76,12 +77,12 @@ class JwtAuthenticationIntegrationTest {
 	@Test
 	void rutaInterna_sinToken_noEstaProtegida() throws Exception {
 		when(authService.validate(any())).thenReturn(new AuthValidationResponseDto(
-			true, 1L, "Editor", "Ana Pérez", List.of("rrhh.read"), false, List.of(10L), false));
+			AuthOutcome.AUTHENTICATED, 1L, "Editor", "Ana Pérez", List.of("rrhh.read"), false, List.of(10L), false, null));
 
 		mockMvc.perform(post("/internal/auth/validate")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"email\":\"a@b.cl\",\"password\":\"x\"}"))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.data.valid").value(true));
+			.andExpect(jsonPath("$.data.outcome").value("AUTHENTICATED"));
 	}
 }

@@ -7,6 +7,8 @@ import static org.springframework.web.servlet.function.RouterFunctions.route;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerResponse;
 
@@ -16,6 +18,15 @@ public class GatewayRoutesConfig {
 	@Bean
 	public RouterFunction<ServerResponse> userServerRoute() {
 		return route(path("/users/**").or(path("/roles/**")).or(path("/permissions/**")), http())
+			.filter(lb("user-server"));
+	}
+
+	// Va antes que authorizerServerRoute: ese captura /auth/** y estas rutas las atiende user-server, que es
+	// el dueno de las contrasenas.
+	@Bean
+	@Order(Ordered.HIGHEST_PRECEDENCE)
+	public RouterFunction<ServerResponse> userServerAuthRoute() {
+		return route(path("/auth/password-reset").or(path("/auth/password-recovery")), http())
 			.filter(lb("user-server"));
 	}
 

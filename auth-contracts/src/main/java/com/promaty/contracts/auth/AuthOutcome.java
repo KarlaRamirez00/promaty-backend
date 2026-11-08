@@ -1,0 +1,9 @@
+package com.promaty.contracts.auth;
+
+public enum AuthOutcome {
+	AUTHENTICATED,
+	INVALID_CREDENTIALS,
+	PASSWORD_CHANGE_REQUIRED,
+	TEMPORARY_PASSWORD_EXPIRED,
+	ACCOUNT_LOCKED
+}

@@ -26,6 +26,8 @@ public class SecurityConfig {
 
 	private static final String[] RUTAS_PUBLICAS = {
 		"/internal/**",
+		"/auth/password-reset",
+		"/auth/password-recovery",
 		"/actuator/health",
 		"/swagger-ui/**",
 		"/v3/api-docs/**"

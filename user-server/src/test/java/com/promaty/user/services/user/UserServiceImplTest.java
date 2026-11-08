@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -34,6 +35,7 @@ import com.promaty.user.repository.UserProjectAccessRepository;
 import com.promaty.user.repository.UserRepository;
 import com.promaty.user.services.credential.OneTimeCodeGenerator;
 import com.promaty.user.services.credential.OneTimeCodeIssuer;
+import com.promaty.user.services.credential.TemporaryCodeIssuedEvent;
 import com.promaty.user.services.shared.ActionsResolver;
 import com.promaty.user.services.user.business.builder.CreateUserBuilder;
 import com.promaty.user.services.user.business.validation.UserValidation;
@@ -65,6 +67,9 @@ class UserServiceImplTest {
 	@Mock
 	private OneTimeCodeIssuer oneTimeCodeIssuer;
 
+	@Mock
+	private ApplicationEventPublisher eventPublisher;
+
 	@InjectMocks
 	private UserServiceImpl userService;
 
@@ -83,6 +88,22 @@ class UserServiceImplTest {
 		assertThat(id).isEqualTo(7L);
 		verify(userValidation).validateCreate(dto);
 		verify(oneTimeCodeIssuer).issue(guardado, OneTimeCodePurpose.CREATION, "$2a$hashDelCodigo");
+	}
+
+	@Test
+	void createUser_publicaElEventoConElCodigoEnClaroParaEnviarloPorCorreoDespuesDelCommit() {
+		CreateUserDto dto = new CreateUserDto();
+		User construido = new User();
+		User guardado = usuarioConId(7L);
+		guardado.setPassword("$2a$hashDelCodigo");
+		when(oneTimeCodeGenerator.generate()).thenReturn("ABCD2345");
+		when(createUserBuilder.build(dto, "ABCD2345")).thenReturn(construido);
+		when(userRepository.save(construido)).thenReturn(guardado);
+
+		userService.createUser(dto);
+
+		verify(eventPublisher).publishEvent(
+			new TemporaryCodeIssuedEvent("ana.perez@promaty.cl", "Ana", "ABCD2345", OneTimeCodePurpose.CREATION));
 	}
 
 	@Test

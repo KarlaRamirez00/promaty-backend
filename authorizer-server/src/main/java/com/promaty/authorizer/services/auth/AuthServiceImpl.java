@@ -12,7 +12,10 @@ import org.springframework.stereotype.Service;
 import com.promaty.authorizer.client.UserServerClient;
 import com.promaty.authorizer.dto.auth.LoginRequestDto;
 import com.promaty.authorizer.dto.auth.LoginResponseDto;
+import com.promaty.authorizer.exception.AccountLockedException;
 import com.promaty.authorizer.exception.InvalidCredentialsException;
+import com.promaty.authorizer.exception.PasswordChangeRequiredException;
+import com.promaty.authorizer.exception.TemporaryPasswordExpiredException;
 import com.promaty.contracts.auth.AuthValidationRequestDto;
 import com.promaty.contracts.auth.AuthValidationResponseDto;
 
@@ -23,6 +26,10 @@ import io.jsonwebtoken.security.Keys;
 public class AuthServiceImpl implements AuthService {
 
 	private static final String MENSAJE_CREDENCIALES_INVALIDAS = "Email o contrasena incorrectos.";
+	private static final String MENSAJE_CUENTA_BLOQUEADA = "Demasiados intentos fallidos. Intenta de nuevo en %d %s.";
+	private static final long SECONDS_PER_MINUTE = 60;
+	private static final String MENSAJE_CAMBIO_DE_CLAVE_REQUERIDO = "Debes cambiar tu contrasena temporal antes de continuar.";
+	private static final String MENSAJE_CLAVE_TEMPORAL_EXPIRADA = "Tu contrasena temporal expiro. Usa la opcion de recuperar contrasena para recibir una nueva.";
 
 	private final UserServerClient userServerClient;
 	private final SecretKey jwtSecretKey;
@@ -44,11 +51,19 @@ public class AuthServiceImpl implements AuthService {
 			.validate(new AuthValidationRequestDto(dto.getEmail(), dto.getPassword()))
 			.getData();
 
-		if (!Boolean.TRUE.equals(validacion.getValid())) {
-			throw new InvalidCredentialsException(MENSAJE_CREDENCIALES_INVALIDAS);
-		}
+		return switch (validacion.getOutcome()) {
+			case AUTHENTICATED -> new LoginResponseDto(buildToken(validacion));
+			case INVALID_CREDENTIALS -> throw new InvalidCredentialsException(MENSAJE_CREDENCIALES_INVALIDAS);
+			case PASSWORD_CHANGE_REQUIRED -> throw new PasswordChangeRequiredException(MENSAJE_CAMBIO_DE_CLAVE_REQUERIDO);
+			case TEMPORARY_PASSWORD_EXPIRED -> throw new TemporaryPasswordExpiredException(MENSAJE_CLAVE_TEMPORAL_EXPIRADA);
+			case ACCOUNT_LOCKED -> throw new AccountLockedException(
+				lockedMessage(validacion.getRetryAfterSeconds()), validacion.getRetryAfterSeconds());
+		};
+	}
 
-		return new LoginResponseDto(buildToken(validacion));
+	private String lockedMessage(long retryAfterSeconds) {
+		long minutes = (retryAfterSeconds + SECONDS_PER_MINUTE - 1) / SECONDS_PER_MINUTE;
+		return MENSAJE_CUENTA_BLOQUEADA.formatted(minutes, minutes == 1 ? "minuto" : "minutos");
 	}
 
 	private String buildToken(AuthValidationResponseDto validacion) {

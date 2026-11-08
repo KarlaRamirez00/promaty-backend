@@ -3,6 +3,7 @@ package com.promaty.user.services.user;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -25,6 +26,7 @@ import com.promaty.user.repository.UserProjectAccessRepository;
 import com.promaty.user.repository.UserRepository;
 import com.promaty.user.services.credential.OneTimeCodeGenerator;
 import com.promaty.user.services.credential.OneTimeCodeIssuer;
+import com.promaty.user.services.credential.TemporaryCodeIssuedEvent;
 import com.promaty.user.services.shared.ActionsResolver;
 import com.promaty.user.services.shared.CurrentUserAuthorities;
 import com.promaty.user.services.user.business.builder.CreateUserBuilder;
@@ -51,6 +53,7 @@ public class UserServiceImpl implements UserService {
 	private final ActionsResolver actionsResolver;
 	private final OneTimeCodeGenerator oneTimeCodeGenerator;
 	private final OneTimeCodeIssuer oneTimeCodeIssuer;
+	private final ApplicationEventPublisher eventPublisher;
 
 	public UserServiceImpl(
 		UserRepository userRepository,
@@ -60,7 +63,8 @@ public class UserServiceImpl implements UserService {
 		CreateUserBuilder createUserBuilder,
 		ActionsResolver actionsResolver,
 		OneTimeCodeGenerator oneTimeCodeGenerator,
-		OneTimeCodeIssuer oneTimeCodeIssuer
+		OneTimeCodeIssuer oneTimeCodeIssuer,
+		ApplicationEventPublisher eventPublisher
 	) {
 		this.userRepository = userRepository;
 		this.roleRepository = roleRepository;
@@ -70,6 +74,7 @@ public class UserServiceImpl implements UserService {
 		this.actionsResolver = actionsResolver;
 		this.oneTimeCodeGenerator = oneTimeCodeGenerator;
 		this.oneTimeCodeIssuer = oneTimeCodeIssuer;
+		this.eventPublisher = eventPublisher;
 	}
 
 	@Override
@@ -79,6 +84,8 @@ public class UserServiceImpl implements UserService {
 		String temporaryCode = oneTimeCodeGenerator.generate();
 		User guardado = userRepository.save(createUserBuilder.build(dto, temporaryCode));
 		oneTimeCodeIssuer.issue(guardado, OneTimeCodePurpose.CREATION, guardado.getPassword());
+		eventPublisher.publishEvent(new TemporaryCodeIssuedEvent(
+			guardado.getEmail(), guardado.getFirstName(), temporaryCode, OneTimeCodePurpose.CREATION));
 		guardarAccesoAProyectos(guardado, dto.getProjectIds());
 		return guardado.getId();
 	}

@@ -22,6 +22,7 @@ public class GlobalExceptionHandler {
 	private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
 	private static final String MSG_ACCESO_DENEGADO = "No tienes permiso para realizar esta accion.";
+	private static final String INVALID_RESET_CODE_NAME = "INVALID_RESET_CODE";
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<BaseData<Void>> handleValidation(MethodArgumentNotValidException ex) {
@@ -35,6 +36,11 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(ResourceNotFoundException.class)
 	public ResponseEntity<BaseData<Void>> handleNotFound(ResourceNotFoundException ex) {
 		return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), Map.of());
+	}
+
+	@ExceptionHandler(InvalidResetCodeException.class)
+	public ResponseEntity<BaseData<Void>> handleInvalidResetCode(InvalidResetCodeException ex) {
+		return buildResponse(HttpStatus.BAD_REQUEST, INVALID_RESET_CODE_NAME, ex.getMessage(), Map.of());
 	}
 
 	@ExceptionHandler(DuplicateResourceException.class)
@@ -61,7 +67,12 @@ public class GlobalExceptionHandler {
 	}
 
 	private ResponseEntity<BaseData<Void>> buildResponse(HttpStatus status, String message, Map<String, String> errorFields) {
-		ErrorResponse error = new ErrorResponse(status.value(), status.name(), message, errorFields);
+		return buildResponse(status, status.name(), message, errorFields);
+	}
+
+	private ResponseEntity<BaseData<Void>> buildResponse(HttpStatus status, String name, String message,
+			Map<String, String> errorFields) {
+		ErrorResponse error = new ErrorResponse(status.value(), name, message, errorFields);
 		return ResponseEntity.status(status).body(BaseData.error(error));
 	}
 

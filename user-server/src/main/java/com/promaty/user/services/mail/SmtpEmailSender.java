@@ -31,11 +31,15 @@ public class SmtpEmailSender implements EmailSender {
 	public void send(EmailMessage message) {
 		try {
 			MimeMessage mimeMessage = mailSender.createMimeMessage();
-			MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, ENCODING);
+			boolean hasInlineImages = !message.inlineImages().isEmpty();
+			MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, hasInlineImages, ENCODING);
 			helper.setFrom(from);
 			helper.setTo(message.to());
 			helper.setSubject(message.subject());
 			helper.setText(message.htmlBody(), true);
+			for (InlineImage image : message.inlineImages()) {
+				helper.addInline(image.contentId(), image.resource(), image.contentType());
+			}
 			mailSender.send(mimeMessage);
 		} catch (MessagingException | MailException e) {
 			throw new EmailSendException(ERROR_ENVIO, e);

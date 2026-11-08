@@ -1,5 +1,6 @@
 package com.promaty.user.entity;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 import com.promaty.user.entity.base.BaseDatedEntity;
@@ -50,8 +51,16 @@ public class OneTimeCode extends BaseDatedEntity {
 		return code;
 	}
 
+	public boolean isExpired(LocalDateTime now) {
+		return !now.isBefore(expiresAt);
+	}
+
+	public boolean wasIssuedWithin(Duration window, LocalDateTime now) {
+		return getCreatedAt().plus(window).isAfter(now);
+	}
+
 	public boolean canBeRedeemed(LocalDateTime now, int maxAttempts) {
-		return usedAt == null && now.isBefore(expiresAt) && attempts < maxAttempts;
+		return usedAt == null && !isExpired(now) && attempts < maxAttempts;
 	}
 
 	public void registerFailedAttempt() {

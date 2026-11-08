@@ -12,7 +12,15 @@ import lombok.Setter;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Meta {
 
+	private Long retryAfterSeconds;
+
 	public static Meta empty() {
 		return new Meta();
+	}
+
+	public static Meta retryAfter(long seconds) {
+		Meta meta = new Meta();
+		meta.setRetryAfterSeconds(seconds);
+		return meta;
 	}
 }

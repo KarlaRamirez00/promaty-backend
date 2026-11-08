@@ -19,6 +19,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.promaty.contracts.auth.AuthOutcome;
 import com.promaty.contracts.auth.AuthValidationRequestDto;
 import com.promaty.contracts.auth.AuthValidationResponseDto;
 import com.promaty.user.config.SecurityConfig;
@@ -42,31 +43,31 @@ class AuthInternalControllerTest {
 	private AuthService authService;
 
 	@Test
-	void validate_conCredencialesValidas_retorna200ConValidTrue() throws Exception {
+	void validate_conCredencialesValidas_retorna200ConOutcomeAuthenticated() throws Exception {
 		AuthValidationRequestDto dto = requestDto("ana@promaty.com", "clave123");
-		AuthValidationResponseDto respuesta = new AuthValidationResponseDto(true, 1L, "Editor", "Ana Pérez",
-				List.of("warehouse.read"), false, List.of(10L), false);
+		AuthValidationResponseDto respuesta = new AuthValidationResponseDto(AuthOutcome.AUTHENTICATED, 1L, "Editor", "Ana Pérez",
+				List.of("warehouse.read"), false, List.of(10L), false, null);
 		when(authService.validate(any())).thenReturn(respuesta);
 
 		mockMvc.perform(post("/internal/auth/validate")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(dto)))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.data.valid").value(true))
+			.andExpect(jsonPath("$.data.outcome").value("AUTHENTICATED"))
 			.andExpect(jsonPath("$.data.role").value("Editor"))
 			.andExpect(jsonPath("$.data.fullName").value("Ana Pérez"));
 	}
 
 	@Test
-	void validate_conCredencialesInvalidas_retorna200ConValidFalse() throws Exception {
+	void validate_conCredencialesInvalidas_retorna200ConOutcomeInvalidCredentials() throws Exception {
 		AuthValidationRequestDto dto = requestDto("ana@promaty.com", "claveIncorrecta");
-		when(authService.validate(any())).thenReturn(AuthValidationResponseDto.invalid());
+		when(authService.validate(any())).thenReturn(AuthValidationResponseDto.rejected(AuthOutcome.INVALID_CREDENTIALS));
 
 		mockMvc.perform(post("/internal/auth/validate")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(dto)))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.data.valid").value(false));
+			.andExpect(jsonPath("$.data.outcome").value("INVALID_CREDENTIALS"));
 	}
 
 	@Test
