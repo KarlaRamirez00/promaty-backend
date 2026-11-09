@@ -1,0 +1,23 @@
+# Solo desarrollo: publica los servicios internos unicamente en 127.0.0.1 para poder correrlos con
+# spring-boot:run contra Postgres y Eureka de Docker. Nunca usar este archivo en un servidor.
+# Uso: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  eureka-server:
+    ports:
+      - "127.0.0.1:${EUREKA_PORT}:${EUREKA_PORT}"
+
+  user-server:
+    ports:
+      - "127.0.0.1:${USER_PORT}:${USER_PORT}"
+
+  authorizer-server:
+    ports:
+      - "127.0.0.1:${AUTH_PORT}:${AUTH_PORT}"
+
+  rrhh-server:
+    ports:
+      - "127.0.0.1:${RRHH_PORT}:${RRHH_PORT}"

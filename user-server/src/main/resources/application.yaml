@@ -56,6 +56,12 @@ login:
   attempt-retention-hours: ${LOGIN_ATTEMPT_RETENTION_HOURS:24}
   attempt-cleanup-cron: ${LOGIN_ATTEMPT_CLEANUP_CRON:0 0 * * * *}
 
+internal-api:
+  # Secreto que authorizer-server envia en X-Internal-Secret a /internal/**. next-secret es opcional y solo
+  # sirve para rotar: se aceptan ambos mientras se actualizan los clientes. Sin valor valido la app no arranca.
+  secret: ${INTERNAL_API_SECRET:}
+  next-secret: ${INTERNAL_API_SECRET_NEXT:}
+
 jwt:
   # Misma clave que usa authorizer-server para firmar. Cada servicio valida el token localmente
   # contra ella, sin llamar a authorizer (ver docs/rbac.md). Sin default: nunca commitear el secreto.

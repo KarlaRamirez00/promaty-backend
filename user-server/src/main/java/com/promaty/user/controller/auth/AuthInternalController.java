@@ -13,8 +13,7 @@ import com.promaty.user.services.auth.AuthService;
 
 import jakarta.validation.Valid;
 
-// Solo para llamadas internas de authorizer-server (ver docs/rbac.md); cuando exista el
-// Gateway, no debe quedar expuesto al publico.
+// Solo para llamadas internas de authorizer-server: InternalApiKeyFilter exige el secreto de servicio.
 @RestController
 @RequestMapping("/internal/auth")
 public class AuthInternalController {

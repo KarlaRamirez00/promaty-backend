@@ -15,10 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.promaty.security.JwtPrincipal;
 import com.promaty.user.entity.Role;
 import com.promaty.user.repository.RoleRepository;
+import com.promaty.user.support.TestInternalApi;
 
 // Ejercita AuditorAwareImpl + JpaAuditingConfig juntos contra Hibernate real, no solo la clase en aislado.
 // @Transactional en el test revierte el guardado al terminar, sin persistir datos en la BD real.
-@SpringBootTest
+@SpringBootTest(properties = "internal-api.secret=" + TestInternalApi.SECRET)
 @Transactional
 class AuditorAwareImplIntegrationTest {
 

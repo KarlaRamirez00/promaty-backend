@@ -1,6 +1,7 @@
 package com.promaty.user.controller.auth;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.test.context.TestPropertySource;
@@ -22,15 +24,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.promaty.contracts.auth.AuthOutcome;
 import com.promaty.contracts.auth.AuthValidationRequestDto;
 import com.promaty.contracts.auth.AuthValidationResponseDto;
+import com.promaty.contracts.auth.InternalApiHeader;
 import com.promaty.user.config.SecurityConfig;
 import com.promaty.user.services.auth.AuthService;
+import com.promaty.user.support.TestInternalApi;
 import com.promaty.user.support.TestJwt;
 
-// /internal/** esta en la allowlist de SecurityConfig, por eso estas llamadas no llevan token.
 @WebMvcTest(AuthInternalController.class)
 @Import(SecurityConfig.class)
 @EnableWebSecurity
-@TestPropertySource(properties = "jwt.secret=" + TestJwt.SECRET)
+@TestPropertySource(properties = { "jwt.secret=" + TestJwt.SECRET, "internal-api.secret=" + TestInternalApi.SECRET })
 class AuthInternalControllerTest {
 
 	@Autowired
@@ -50,6 +53,7 @@ class AuthInternalControllerTest {
 		when(authService.validate(any())).thenReturn(respuesta);
 
 		mockMvc.perform(post("/internal/auth/validate")
+				.header(InternalApiHeader.SECRET, TestInternalApi.SECRET)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(dto)))
 			.andExpect(status().isOk())
@@ -64,6 +68,7 @@ class AuthInternalControllerTest {
 		when(authService.validate(any())).thenReturn(AuthValidationResponseDto.rejected(AuthOutcome.INVALID_CREDENTIALS));
 
 		mockMvc.perform(post("/internal/auth/validate")
+				.header(InternalApiHeader.SECRET, TestInternalApi.SECRET)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(dto)))
 			.andExpect(status().isOk())
@@ -75,10 +80,50 @@ class AuthInternalControllerTest {
 		AuthValidationRequestDto dto = requestDto(" ", "clave123");
 
 		mockMvc.perform(post("/internal/auth/validate")
+				.header(InternalApiHeader.SECRET, TestInternalApi.SECRET)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(dto)))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.error.errorFields.email").exists());
+	}
+
+	@Test
+	void validate_sinSecretoDeServicio_retorna401YNoLlegaAlService() throws Exception {
+		AuthValidationRequestDto dto = requestDto("ana@promaty.com", "clave123");
+
+		mockMvc.perform(post("/internal/auth/validate")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(dto)))
+			.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.error.name").value("UNAUTHORIZED"));
+
+		verifyNoInteractions(authService);
+	}
+
+	@Test
+	void validate_conSecretoIncorrecto_retorna401() throws Exception {
+		AuthValidationRequestDto dto = requestDto("ana@promaty.com", "clave123");
+
+		mockMvc.perform(post("/internal/auth/validate")
+				.header(InternalApiHeader.SECRET, "otro-secreto-distinto-0123456789-abcdef")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(dto)))
+			.andExpect(status().isUnauthorized());
+
+		verifyNoInteractions(authService);
+	}
+
+	@Test
+	void validate_conTokenDeUsuarioPeroSinSecreto_retorna403() throws Exception {
+		AuthValidationRequestDto dto = requestDto("ana@promaty.com", "clave123");
+
+		mockMvc.perform(post("/internal/auth/validate")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("user.read"))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(dto)))
+			.andExpect(status().isForbidden());
+
+		verifyNoInteractions(authService);
 	}
 
 	private AuthValidationRequestDto requestDto(String email, String password) {

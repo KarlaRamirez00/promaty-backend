@@ -23,18 +23,20 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.promaty.contracts.auth.AuthOutcome;
 import com.promaty.contracts.auth.AuthValidationResponseDto;
+import com.promaty.contracts.auth.InternalApiHeader;
 import com.promaty.user.config.SecurityConfig;
 import com.promaty.user.controller.auth.AuthInternalController;
 import com.promaty.user.controller.role.RoleController;
 import com.promaty.user.services.auth.AuthService;
 import com.promaty.user.services.role.RoleService;
+import com.promaty.user.support.TestInternalApi;
 import com.promaty.user.support.TestJwt;
 
 // Ejercita el JwtAuthenticationFilter real de security-commons a traves de la cadena de seguridad.
 @WebMvcTest({RoleController.class, AuthInternalController.class})
 @Import(SecurityConfig.class)
 @EnableWebSecurity
-@TestPropertySource(properties = "jwt.secret=" + TestJwt.SECRET)
+@TestPropertySource(properties = { "jwt.secret=" + TestJwt.SECRET, "internal-api.secret=" + TestInternalApi.SECRET })
 class JwtAuthenticationIntegrationTest {
 
 	@Autowired
@@ -75,14 +77,23 @@ class JwtAuthenticationIntegrationTest {
 	}
 
 	@Test
-	void rutaInterna_sinToken_noEstaProtegida() throws Exception {
+	void rutaInterna_conSecretoDeServicio_pasaLaAutenticacion() throws Exception {
 		when(authService.validate(any())).thenReturn(new AuthValidationResponseDto(
 			AuthOutcome.AUTHENTICATED, 1L, "Editor", "Ana Pérez", List.of("rrhh.read"), false, List.of(10L), false, null));
 
 		mockMvc.perform(post("/internal/auth/validate")
+				.header(InternalApiHeader.SECRET, TestInternalApi.SECRET)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"email\":\"a@b.cl\",\"password\":\"x\"}"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data.outcome").value("AUTHENTICATED"));
+	}
+
+	@Test
+	void rutaInterna_sinSecretoDeServicio_retorna401() throws Exception {
+		mockMvc.perform(post("/internal/auth/validate")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"email\":\"a@b.cl\",\"password\":\"x\"}"))
+			.andExpect(status().isUnauthorized());
 	}
 }

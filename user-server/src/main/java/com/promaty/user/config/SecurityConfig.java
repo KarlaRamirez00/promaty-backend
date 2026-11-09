@@ -25,7 +25,6 @@ import com.promaty.security.JwtService;
 public class SecurityConfig {
 
 	private static final String[] RUTAS_PUBLICAS = {
-		"/internal/**",
 		"/auth/password-reset",
 		"/auth/password-recovery",
 		"/actuator/health",
@@ -55,7 +54,9 @@ public class SecurityConfig {
 	public SecurityFilterChain securityFilterChain(
 		HttpSecurity http,
 		JwtService jwtService,
-		RestAuthErrorHandler restAuthErrorHandler
+		RestAuthErrorHandler restAuthErrorHandler,
+		@Value("${internal-api.secret:}") String internalApiSecret,
+		@Value("${internal-api.next-secret:}") String internalApiNextSecret
 	) {
 		return http
 			// CSRF no aplica: API stateless con Bearer token, sin sesion basada en cookies.
@@ -63,10 +64,13 @@ public class SecurityConfig {
 			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers(RUTAS_PUBLICAS).permitAll()
+				.requestMatchers("/internal/**").hasAuthority(InternalApiKeyFilter.INTERNAL_SERVICE_AUTHORITY)
 				.anyRequest().authenticated())
 			.exceptionHandling(ex -> ex
 				.authenticationEntryPoint(restAuthErrorHandler)
 				.accessDeniedHandler(restAuthErrorHandler))
+			.addFilterBefore(new InternalApiKeyFilter(internalApiSecret, internalApiNextSecret),
+				UsernamePasswordAuthenticationFilter.class)
 			.addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
 			.build();
 	}

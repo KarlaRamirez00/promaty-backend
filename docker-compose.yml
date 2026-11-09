@@ -7,8 +7,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
       interval: 5s
@@ -20,8 +18,6 @@ services:
       context: ./eureka-server
     environment:
       EUREKA_PORT: ${EUREKA_PORT}
-    ports:
-      - "${EUREKA_PORT}:${EUREKA_PORT}"
 
   user-server:
     build:
@@ -35,13 +31,12 @@ services:
       EUREKA_HOST: eureka-server
       EUREKA_PORT: ${EUREKA_PORT}
       JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
     depends_on:
       postgres:
         condition: service_healthy
       eureka-server:
         condition: service_started
-    ports:
-      - "${USER_PORT}:${USER_PORT}"
 
   authorizer-server:
     build:
@@ -53,13 +48,12 @@ services:
       EUREKA_PORT: ${EUREKA_PORT}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
     depends_on:
       eureka-server:
         condition: service_started
       user-server:
         condition: service_started
-    ports:
-      - "${AUTH_PORT}:${AUTH_PORT}"
 
   rrhh-server:
     build:
@@ -78,9 +72,8 @@ services:
         condition: service_healthy
       eureka-server:
         condition: service_started
-    ports:
-      - "${RRHH_PORT}:${RRHH_PORT}"
 
+  # Unico servicio publicado al host: el resto solo es alcanzable dentro de la red de Docker.
   gateway-server:
     build:
       context: .

@@ -12,6 +12,9 @@ eureka:
   instance:
     prefer-ip-address: true
 
+internal-api:
+  secret: ${INTERNAL_API_SECRET}
+
 jwt:
   secret: ${JWT_SECRET}
   expiration-ms: ${JWT_EXPIRATION_MS:28800000}
