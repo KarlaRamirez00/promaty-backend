@@ -6,6 +6,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,8 +15,12 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.promaty.rrhh.dto.file.FileAttachmentDto;
 import com.promaty.rrhh.dto.response.BaseData;
 import com.promaty.rrhh.dto.response.BaseListData;
 import com.promaty.rrhh.dto.staff.CreateStaffDto;
@@ -40,10 +45,13 @@ public class StaffController {
 		this.staffService = staffService;
 	}
 
-	@PostMapping
+	@PostMapping(consumes = "multipart/form-data")
 	@PreAuthorize("hasAuthority('staff.create')")
-	public ResponseEntity<BaseData<Long>> create(@Valid @RequestBody CreateStaffDto dto) {
-		Long id = staffService.createStaff(dto);
+	public ResponseEntity<BaseData<Long>> create(
+		@RequestPart("data") @Valid CreateStaffDto dto,
+		@RequestPart(value = "file", required = false) MultipartFile file
+	) {
+		Long id = staffService.createStaff(dto, file);
 		return ResponseEntity.status(HttpStatus.CREATED).body(BaseData.success(id));
 	}
 
@@ -74,13 +82,14 @@ public class StaffController {
 		return ResponseEntity.ok(BaseListData.of(staffService.listSelectorOptionsForTermination()));
 	}
 
-	@PutMapping("/{id}")
+	@PutMapping(value = "/{id}", consumes = "multipart/form-data")
 	@PreAuthorize("hasAuthority('staff.update')")
 	public ResponseEntity<BaseData<StaffDetailDto>> update(
 		@PathVariable Long id,
-		@Valid @RequestBody UpdateStaffDto dto
+		@RequestPart("data") @Valid UpdateStaffDto dto,
+		@RequestPart(value = "file", required = false) MultipartFile file
 	) {
-		staffService.updateStaff(id, dto);
+		staffService.updateStaff(id, dto, file);
 		return ResponseEntity.ok(BaseData.success(staffService.getStaffDetail(id)));
 	}
 
@@ -91,5 +100,24 @@ public class StaffController {
 		@Valid @RequestBody UpdateStaffStatusDto dto
 	) {
 		return ResponseEntity.ok(BaseData.success(staffService.updateStaffStatus(id, dto)));
+	}
+
+	@PostMapping(value = "/{id}/attachments", consumes = "multipart/form-data")
+	@PreAuthorize("hasAuthority('staff.update')")
+	public ResponseEntity<BaseData<FileAttachmentDto>> uploadAttachment(
+		@PathVariable Long id,
+		@RequestParam("file") MultipartFile file
+	) {
+		return ResponseEntity.status(HttpStatus.CREATED).body(BaseData.success(staffService.uploadAttachment(id, file)));
+	}
+
+	@DeleteMapping("/{id}/attachments/{attachmentId}")
+	@PreAuthorize("hasAuthority('staff.update')")
+	public ResponseEntity<BaseData<Void>> deleteAttachment(
+		@PathVariable Long id,
+		@PathVariable Long attachmentId
+	) {
+		staffService.deleteAttachment(id, attachmentId);
+		return ResponseEntity.ok(BaseData.success(null));
 	}
 }

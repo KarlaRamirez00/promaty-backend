@@ -3,9 +3,8 @@ package com.promaty.rrhh.controller.staff;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,7 +18,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockPart;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -114,22 +115,25 @@ class StaffControllerTest {
 
 	@Test
 	void create_conDatosValidos_retorna201ConId() throws Exception {
-		when(staffService.createStaff(any())).thenReturn(10L);
+		when(staffService.createStaff(any(), any())).thenReturn(10L);
 
-		mockMvc.perform(post("/staff")
-				.header(HttpHeaders.AUTHORIZATION, TOKEN)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(STAFF_JSON))
+		MockPart dataPart = new MockPart("data", STAFF_JSON.getBytes());
+		dataPart.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+		mockMvc.perform(multipart("/staff")
+				.part(dataPart)
+				.header(HttpHeaders.AUTHORIZATION, TOKEN))
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.data").value(10));
 	}
 
 	@Test
 	void create_conRutInvalido_retorna400() throws Exception {
-		mockMvc.perform(post("/staff")
-				.header(HttpHeaders.AUTHORIZATION, TOKEN)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(STAFF_JSON.replace("\"phone1\": \"912345678\"", "\"phone1\": \"12345\"")))
+		String jsonInvalido = STAFF_JSON.replace("\"phone1\": \"912345678\"", "\"phone1\": \"12345\"");
+		MockPart dataPart = new MockPart("data", jsonInvalido.getBytes());
+		dataPart.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+		mockMvc.perform(multipart("/staff")
+				.part(dataPart)
+				.header(HttpHeaders.AUTHORIZATION, TOKEN))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.error.errorFields.phone1").exists());
 	}
@@ -169,10 +173,11 @@ class StaffControllerTest {
 	void update_conDatosValidos_retorna200() throws Exception {
 		when(staffService.getStaffDetail(1L)).thenReturn(detalle());
 
-		mockMvc.perform(put("/staff/1")
-				.header(HttpHeaders.AUTHORIZATION, TOKEN)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(UPDATE_STAFF_JSON))
+		MockPart dataPart = new MockPart("data", UPDATE_STAFF_JSON.getBytes());
+		dataPart.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+		mockMvc.perform(multipart(HttpMethod.PUT, "/staff/1")
+				.part(dataPart)
+				.header(HttpHeaders.AUTHORIZATION, TOKEN))
 			.andExpect(status().isOk());
 	}
 
@@ -250,10 +255,11 @@ class StaffControllerTest {
 
 	@Test
 	void create_sinPermiso_retorna403() throws Exception {
-		mockMvc.perform(post("/staff")
-				.header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(STAFF_JSON))
+		MockPart dataPart = new MockPart("data", STAFF_JSON.getBytes());
+		dataPart.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+		mockMvc.perform(multipart("/staff")
+				.part(dataPart)
+				.header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS))
 			.andExpect(status().isForbidden());
 	}
 
@@ -273,6 +279,6 @@ class StaffControllerTest {
 			"987654321", "Maria Perez", "Calle Falsa 123", region, provincia, comuna, false, null,
 			"juan.perez@example.com", 42, ClothingSize.M, educationLevel, afp, healthSystem, bank,
 			AccountType.CHECKING, "00012345678", new PlatformStatusOptionDto(1L, "ACTIVE", "Activo"), null,
-			null, null, "system", null, List.of());
+			null, null, "system", null, List.of(), null);
 	}
 }

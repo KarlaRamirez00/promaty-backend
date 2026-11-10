@@ -51,7 +51,9 @@ import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.repository.projection.StaffActiveContractDateRangeProjection;
 import com.promaty.rrhh.repository.projection.StaffContractStartDateProjection;
 import com.promaty.rrhh.repository.projection.StaffCostCenterProjection;
+import com.promaty.rrhh.repository.UploadedFileRepository;
 import com.promaty.rrhh.services.shared.ActionsResolver;
+import com.promaty.rrhh.services.shared.FileStorageService;
 import com.promaty.rrhh.services.staff.business.builder.CreateStaffBuilder;
 import com.promaty.rrhh.services.staff.business.builder.StaffRelationsResolver;
 import com.promaty.rrhh.services.staff.business.builder.UpdateStaffBuilder;
@@ -74,6 +76,10 @@ class StaffServiceImplTest {
 	private StaffRelationsResolver relationsResolver;
 	@Mock
 	private ActionsResolver actionsResolver;
+	@Mock
+	private UploadedFileRepository uploadedFileRepository;
+	@Mock
+	private FileStorageService fileStorageService;
 
 	@InjectMocks
 	private StaffServiceImpl service;
@@ -86,7 +92,7 @@ class StaffServiceImplTest {
 		when(createStaffBuilder.build(dto)).thenReturn(construido);
 		when(staffRepository.save(construido)).thenReturn(guardado);
 
-		Long id = service.createStaff(dto);
+		Long id = service.createStaff(dto, null);
 
 		assertThat(id).isEqualTo(5L);
 		verify(staffValidation).validateCreate(dto);
@@ -97,7 +103,7 @@ class StaffServiceImplTest {
 		UpdateStaffDto dto = new UpdateStaffDto();
 		when(staffRepository.findById(1L)).thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> service.updateStaff(1L, dto))
+		assertThatThrownBy(() -> service.updateStaff(1L, dto, null))
 			.isInstanceOf(ResourceNotFoundException.class);
 	}
 
@@ -107,7 +113,7 @@ class StaffServiceImplTest {
 		Staff existente = staffConId(1L);
 		when(staffRepository.findById(1L)).thenReturn(Optional.of(existente));
 
-		service.updateStaff(1L, dto);
+		service.updateStaff(1L, dto, null);
 
 		verify(staffValidation).validateUpdate(dto);
 		verify(updateStaffBuilder).apply(existente, dto);

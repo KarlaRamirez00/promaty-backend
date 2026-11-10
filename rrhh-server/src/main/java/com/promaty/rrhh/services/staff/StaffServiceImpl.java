@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
@@ -13,6 +14,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.web.multipart.MultipartFile;
+
+import com.promaty.rrhh.dto.file.FileAttachmentDto;
 import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.dto.staff.CreateStaffDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
@@ -22,12 +26,18 @@ import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.StaffTerminationSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffStatusDto;
+import com.promaty.rrhh.entity.AttachmentEntityType;
 import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.Project;
 import com.promaty.rrhh.entity.Staff;
+import com.promaty.rrhh.entity.UploadedFile;
+import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.StaffRepository;
+import com.promaty.rrhh.repository.UploadedFileRepository;
+import com.promaty.rrhh.services.file.business.mapper.UploadedFileMapper;
+import com.promaty.rrhh.services.shared.FileStorageService;
 import com.promaty.rrhh.repository.projection.StaffActiveContractDateRangeProjection;
 import com.promaty.rrhh.repository.projection.StaffContractStartDateProjection;
 import com.promaty.rrhh.repository.projection.StaffCostCenterProjection;
@@ -44,6 +54,11 @@ import com.promaty.rrhh.services.staff.business.validation.StaffValidation;
 public class StaffServiceImpl implements StaffService {
 
 	private static final String NO_ENCONTRADO = "Colaborador no encontrado.";
+	private static final List<String> TIPOS_PERMITIDOS = List.of(
+		"application/pdf", "image/jpeg", "image/png",
+		"application/msword",
+		"application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+	);
 	private static final String ESTADO_ACTIVO = "ACTIVE";
 	private static final String CODIGO_ESTADO_BLOCKED = "BLOCKED";
 	private static final List<String> ESTADOS_CONTRATO_ALGUNA_VEZ_ACTIVO =
@@ -61,6 +76,8 @@ public class StaffServiceImpl implements StaffService {
 	private final UpdateStaffBuilder updateStaffBuilder;
 	private final StaffRelationsResolver relationsResolver;
 	private final ActionsResolver actionsResolver;
+	private final UploadedFileRepository uploadedFileRepository;
+	private final FileStorageService fileStorageService;
 
 	public StaffServiceImpl(
 		StaffRepository staffRepository,
@@ -69,7 +86,9 @@ public class StaffServiceImpl implements StaffService {
 		CreateStaffBuilder createStaffBuilder,
 		UpdateStaffBuilder updateStaffBuilder,
 		StaffRelationsResolver relationsResolver,
-		ActionsResolver actionsResolver
+		ActionsResolver actionsResolver,
+		UploadedFileRepository uploadedFileRepository,
+		FileStorageService fileStorageService
 	) {
 		this.staffRepository = staffRepository;
 		this.contractRepository = contractRepository;
@@ -78,23 +97,32 @@ public class StaffServiceImpl implements StaffService {
 		this.updateStaffBuilder = updateStaffBuilder;
 		this.relationsResolver = relationsResolver;
 		this.actionsResolver = actionsResolver;
+		this.uploadedFileRepository = uploadedFileRepository;
+		this.fileStorageService = fileStorageService;
 	}
 
 	@Override
 	@Transactional
-	public Long createStaff(CreateStaffDto dto) {
+	public Long createStaff(CreateStaffDto dto, MultipartFile file) {
 		staffValidation.validateCreate(dto);
 		Staff staff = createStaffBuilder.build(dto);
-		return staffRepository.save(staff).getId();
+		Staff saved = staffRepository.save(staff);
+		if (file != null && !file.isEmpty()) {
+			saveAttachment(file, saved.getId());
+		}
+		return saved.getId();
 	}
 
 	@Override
 	@Transactional
-	public void updateStaff(Long id, UpdateStaffDto dto) {
+	public void updateStaff(Long id, UpdateStaffDto dto, MultipartFile file) {
 		staffValidation.validateUpdate(dto);
 		Staff existente = buscarPorId(id);
 		updateStaffBuilder.apply(existente, dto);
 		staffRepository.save(existente);
+		if (file != null && !file.isEmpty()) {
+			replaceAttachment(file, id);
+		}
 	}
 
 	@Override
@@ -131,7 +159,54 @@ public class StaffServiceImpl implements StaffService {
 	@Transactional(readOnly = true)
 	public StaffDetailDto getStaffDetail(Long id) {
 		Staff staff = buscarPorId(id);
-		return conAcciones(StaffMapper.toDetailDto(staff, resolverCentroCosto(id), resolverFechaIngreso(id)));
+		StaffDetailDto dto = conAcciones(StaffMapper.toDetailDto(staff, resolverCentroCosto(id), resolverFechaIngreso(id)));
+		dto.setAttachments(loadAttachments(id));
+		return dto;
+	}
+
+	@Override
+	@Transactional
+	public FileAttachmentDto uploadAttachment(Long staffId, MultipartFile file) {
+		buscarPorId(staffId);
+		if (uploadedFileRepository.countByEntityTypeAndEntityId(AttachmentEntityType.STAFF, staffId) >= 1) {
+			throw new BusinessValidationException(
+				"El colaborador ya tiene un archivo adjunto.",
+				Map.of("attachments", "Elimínalo antes de subir uno nuevo.")
+			);
+		}
+		return UploadedFileMapper.toDto(saveAttachment(file, staffId));
+	}
+
+	private UploadedFile saveAttachment(MultipartFile file, Long staffId) {
+		validateFile(file);
+		String storagePath = fileStorageService.store(file, "staff/" + staffId);
+		UploadedFile uploaded = new UploadedFile();
+		uploaded.setMediaFileId(UUID.randomUUID().toString());
+		uploaded.setEntityType(AttachmentEntityType.STAFF);
+		uploaded.setEntityId(staffId);
+		uploaded.setFileName(file.getOriginalFilename());
+		uploaded.setStoragePath(storagePath);
+		uploaded.setContentType(file.getContentType());
+		uploaded.setFileSize(file.getSize());
+		return uploadedFileRepository.save(uploaded);
+	}
+
+	private void replaceAttachment(MultipartFile file, Long staffId) {
+		List<UploadedFile> existing = uploadedFileRepository.findByEntityTypeAndEntityId(AttachmentEntityType.STAFF, staffId);
+		existing.forEach(f -> fileStorageService.delete(f.getStoragePath()));
+		uploadedFileRepository.deleteAll(existing);
+		saveAttachment(file, staffId);
+	}
+
+	@Override
+	@Transactional
+	public void deleteAttachment(Long staffId, Long attachmentId) {
+		buscarPorId(staffId);
+		UploadedFile archivo = uploadedFileRepository.findById(attachmentId)
+			.filter(f -> f.getEntityType() == AttachmentEntityType.STAFF && f.getEntityId().equals(staffId))
+			.orElseThrow(() -> new ResourceNotFoundException("Archivo no encontrado."));
+		fileStorageService.delete(archivo.getStoragePath());
+		uploadedFileRepository.delete(archivo);
 	}
 
 	@Override
@@ -205,5 +280,24 @@ public class StaffServiceImpl implements StaffService {
 	private StaffDetailDto conAcciones(StaffDetailDto dto) {
 		dto.setActions(actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES));
 		return dto;
+	}
+
+	private List<FileAttachmentDto> loadAttachments(Long staffId) {
+		return uploadedFileRepository.findByEntityTypeAndEntityId(AttachmentEntityType.STAFF, staffId)
+			.stream()
+			.map(UploadedFileMapper::toDto)
+			.toList();
+	}
+
+	private void validateFile(MultipartFile file) {
+		if (file.isEmpty()) {
+			throw new BusinessValidationException("Archivo inválido.", Map.of("file", "El archivo está vacío."));
+		}
+		if (!TIPOS_PERMITIDOS.contains(file.getContentType())) {
+			throw new BusinessValidationException(
+				"Tipo de archivo no permitido.",
+				Map.of("file", "Se aceptan: PDF, JPG, PNG, DOC, DOCX.")
+			);
+		}
 	}
 }

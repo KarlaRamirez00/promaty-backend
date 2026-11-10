@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.promaty.rrhh.dto.file.FileAttachmentDto;
 import com.promaty.rrhh.dto.platformstatus.PlatformStatusOptionDto;
 import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.entity.AccountType;
@@ -58,4 +59,5 @@ public class StaffDetailDto {
 	private String createdBy;
 	private String updatedBy;
 	private List<Action> actions;
+	private List<FileAttachmentDto> attachments;
 }

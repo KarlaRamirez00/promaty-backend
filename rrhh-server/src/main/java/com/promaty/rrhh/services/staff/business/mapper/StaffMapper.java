@@ -86,7 +86,8 @@ public final class StaffMapper {
 			staff.getUpdatedAt(),
 			staff.getCreatedBy(),
 			staff.getUpdatedBy(),
-			null // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
+			null, // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
+			null  // attachments se carga por separado en el service
 		);
 	}
 
