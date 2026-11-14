@@ -2,11 +2,14 @@ package com.promaty.rrhh.services.contract;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.promaty.rrhh.dto.contract.ContractCountersDto;
 import com.promaty.rrhh.dto.contract.ContractDetailDto;
 import com.promaty.rrhh.dto.contract.ContractFilterParams;
 import com.promaty.rrhh.dto.contract.ContractListDto;
+import com.promaty.rrhh.dto.file.FileAttachmentDto;
+import com.promaty.rrhh.entity.ContractAttachmentType;
 
 public interface ContractService {
 
@@ -15,4 +18,8 @@ public interface ContractService {
 	ContractDetailDto getContractDetail(Long id);
 
 	ContractCountersDto getCounters();
+
+	FileAttachmentDto uploadAttachment(Long contractId, ContractAttachmentType type, MultipartFile file);
+
+	void deleteAttachment(Long contractId, Long attachmentId);
 }

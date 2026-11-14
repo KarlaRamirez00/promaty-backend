@@ -39,4 +39,7 @@ public class UploadedFile extends BaseDatedEntity {
 
     @Column(name = "file_size", nullable = false)
     private Long fileSize;
+
+    @Column(name = "attachment_type", length = 50)
+    private String attachmentType;
 }

@@ -1,9 +1,11 @@
 package com.promaty.rrhh.services.contract;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -12,18 +14,27 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.promaty.rrhh.dto.contract.ContractCountersDto;
 import com.promaty.rrhh.dto.contract.ContractDetailDto;
 import com.promaty.rrhh.dto.contract.ContractFilterParams;
 import com.promaty.rrhh.dto.contract.ContractListDto;
+import com.promaty.rrhh.dto.file.FileAttachmentDto;
+import com.promaty.rrhh.entity.AttachmentEntityType;
 import com.promaty.rrhh.entity.Contract;
+import com.promaty.rrhh.entity.ContractAttachmentType;
 import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.entity.SettingKey;
+import com.promaty.rrhh.entity.UploadedFile;
+import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.RequestRepository;
+import com.promaty.rrhh.repository.UploadedFileRepository;
+import com.promaty.rrhh.services.file.business.mapper.UploadedFileMapper;
+import com.promaty.rrhh.services.shared.FileStorageService;
 import com.promaty.rrhh.services.contract.business.builder.ContractExpirationSpecification;
 import com.promaty.rrhh.services.contract.business.builder.ContractQueryBuilder;
 import com.promaty.rrhh.services.contract.business.mapper.ContractMapper;
@@ -39,22 +50,34 @@ public class ContractServiceImpl implements ContractService {
 	private static final String CODE_EXPIRED = "EXPIRED";
 	private static final String PERMISO_APROBAR = "contract.approve";
 	private static final String PERMISO_VALIDAR = "contract.validate";
+	private static final List<String> TIPOS_PERMITIDOS = List.of(
+		"application/pdf", "image/jpeg", "image/png",
+		"application/msword",
+		"application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+	);
+	private static final List<ContractAttachmentType> TIPOS_REQUERIDOS = Arrays.asList(ContractAttachmentType.values());
 
 	private final ContractRepository contractRepository;
 	private final RequestRepository requestRepository;
 	private final RequestApprovalActionsResolver actionsResolver;
 	private final SettingProvider settingProvider;
+	private final UploadedFileRepository uploadedFileRepository;
+	private final FileStorageService fileStorageService;
 
 	public ContractServiceImpl(
 		ContractRepository contractRepository,
 		RequestRepository requestRepository,
 		RequestApprovalActionsResolver actionsResolver,
-		SettingProvider settingProvider
+		SettingProvider settingProvider,
+		UploadedFileRepository uploadedFileRepository,
+		FileStorageService fileStorageService
 	) {
 		this.contractRepository = contractRepository;
 		this.requestRepository = requestRepository;
 		this.actionsResolver = actionsResolver;
 		this.settingProvider = settingProvider;
+		this.uploadedFileRepository = uploadedFileRepository;
+		this.fileStorageService = fileStorageService;
 	}
 
 	@Override
@@ -79,7 +102,53 @@ public class ContractServiceImpl implements ContractService {
 		dto.setRequestId(request == null ? null : request.getId());
 		String statusCode = request == null ? null : request.getStatus().getCode();
 		dto.setActions(actionsResolver.resolve(statusCode, CurrentUserAuthorities.get(), PERMISO_APROBAR, PERMISO_VALIDAR));
+		List<FileAttachmentDto> attachments = loadAttachments(id);
+		dto.setAttachments(attachments);
+		dto.setMissingAttachmentTypes(resolveMissingTypes(attachments));
 		return dto;
+	}
+
+	@Override
+	@Transactional
+	public FileAttachmentDto uploadAttachment(Long contractId, ContractAttachmentType type, MultipartFile file) {
+		buscarPorId(contractId);
+		if (file == null || file.isEmpty()) {
+			throw new BusinessValidationException("Archivo inválido.", Map.of("file", "El archivo está vacío."));
+		}
+		if (!TIPOS_PERMITIDOS.contains(file.getContentType())) {
+			throw new BusinessValidationException(
+				"Tipo de archivo no permitido.",
+				Map.of("file", "Se aceptan: PDF, JPG, PNG, DOC, DOCX.")
+			);
+		}
+		uploadedFileRepository.findByEntityTypeAndEntityIdAndAttachmentType(
+			AttachmentEntityType.CONTRACT, contractId, type.name()
+		).ifPresent(existing -> {
+			fileStorageService.delete(existing.getStoragePath());
+			uploadedFileRepository.delete(existing);
+		});
+		String storagePath = fileStorageService.store(file, "contract/" + contractId);
+		UploadedFile uploaded = new UploadedFile();
+		uploaded.setMediaFileId(UUID.randomUUID().toString());
+		uploaded.setEntityType(AttachmentEntityType.CONTRACT);
+		uploaded.setEntityId(contractId);
+		uploaded.setFileName(file.getOriginalFilename());
+		uploaded.setStoragePath(storagePath);
+		uploaded.setContentType(file.getContentType());
+		uploaded.setFileSize(file.getSize());
+		uploaded.setAttachmentType(type.name());
+		return UploadedFileMapper.toDto(uploadedFileRepository.save(uploaded));
+	}
+
+	@Override
+	@Transactional
+	public void deleteAttachment(Long contractId, Long attachmentId) {
+		buscarPorId(contractId);
+		UploadedFile archivo = uploadedFileRepository.findById(attachmentId)
+			.filter(f -> f.getEntityType() == AttachmentEntityType.CONTRACT && f.getEntityId().equals(contractId))
+			.orElseThrow(() -> new ResourceNotFoundException("Archivo no encontrado."));
+		fileStorageService.delete(archivo.getStoragePath());
+		uploadedFileRepository.delete(archivo);
 	}
 
 	@Override
@@ -112,6 +181,23 @@ public class ContractServiceImpl implements ContractService {
 	private Contract buscarPorId(Long id) {
 		return contractRepository.findById(id)
 			.orElseThrow(() -> new ResourceNotFoundException(NO_ENCONTRADO));
+	}
+
+	private List<FileAttachmentDto> loadAttachments(Long contractId) {
+		return uploadedFileRepository.findByEntityTypeAndEntityId(AttachmentEntityType.CONTRACT, contractId)
+			.stream()
+			.map(UploadedFileMapper::toDto)
+			.toList();
+	}
+
+	private List<String> resolveMissingTypes(List<FileAttachmentDto> attachments) {
+		Set<String> present = attachments.stream()
+			.map(FileAttachmentDto::getAttachmentType)
+			.collect(Collectors.toSet());
+		return TIPOS_REQUERIDOS.stream()
+			.map(ContractAttachmentType::name)
+			.filter(type -> !present.contains(type))
+			.toList();
 	}
 
 	private Map<Long, Request> buscarRequestsPorContrato(List<Long> contractIds) {

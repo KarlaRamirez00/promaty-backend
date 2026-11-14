@@ -80,7 +80,7 @@ class TerminationControllerTest {
 		StaffSummaryDto staff = new StaffSummaryDto(1L, "Juan Perez Soto", "12345678-5");
 		TerminationDetailDto detalle = new TerminationDetailDto(1L, staff, "00824", "Albañil",
 			LocalDate.of(2025, 1, 1), null, LocalDate.of(2026, 1, 15), null, false, null, null,
-			null, null, null, null, null, "system", null, null, List.of());
+			null, null, null, null, null, "system", null, null, List.of(), null);
 		when(terminationService.getTerminationDetail(1L)).thenReturn(detalle);
 
 		mockMvc.perform(get("/terminations/1").header(HttpHeaders.AUTHORIZATION, TOKEN))
@@ -102,7 +102,7 @@ class TerminationControllerTest {
 		StaffSummaryDto staff = new StaffSummaryDto(1L, "Juan Perez Soto", "12345678-5");
 		TerminationDetailDto detalle = new TerminationDetailDto(1L, staff, "00824", "Albañil",
 			LocalDate.of(2025, 1, 1), null, LocalDate.of(2026, 1, 15), null, false, null, null,
-			null, null, null, null, null, "system", null, null, List.of());
+			null, null, null, null, null, "system", null, null, List.of(), null);
 		when(terminationService.getTerminationDetail(1L)).thenReturn(detalle);
 
 		mockMvc.perform(put("/terminations/1")
@@ -117,7 +117,7 @@ class TerminationControllerTest {
 		StaffSummaryDto staff = new StaffSummaryDto(1L, "Juan Perez Soto", "12345678-5");
 		TerminationDetailDto detalle = new TerminationDetailDto(1L, staff, "00824", "Albañil",
 			LocalDate.of(2025, 1, 1), null, LocalDate.of(2026, 1, 15), null, false, null, null,
-			null, null, null, null, null, "system", null, null, List.of());
+			null, null, null, null, null, "system", null, null, List.of(), null);
 		when(terminationService.getTerminationDetail(1L)).thenReturn(detalle);
 
 		mockMvc.perform(patch("/terminations/1/annul")

@@ -36,7 +36,9 @@ import com.promaty.rrhh.entity.SettingKey;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.RequestRepository;
+import com.promaty.rrhh.repository.UploadedFileRepository;
 import com.promaty.rrhh.services.setting.SettingProvider;
+import com.promaty.rrhh.services.shared.FileStorageService;
 import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,6 +50,10 @@ class ContractServiceImplTest {
 	private RequestRepository requestRepository;
 	@Mock
 	private SettingProvider settingProvider;
+	@Mock
+	private UploadedFileRepository uploadedFileRepository;
+	@Mock
+	private FileStorageService fileStorageService;
 	@Spy
 	private RequestApprovalActionsResolver actionsResolver = new RequestApprovalActionsResolver();
 

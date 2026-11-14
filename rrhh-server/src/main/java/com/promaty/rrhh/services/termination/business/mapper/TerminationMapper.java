@@ -56,7 +56,8 @@ public final class TerminationMapper {
 			termination.getCreatedBy(),
 			termination.getUpdatedBy(),
 			null, // requestId se resuelve por fuera: Termination no tiene FK hacia Request, es al revés
-			null // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
+			null, // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
+			null  // attachments se carga por separado en el service
 		);
 	}
 

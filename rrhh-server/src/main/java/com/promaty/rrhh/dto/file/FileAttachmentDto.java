@@ -20,4 +20,5 @@ public class FileAttachmentDto {
     private String downloadUrl;
     private String mediaFileId;
     private LocalDateTime updatedAt;
+    private String attachmentType;
 }

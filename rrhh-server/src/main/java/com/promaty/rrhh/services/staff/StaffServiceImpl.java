@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.web.multipart.MultipartFile;
 
+import com.promaty.rrhh.dto.file.AttachmentRenameDto;
 import com.promaty.rrhh.dto.file.FileAttachmentDto;
 import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.dto.staff.CreateStaffDto;
@@ -123,6 +124,9 @@ public class StaffServiceImpl implements StaffService {
 		if (file != null && !file.isEmpty()) {
 			replaceAttachment(file, id);
 		}
+		if (dto.getAttachments() != null) {
+			renameAttachments(dto.getAttachments(), id);
+		}
 	}
 
 	@Override
@@ -196,6 +200,20 @@ public class StaffServiceImpl implements StaffService {
 		existing.forEach(f -> fileStorageService.delete(f.getStoragePath()));
 		uploadedFileRepository.deleteAll(existing);
 		saveAttachment(file, staffId);
+	}
+
+	private void renameAttachments(List<AttachmentRenameDto> renames, Long staffId) {
+		Map<Long, UploadedFile> existingById = uploadedFileRepository
+			.findByEntityTypeAndEntityId(AttachmentEntityType.STAFF, staffId)
+			.stream()
+			.collect(Collectors.toMap(UploadedFile::getId, f -> f));
+		for (AttachmentRenameDto rename : renames) {
+			UploadedFile archivo = existingById.get(rename.getId());
+			if (archivo != null) {
+				archivo.setFileName(rename.getName());
+				uploadedFileRepository.save(archivo);
+			}
+		}
 	}
 
 	@Override

@@ -61,7 +61,9 @@ public final class ContractMapper {
 			contract.getCreatedBy(),
 			contract.getUpdatedBy(),
 			null, // requestId se resuelve por fuera: Contract no tiene FK hacia Request, es al revés
-			null // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
+			null, // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
+			null, // attachments se carga por separado en el service
+			null  // missingAttachmentTypes se calcula por separado en el service
 		);
 	}
 

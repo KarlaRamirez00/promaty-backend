@@ -1,7 +1,9 @@
 package com.promaty.rrhh.dto.staff;
 
 import java.time.LocalDate;
+import java.util.List;
 
+import com.promaty.rrhh.dto.file.AttachmentRenameDto;
 import com.promaty.rrhh.entity.AccountType;
 import com.promaty.rrhh.entity.ClothingSize;
 
@@ -100,4 +102,6 @@ public class UpdateStaffDto {
 	@NotBlank(message = "El numero de cuenta es obligatorio.")
 	@Size(max = 30, message = "El numero de cuenta no puede superar los 30 caracteres.")
 	private String accountNumber;
+
+	private List<AttachmentRenameDto> attachments;
 }

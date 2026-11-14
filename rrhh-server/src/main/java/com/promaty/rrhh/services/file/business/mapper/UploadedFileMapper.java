@@ -13,7 +13,8 @@ public class UploadedFileMapper {
             file.getFileSize(),
             "/files/" + file.getMediaFileId(),
             file.getMediaFileId(),
-            file.getUpdatedAt()
+            file.getUpdatedAt(),
+            file.getAttachmentType()
         );
     }
 

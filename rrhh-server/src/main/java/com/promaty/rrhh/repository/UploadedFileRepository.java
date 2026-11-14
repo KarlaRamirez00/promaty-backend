@@ -12,6 +12,8 @@ public interface UploadedFileRepository extends JpaRepository<UploadedFile, Long
 
     List<UploadedFile> findByEntityTypeAndEntityId(AttachmentEntityType entityType, Long entityId);
 
+    Optional<UploadedFile> findByEntityTypeAndEntityIdAndAttachmentType(AttachmentEntityType entityType, Long entityId, String attachmentType);
+
     Optional<UploadedFile> findByMediaFileId(String mediaFileId);
 
     long countByEntityTypeAndEntityId(AttachmentEntityType entityType, Long entityId);

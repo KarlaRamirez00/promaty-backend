@@ -2,7 +2,9 @@ package com.promaty.rrhh.services.termination;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.promaty.rrhh.dto.file.FileAttachmentDto;
 import com.promaty.rrhh.dto.termination.AnnulTerminationDto;
 import com.promaty.rrhh.dto.termination.TerminationDetailDto;
 import com.promaty.rrhh.dto.termination.TerminationFilterParams;
@@ -18,4 +20,8 @@ public interface TerminationService {
 	void updateTermination(Long id, UpdateTerminationDto dto);
 
 	void annulTermination(Long id, AnnulTerminationDto dto);
+
+	FileAttachmentDto uploadAttachment(Long terminationId, MultipartFile file);
+
+	void deleteAttachment(Long terminationId, Long attachmentId);
 }

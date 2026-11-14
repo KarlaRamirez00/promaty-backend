@@ -44,8 +44,10 @@ import com.promaty.rrhh.repository.PlatformStatusRepository;
 import com.promaty.rrhh.repository.RequestRepository;
 import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.repository.TerminationRepository;
+import com.promaty.rrhh.repository.UploadedFileRepository;
 import com.promaty.rrhh.services.rexplus.RexPlusClient;
 import com.promaty.rrhh.services.rexplus.RexSyncResult;
+import com.promaty.rrhh.services.shared.FileStorageService;
 import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
 import com.promaty.rrhh.services.termination.business.validation.TerminationAnnulmentValidation;
 import com.promaty.rrhh.services.termination.business.validation.TerminationValidation;
@@ -73,6 +75,10 @@ class TerminationServiceImplTest {
 	private TerminationAnnulmentValidation terminationAnnulmentValidation;
 	@Mock
 	private RexPlusClient rexPlusClient;
+	@Mock
+	private UploadedFileRepository uploadedFileRepository;
+	@Mock
+	private FileStorageService fileStorageService;
 	@Spy
 	private RequestApprovalActionsResolver actionsResolver = new RequestApprovalActionsResolver();
 
