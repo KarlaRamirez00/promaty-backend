@@ -46,14 +46,15 @@ public class CreateRequestBuilder {
 	}
 
 	/**
-	 * Para CONTRACT el centro de costo lo elige el solicitante (dto.projectId); para TERMINATION se
-	 * deriva del contrato activo del colaborador — el cliente nunca lo envía (termination-
+	 * Para CONTRACT el centro de costo lo elige el solicitante (dto.projectId); para TERMINATION y
+	 * ANNEX se deriva del contrato activo del colaborador — el cliente nunca lo envía (termination-
 	 * architecture-guide.md §9: "The API must not accept... projectId... from the caller").
 	 */
 	private Project resolveProject(CreateRequestDto dto) {
 		return switch (dto.getEntityType()) {
 			case CONTRACT -> relationsResolver.resolveProject(dto.getProjectId());
 			case TERMINATION -> contratoActivoDelStaff(dto.getTerminationData().getStaffId()).getProject();
+			case ANNEX -> contratoActivoDelStaff(dto.getAnnexData().getStaffId()).getProject();
 		};
 	}
 
@@ -66,6 +67,7 @@ public class CreateRequestBuilder {
 		Object datos = switch (dto.getEntityType()) {
 			case CONTRACT -> dto.getContractData();
 			case TERMINATION -> dto.getTerminationData();
+			case ANNEX -> dto.getAnnexData();
 		};
 		try {
 			return objectMapper.writeValueAsString(datos);

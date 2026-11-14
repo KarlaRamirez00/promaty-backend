@@ -4,7 +4,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -31,7 +30,6 @@ import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.entity.Termination;
-import com.promaty.rrhh.entity.UploadedFile;
 import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ContractRepository;
@@ -41,14 +39,12 @@ import com.promaty.rrhh.repository.PlatformStatusRepository;
 import com.promaty.rrhh.repository.RequestRepository;
 import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.repository.TerminationRepository;
-import com.promaty.rrhh.repository.UploadedFileRepository;
-import com.promaty.rrhh.services.file.business.mapper.UploadedFileMapper;
-import com.promaty.rrhh.services.shared.FileStorageService;
 import com.promaty.rrhh.services.rexplus.RexPlusClient;
 import com.promaty.rrhh.services.rexplus.RexSyncResult;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
 import com.promaty.rrhh.services.shared.ProjectAccessSpecification;
 import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
+import com.promaty.rrhh.services.shared.attachment.AttachmentService;
 import com.promaty.rrhh.services.termination.business.builder.TerminationQueryBuilder;
 import com.promaty.rrhh.services.termination.business.mapper.TerminationMapper;
 import com.promaty.rrhh.services.termination.business.validation.TerminationAnnulmentValidation;
@@ -58,11 +54,6 @@ import com.promaty.rrhh.services.termination.business.validation.TerminationVali
 public class TerminationServiceImpl implements TerminationService {
 
 	private static final String NOT_FOUND_MESSAGE = "Finiquito no encontrado.";
-	private static final List<String> TIPOS_PERMITIDOS = List.of(
-		"application/pdf", "image/jpeg", "image/png",
-		"application/msword",
-		"application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-	);
 	private static final String PERMISSION_APPROVE = "termination.approve";
 	private static final String PERMISSION_VALIDATE = "termination.validate";
 	private static final String PERMISSION_UPDATE = "termination.update";
@@ -89,8 +80,7 @@ public class TerminationServiceImpl implements TerminationService {
 	private final TerminationAnnulmentValidation terminationAnnulmentValidation;
 	private final RequestApprovalActionsResolver actionsResolver;
 	private final RexPlusClient rexPlusClient;
-	private final UploadedFileRepository uploadedFileRepository;
-	private final FileStorageService fileStorageService;
+	private final AttachmentService attachmentService;
 
 	public TerminationServiceImpl(
 		TerminationRepository terminationRepository,
@@ -104,8 +94,7 @@ public class TerminationServiceImpl implements TerminationService {
 		TerminationAnnulmentValidation terminationAnnulmentValidation,
 		RequestApprovalActionsResolver actionsResolver,
 		RexPlusClient rexPlusClient,
-		UploadedFileRepository uploadedFileRepository,
-		FileStorageService fileStorageService
+		AttachmentService attachmentService
 	) {
 		this.terminationRepository = terminationRepository;
 		this.requestRepository = requestRepository;
@@ -118,8 +107,7 @@ public class TerminationServiceImpl implements TerminationService {
 		this.terminationAnnulmentValidation = terminationAnnulmentValidation;
 		this.actionsResolver = actionsResolver;
 		this.rexPlusClient = rexPlusClient;
-		this.uploadedFileRepository = uploadedFileRepository;
-		this.fileStorageService = fileStorageService;
+		this.attachmentService = attachmentService;
 	}
 
 	@Override
@@ -141,8 +129,8 @@ public class TerminationServiceImpl implements TerminationService {
 		Request request = requestRepository.findByEntityTypeAndEntityId(RequestEntityType.TERMINATION, id).orElse(null);
 		dto.setRequestId(request == null ? null : request.getId());
 		dto.setActions(resolveActions(request));
-		dto.setAttachments(uploadedFileRepository.findByEntityTypeAndEntityId(AttachmentEntityType.TERMINATION, id)
-			.stream().map(UploadedFileMapper::toDto).toList());
+		dto.setAttachments(attachmentService.list(AttachmentEntityType.TERMINATION, id));
+		dto.setMissingRequiredAttachment(dto.getRequiredAttachmentLabel() != null && dto.getAttachments().isEmpty());
 		return dto;
 	}
 
@@ -150,40 +138,14 @@ public class TerminationServiceImpl implements TerminationService {
 	@Transactional
 	public FileAttachmentDto uploadAttachment(Long terminationId, MultipartFile file) {
 		findById(terminationId);
-		if (file == null || file.isEmpty()) {
-			throw new BusinessValidationException("Archivo inválido.", Map.of("file", "El archivo está vacío."));
-		}
-		if (!TIPOS_PERMITIDOS.contains(file.getContentType())) {
-			throw new BusinessValidationException(
-				"Tipo de archivo no permitido.",
-				Map.of("file", "Se aceptan: PDF, JPG, PNG, DOC, DOCX.")
-			);
-		}
-		List<UploadedFile> existing = uploadedFileRepository.findByEntityTypeAndEntityId(AttachmentEntityType.TERMINATION, terminationId);
-		existing.forEach(f -> fileStorageService.delete(f.getStoragePath()));
-		uploadedFileRepository.deleteAll(existing);
-
-		String storagePath = fileStorageService.store(file, "termination/" + terminationId);
-		UploadedFile uploaded = new UploadedFile();
-		uploaded.setMediaFileId(UUID.randomUUID().toString());
-		uploaded.setEntityType(AttachmentEntityType.TERMINATION);
-		uploaded.setEntityId(terminationId);
-		uploaded.setFileName(file.getOriginalFilename());
-		uploaded.setStoragePath(storagePath);
-		uploaded.setContentType(file.getContentType());
-		uploaded.setFileSize(file.getSize());
-		return UploadedFileMapper.toDto(uploadedFileRepository.save(uploaded));
+		return attachmentService.replaceSingle(AttachmentEntityType.TERMINATION, terminationId, file);
 	}
 
 	@Override
 	@Transactional
 	public void deleteAttachment(Long terminationId, Long attachmentId) {
 		findById(terminationId);
-		UploadedFile archivo = uploadedFileRepository.findById(attachmentId)
-			.filter(f -> f.getEntityType() == AttachmentEntityType.TERMINATION && f.getEntityId().equals(terminationId))
-			.orElseThrow(() -> new ResourceNotFoundException("Archivo no encontrado."));
-		fileStorageService.delete(archivo.getStoragePath());
-		uploadedFileRepository.delete(archivo);
+		attachmentService.delete(AttachmentEntityType.TERMINATION, terminationId, attachmentId);
 	}
 
 	@Override

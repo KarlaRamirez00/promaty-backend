@@ -3,6 +3,7 @@ package com.promaty.rrhh.services.rexplus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.promaty.rrhh.entity.Annex;
 import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.Termination;
 
@@ -11,6 +12,7 @@ public class RexPlusStubClient implements RexPlusClient {
 
 	private static final String PREFIJO_NUMERO_CONTRATO = "REX-";
 	private static final String PREFIJO_NUMERO_FINIQUITO = "REX-TERM-";
+	private static final String ANNEX_NUMBER_PREFIX = "REX-ANX-";
 	private static final String MENSAJE_ERROR_SIMULADO = "Rex+ no respondió (simulado por rexplus.stub.force-error).";
 
 	private final boolean forzarError;
@@ -41,5 +43,13 @@ public class RexPlusStubClient implements RexPlusClient {
 			return RexSyncResult.failure(MENSAJE_ERROR_SIMULADO);
 		}
 		return RexSyncResult.success(termination.getRexTerminationNumber());
+	}
+
+	@Override
+	public RexSyncResult syncAnnex(Annex annex) {
+		if (forzarError) {
+			return RexSyncResult.failure(MENSAJE_ERROR_SIMULADO);
+		}
+		return RexSyncResult.success(ANNEX_NUMBER_PREFIX + System.currentTimeMillis());
 	}
 }

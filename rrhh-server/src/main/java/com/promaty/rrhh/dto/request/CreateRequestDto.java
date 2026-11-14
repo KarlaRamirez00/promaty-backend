@@ -20,7 +20,7 @@ public class CreateRequestDto {
 
 	/**
 	 * Obligatorio solo para entityType=CONTRACT (validado en RequestValidation, no acá): para
-	 * TERMINATION el centro de costo se deriva en el servidor desde el contrato activo del
+	 * TERMINATION y ANNEX el centro de costo se deriva en el servidor desde el contrato activo del
 	 * colaborador, nunca se acepta del cliente (ver termination-architecture-guide.md §9).
 	 */
 	private Long projectId;
@@ -30,4 +30,7 @@ public class CreateRequestDto {
 
 	@Valid
 	private TerminationPendingDataDto terminationData;
+
+	@Valid
+	private AnnexPendingDataDto annexData;
 }

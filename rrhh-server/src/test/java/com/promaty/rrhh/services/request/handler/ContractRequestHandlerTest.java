@@ -29,6 +29,7 @@ import com.promaty.rrhh.entity.Project;
 import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.Site;
 import com.promaty.rrhh.entity.Staff;
+import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.repository.CompanyRepository;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.ContractTypeRepository;
@@ -122,7 +123,7 @@ class ContractRequestHandlerTest {
 	}
 
 	@Test
-	void applyDecision_conRechazo_dejaContractEnRejected() {
+	void applyDecision_conRechazo_dejaContractEnRejectedSinTocarAlColaborador() {
 		Request request = new Request();
 		request.setEntityId(50L);
 		Contract contract = new Contract();
@@ -133,14 +134,54 @@ class ContractRequestHandlerTest {
 		PlatformStatus rechazado = new PlatformStatus();
 		rechazado.setCode("REJECTED");
 		when(platformStatusRepository.findBySubModuleAndCode("contract", "REJECTED")).thenReturn(Optional.of(rechazado));
-		when(platformStatusRepository.findBySubModuleAndCode("staff", "PENDING_CONTRACT")).thenReturn(Optional.of(pendienteContrato));
 
 		handler.applyDecision(request, ApprovalLevel.PROJECT_MANAGER, ApprovalDecision.REJECTED);
 
 		assertThat(contract.getStatus()).isEqualTo(rechazado);
 		assertThat(staff.getStatus()).isEqualTo(pendienteContrato);
 		verify(contractRepository).save(contract);
+		verify(staffRepository, never()).save(any());
 		verify(rexPlusClient, never()).syncContract(any());
+	}
+
+	@Test
+	void applyDecision_aprobarConColaboradorBloqueado_lanzaBusinessValidationSinCambiarElContrato() {
+		Request request = new Request();
+		request.setEntityId(55L);
+		Contract contract = new Contract();
+		PlatformStatus pendienteAprobacion = estadoStaffConCodigo("PENDING_APPROVAL");
+		contract.setStatus(pendienteAprobacion);
+		contract.setStaff(staffConEstado(estadoStaffConCodigo("BLOCKED")));
+		when(contractRepository.findById(55L)).thenReturn(Optional.of(contract));
+
+		assertThatThrownBy(() -> handler.applyDecision(request, ApprovalLevel.PROJECT_MANAGER, ApprovalDecision.APPROVED))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields()).containsKey("staffId"));
+
+		assertThat(contract.getStatus()).isEqualTo(pendienteAprobacion);
+		verify(contractRepository, never()).save(any());
+	}
+
+	@Test
+	void applyDecision_validacionRrhhDeUnColaboradorDesvinculado_loDejaActivo() {
+		Request request = new Request();
+		request.setEntityId(56L);
+		Contract contract = new Contract();
+		contract.setStartDate(java.time.LocalDate.now());
+		contract.setContractType(new ContractType());
+		Staff staff = staffConEstado(estadoStaffConCodigo("UNLINKED"));
+		contract.setStaff(staff);
+		when(contractRepository.findById(56L)).thenReturn(Optional.of(contract));
+		when(businessDayCalculator.countBusinessDaysBetween(any(), any())).thenReturn(0L);
+		when(rexPlusClient.syncContract(contract)).thenReturn(RexSyncResult.success("REX-456"));
+		when(platformStatusRepository.findBySubModuleAndCode("contract", "ACTIVE")).thenReturn(Optional.of(estadoStaffConCodigo("ACTIVE")));
+		PlatformStatus activoStaff = estadoStaffConCodigo("ACTIVE");
+		when(platformStatusRepository.findBySubModuleAndCode("staff", "ACTIVE")).thenReturn(Optional.of(activoStaff));
+
+		handler.applyDecision(request, ApprovalLevel.HR, ApprovalDecision.APPROVED);
+
+		assertThat(staff.getStatus()).isEqualTo(activoStaff);
+		verify(staffRepository).save(staff);
 	}
 
 	@Test
@@ -148,6 +189,7 @@ class ContractRequestHandlerTest {
 		Request request = new Request();
 		request.setEntityId(51L);
 		Contract contract = new Contract();
+		contract.setStaff(staffConEstado(estadoStaffConCodigo("PENDING_CONTRACT")));
 		when(contractRepository.findById(51L)).thenReturn(Optional.of(contract));
 		PlatformStatus pendienteValidacion = new PlatformStatus();
 		pendienteValidacion.setCode("PENDING_VALIDATION");
@@ -205,6 +247,7 @@ class ContractRequestHandlerTest {
 		Contract contract = new Contract();
 		contract.setStartDate(java.time.LocalDate.now());
 		contract.setContractType(new ContractType());
+		contract.setStaff(staffConEstado(estadoStaffConCodigo("PENDING_CONTRACT")));
 		when(contractRepository.findById(53L)).thenReturn(Optional.of(contract));
 		when(businessDayCalculator.countBusinessDaysBetween(any(), any())).thenReturn(0L);
 		when(rexPlusClient.syncContract(contract)).thenReturn(RexSyncResult.failure("Rex+ no respondió."));
@@ -229,6 +272,7 @@ class ContractRequestHandlerTest {
 		ContractType contractType = new ContractType();
 		contractType.setCode("I");
 		contract.setContractType(contractType);
+		contract.setStaff(staffConEstado(estadoStaffConCodigo("PENDING_CONTRACT")));
 		when(contractRepository.findById(54L)).thenReturn(Optional.of(contract));
 		when(businessDayCalculator.countBusinessDaysBetween(any(), any())).thenReturn(20L);
 		PlatformStatus fueraDePlazo = new PlatformStatus();

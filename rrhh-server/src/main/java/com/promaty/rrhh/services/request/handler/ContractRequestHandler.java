@@ -28,6 +28,7 @@ import com.promaty.rrhh.repository.TransportTypeRepository;
 import com.promaty.rrhh.services.holidayprovider.BusinessDayCalculator;
 import com.promaty.rrhh.services.rexplus.RexPlusClient;
 import com.promaty.rrhh.services.rexplus.RexSyncResult;
+import com.promaty.rrhh.services.shared.StaffEligibility;
 
 /**
  * RequestValidation ya confirmó que las FK de contractData existen al crear la Request; para cuando
@@ -45,9 +46,6 @@ public class ContractRequestHandler implements RequestHandler {
 	private static final String CODE_REJECTED = "REJECTED";
 	private static final String CODE_SYNC_ERROR = "SYNC_ERROR";
 	private static final String CODE_LATE_REGISTRATION = "LATE_REGISTRATION";
-	private static final String CODE_PENDING_CONTRACT = "PENDING_CONTRACT";
-	private static final String CODE_STAFF_BLOCKED = "BLOCKED";
-	private static final String CODE_STAFF_UNLINKED = "UNLINKED";
 	private static final String CODE_CONTRACT_TYPE_OBRA = "O";
 	private static final int PLAZO_HABIL_OBRA = 5;
 	private static final int PLAZO_HABIL_GENERAL = 15;
@@ -165,9 +163,9 @@ public class ContractRequestHandler implements RequestHandler {
 		if (decision == ApprovalDecision.REJECTED) {
 			contract.setStatus(resolveEstado(CODE_REJECTED));
 			contractRepository.save(contract);
-			actualizarEstadoStaffSiCorresponde(contract, CODE_PENDING_CONTRACT);
 			return;
 		}
+		StaffEligibility.validateHireable(contract.getStaff());
 		if (level == ApprovalLevel.PROJECT_MANAGER) {
 			contract.setStatus(resolveEstado(CODE_PENDING_VALIDATION));
 			contractRepository.save(contract);
@@ -187,20 +185,15 @@ public class ContractRequestHandler implements RequestHandler {
 			contract.setRexContractNumber(sincronizacion.externalReferenceNumber());
 			contract.setStatus(resolveEstado(CODE_ACTIVE));
 			contractRepository.save(contract);
-			actualizarEstadoStaffSiCorresponde(contract, CODE_ACTIVE);
+			activateStaff(contract.getStaff());
 			return;
 		}
 		contract.setStatus(resolveEstado(CODE_SYNC_ERROR));
 		contractRepository.save(contract);
 	}
 
-	private void actualizarEstadoStaffSiCorresponde(Contract contract, String nuevoCodigoEstadoStaff) {
-		Staff staff = contract.getStaff();
-		String estadoActual = staff.getStatus().getCode();
-		if (CODE_STAFF_BLOCKED.equals(estadoActual) || CODE_STAFF_UNLINKED.equals(estadoActual)) {
-			return;
-		}
-		staff.setStatus(resolveEstadoStaff(nuevoCodigoEstadoStaff));
+	private void activateStaff(Staff staff) {
+		staff.setStatus(resolveEstadoStaff(CODE_ACTIVE));
 		staffRepository.save(staff);
 	}
 

@@ -2,6 +2,7 @@ package com.promaty.rrhh.services.request;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -24,6 +25,7 @@ import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.entity.RequestRejectionReason;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
+import com.promaty.rrhh.repository.AnnexRepository;
 import com.promaty.rrhh.repository.ApprovalRepository;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.RequestRejectionReasonRepository;
@@ -56,6 +58,7 @@ public class RequestServiceImpl implements RequestService {
 	private final RequestRejectionReasonRepository requestRejectionReasonRepository;
 	private final ContractRepository contractRepository;
 	private final TerminationRepository terminationRepository;
+	private final AnnexRepository annexRepository;
 	private final RequestValidation requestValidation;
 	private final RequestDecisionValidation requestDecisionValidation;
 	private final CreateRequestBuilder createRequestBuilder;
@@ -71,6 +74,7 @@ public class RequestServiceImpl implements RequestService {
 		RequestRejectionReasonRepository requestRejectionReasonRepository,
 		ContractRepository contractRepository,
 		TerminationRepository terminationRepository,
+		AnnexRepository annexRepository,
 		RequestValidation requestValidation,
 		RequestDecisionValidation requestDecisionValidation,
 		CreateRequestBuilder createRequestBuilder,
@@ -85,6 +89,7 @@ public class RequestServiceImpl implements RequestService {
 		this.requestRejectionReasonRepository = requestRejectionReasonRepository;
 		this.contractRepository = contractRepository;
 		this.terminationRepository = terminationRepository;
+		this.annexRepository = annexRepository;
 		this.requestValidation = requestValidation;
 		this.requestDecisionValidation = requestDecisionValidation;
 		this.createRequestBuilder = createRequestBuilder;
@@ -128,16 +133,15 @@ public class RequestServiceImpl implements RequestService {
 			.and(ProjectAccessSpecification.onProject());
 		Page<Request> pagina = requestRepository.findAll(especificacion, pageable);
 
-		Map<Long, RequestStaffDataProjection> datosDeStaffPorContrato = resolverDatosDeStaffPorContrato(
-			idsDeEntidad(pagina, RequestEntityType.CONTRACT)
-		);
-		Map<Long, RequestStaffDataProjection> datosDeStaffPorTermination = resolverDatosDeStaffPorTermination(
-			idsDeEntidad(pagina, RequestEntityType.TERMINATION)
+		Map<RequestEntityType, Map<Long, RequestStaffDataProjection>> staffDataByType = Map.of(
+			RequestEntityType.CONTRACT, indexById(idsDeEntidad(pagina, RequestEntityType.CONTRACT), contractRepository::findStaffDataByContractIds),
+			RequestEntityType.TERMINATION, indexById(idsDeEntidad(pagina, RequestEntityType.TERMINATION), terminationRepository::findStaffDataByTerminationIds),
+			RequestEntityType.ANNEX, indexById(idsDeEntidad(pagina, RequestEntityType.ANNEX), annexRepository::findStaffDataByAnnexIds)
 		);
 
 		return pagina
 			.map(RequestMapper::toListDto)
-			.map(dto -> conDatosDeStaff(dto, datosDeStaffPorContrato, datosDeStaffPorTermination))
+			.map(dto -> withStaffData(dto, staffDataByType.get(dto.getEntityType()).get(dto.getEntityId())))
 			.map(this::sinAccionesDeDecision);
 	}
 
@@ -198,31 +202,18 @@ public class RequestServiceImpl implements RequestService {
 		return dto;
 	}
 
-	private Map<Long, RequestStaffDataProjection> resolverDatosDeStaffPorContrato(List<Long> contractIds) {
-		if (contractIds.isEmpty()) {
-			return Map.of();
-		}
-		return contractRepository.findStaffDataByContractIds(contractIds).stream()
-			.collect(Collectors.toMap(RequestStaffDataProjection::getEntityId, datos -> datos));
-	}
-
-	private Map<Long, RequestStaffDataProjection> resolverDatosDeStaffPorTermination(List<Long> terminationIds) {
-		if (terminationIds.isEmpty()) {
-			return Map.of();
-		}
-		return terminationRepository.findStaffDataByTerminationIds(terminationIds).stream()
-			.collect(Collectors.toMap(RequestStaffDataProjection::getEntityId, datos -> datos));
-	}
-
-	private RequestListDto conDatosDeStaff(
-		RequestListDto dto,
-		Map<Long, RequestStaffDataProjection> datosDeStaffPorContrato,
-		Map<Long, RequestStaffDataProjection> datosDeStaffPorTermination
+	private Map<Long, RequestStaffDataProjection> indexById(
+		List<Long> entityIds,
+		Function<List<Long>, List<RequestStaffDataProjection>> finder
 	) {
-		Map<Long, RequestStaffDataProjection> mapaCorrespondiente = dto.getEntityType() == RequestEntityType.TERMINATION
-			? datosDeStaffPorTermination
-			: datosDeStaffPorContrato;
-		RequestStaffDataProjection datos = mapaCorrespondiente.get(dto.getEntityId());
+		if (entityIds.isEmpty()) {
+			return Map.of();
+		}
+		return finder.apply(entityIds).stream()
+			.collect(Collectors.toMap(RequestStaffDataProjection::getEntityId, Function.identity()));
+	}
+
+	private RequestListDto withStaffData(RequestListDto dto, RequestStaffDataProjection datos) {
 		if (datos != null) {
 			dto.setStaffIdentificationType(datos.getStaffIdentificationType());
 			dto.setStaffIdentificationNumber(datos.getStaffIdentificationNumber());

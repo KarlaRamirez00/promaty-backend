@@ -31,4 +31,15 @@ public interface StaffRepository extends JpaRepository<Staff, Long>, JpaSpecific
 		ORDER BY s.firstName, s.paternalLastName
 		""")
 	List<Staff> findWithActiveContractForTerminationSelector(@Param("statusCodeActivo") String statusCodeActivo);
+
+	@Query("""
+		SELECT s FROM Staff s
+		WHERE s.id IN (SELECT c.staff.id FROM Contract c WHERE c.status.code = :contractStatusCode)
+		AND s.status.code <> :blockedStatusCode
+		ORDER BY s.firstName, s.paternalLastName
+		""")
+	List<Staff> findWithActiveContractForAnnexSelector(
+		@Param("contractStatusCode") String contractStatusCode,
+		@Param("blockedStatusCode") String blockedStatusCode
+	);
 }

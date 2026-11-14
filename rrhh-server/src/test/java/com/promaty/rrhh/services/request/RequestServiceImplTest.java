@@ -45,6 +45,7 @@ import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.RequestAction;
 import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
+import com.promaty.rrhh.repository.AnnexRepository;
 import com.promaty.rrhh.repository.ApprovalRepository;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.RequestRejectionReasonRepository;
@@ -74,6 +75,8 @@ class RequestServiceImplTest {
 	private ContractRepository contractRepository;
 	@Mock
 	private TerminationRepository terminationRepository;
+	@Mock
+	private AnnexRepository annexRepository;
 	@Mock
 	private RequestValidation requestValidation;
 	@Mock
@@ -248,6 +251,25 @@ class RequestServiceImplTest {
 		assertThat(dto.getStaffIdentificationNumber()).isEqualTo("82648545-0");
 		assertThat(dto.getStaffPosition()).isEqualTo("Cristaleros");
 		verify(contractRepository, never()).findStaffDataByContractIds(any());
+	}
+
+	@Test
+	void listRequests_conSolicitudDeAnexo_resuelveDatosDeStaffPorAnnexId() {
+		Request request = requestConId(10L, RequestEntityType.ANNEX);
+		request.setEntityId(3L);
+		request.setProject(proyectoConNombre("Edificio Los Alerces"));
+		request.setStatus(statusConCodigo("PENDING_APPROVAL"));
+		Pageable pageable = PageRequest.of(0, 20);
+		when(requestRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(new PageImpl<>(List.of(request)));
+		when(annexRepository.findStaffDataByAnnexIds(List.of(3L)))
+			.thenReturn(List.of(staffDataProjection(3L, "Ana", "Rojas", "Vera", "11111111-1", "Jornal")));
+
+		RequestListDto dto = requestService.listRequests(new RequestFilterParams(), pageable).getContent().get(0);
+
+		assertThat(dto.getStaffFirstName()).isEqualTo("Ana");
+		assertThat(dto.getStaffPosition()).isEqualTo("Jornal");
+		verify(contractRepository, never()).findStaffDataByContractIds(any());
+		verify(terminationRepository, never()).findStaffDataByTerminationIds(any());
 	}
 
 	@Test

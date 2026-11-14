@@ -32,8 +32,10 @@ import com.promaty.rrhh.repository.SiteRepository;
 import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.repository.TerminationRepository;
 import com.promaty.rrhh.repository.TransportTypeRepository;
+import com.promaty.rrhh.services.annex.business.validation.AnnexValidation;
 import com.promaty.rrhh.services.request.handler.RequestHandlerRegistry;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
+import com.promaty.rrhh.services.shared.StaffEligibility;
 import com.promaty.rrhh.services.termination.business.TerminationDateRangeCalculator;
 
 @Component
@@ -57,6 +59,7 @@ public class RequestValidation {
 	private final NonRehireReasonRepository nonRehireReasonRepository;
 	private final TerminationRepository terminationRepository;
 	private final RequestHandlerRegistry handlerRegistry;
+	private final AnnexValidation annexValidation;
 
 	public RequestValidation(
 		ProjectRepository projectRepository,
@@ -71,7 +74,8 @@ public class RequestValidation {
 		LegalTerminationCauseRepository legalTerminationCauseRepository,
 		NonRehireReasonRepository nonRehireReasonRepository,
 		TerminationRepository terminationRepository,
-		RequestHandlerRegistry handlerRegistry
+		RequestHandlerRegistry handlerRegistry,
+		AnnexValidation annexValidation
 	) {
 		this.projectRepository = projectRepository;
 		this.staffRepository = staffRepository;
@@ -86,6 +90,7 @@ public class RequestValidation {
 		this.nonRehireReasonRepository = nonRehireReasonRepository;
 		this.terminationRepository = terminationRepository;
 		this.handlerRegistry = handlerRegistry;
+		this.annexValidation = annexValidation;
 	}
 
 	public void validateCreate(CreateRequestDto dto) {
@@ -97,9 +102,23 @@ public class RequestValidation {
 			validarSolicitudDeContrato(dto, errores);
 		} else if (dto.getEntityType() == RequestEntityType.TERMINATION) {
 			validarSolicitudDeFiniquito(dto, errores);
+		} else if (dto.getEntityType() == RequestEntityType.ANNEX) {
+			validateAnnexRequest(dto, errores);
 		}
 
 		lanzarSiHayErrores(errores);
+	}
+
+	private void validateAnnexRequest(CreateRequestDto dto, Map<String, String> errores) {
+		if (dto.getAction() != RequestAction.CREATE) {
+			errores.put("action", "Por ahora solo se soporta crear un anexo nuevo (CREATE).");
+			return;
+		}
+		if (dto.getAnnexData() == null) {
+			errores.put("annexData", "Los datos del anexo son obligatorios para este tipo de solicitud.");
+			return;
+		}
+		annexValidation.collectCreateErrors(dto.getAnnexData(), errores);
 	}
 
 	/**
@@ -140,6 +159,15 @@ public class RequestValidation {
 		validarRelaciones(errores, datos);
 		validarFechas(errores, datos);
 		validarStaffSinContratoActivo(errores, datos);
+		validateStaffHireable(errores, datos);
+	}
+
+	private void validateStaffHireable(Map<String, String> errores, ContractPendingDataDto datos) {
+		if (datos.getStaffId() == null) {
+			return;
+		}
+		staffRepository.findById(datos.getStaffId())
+			.ifPresent(staff -> StaffEligibility.collectHiringErrors(staff, errores));
 	}
 
 	private void validarRelaciones(Map<String, String> errores, ContractPendingDataDto datos) {

@@ -251,6 +251,15 @@ public class StaffServiceImpl implements StaffService {
 			.toList();
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public List<StaffSelectorOptionDto> listSelectorOptionsForAnnex() {
+		return staffRepository.findWithActiveContractForAnnexSelector(ESTADO_ACTIVO, CODIGO_ESTADO_BLOCKED)
+			.stream()
+			.map(StaffMapper::toSelectorOptionDto)
+			.toList();
+	}
+
 	private String resolverCentroCosto(Long staffId) {
 		return contractRepository.findByStaffIdAndStatus_Code(staffId, ESTADO_ACTIVO)
 			.map(Contract::getProject)

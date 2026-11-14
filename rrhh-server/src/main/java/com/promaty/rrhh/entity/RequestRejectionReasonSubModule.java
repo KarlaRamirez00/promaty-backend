@@ -6,7 +6,8 @@ import java.util.Optional;
 public enum RequestRejectionReasonSubModule {
 
 	CONTRACTS("contracts", "Contratos"),
-	TERMINATIONS("terminations", "Finiquitos");
+	TERMINATIONS("terminations", "Finiquitos"),
+	ANNEXES("annexes", "Anexos");
 
 	private final String code;
 	private final String label;

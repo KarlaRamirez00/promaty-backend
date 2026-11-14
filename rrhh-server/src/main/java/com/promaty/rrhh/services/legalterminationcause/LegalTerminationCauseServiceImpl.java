@@ -5,7 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.promaty.rrhh.dto.shared.CatalogOptionDto;
+import com.promaty.rrhh.dto.legalterminationcause.LegalTerminationCauseOptionDto;
 import com.promaty.rrhh.repository.LegalTerminationCauseRepository;
 
 @Service
@@ -19,10 +19,12 @@ public class LegalTerminationCauseServiceImpl implements LegalTerminationCauseSe
 
 	@Override
 	@Transactional(readOnly = true)
-	public List<CatalogOptionDto> listOptions() {
+	public List<LegalTerminationCauseOptionDto> listOptions() {
 		return legalTerminationCauseRepository.findByActiveTrueOrderByName()
 			.stream()
-			.map(cause -> new CatalogOptionDto(cause.getId(), cause.getName(), cause.getCode()))
+			.map(cause -> new LegalTerminationCauseOptionDto(
+				cause.getId(), cause.getName(), cause.getCode(), cause.getRequiresAttachment(), cause.getAttachmentLabel()
+			))
 			.toList();
 	}
 }

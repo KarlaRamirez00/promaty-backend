@@ -53,7 +53,9 @@ public class ContractServiceImpl implements ContractService {
 	private static final List<String> TIPOS_PERMITIDOS = List.of(
 		"application/pdf", "image/jpeg", "image/png",
 		"application/msword",
-		"application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+		"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+		"application/vnd.ms-excel",
+		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 	);
 	private static final List<ContractAttachmentType> TIPOS_REQUERIDOS = Arrays.asList(ContractAttachmentType.values());
 
@@ -118,7 +120,7 @@ public class ContractServiceImpl implements ContractService {
 		if (!TIPOS_PERMITIDOS.contains(file.getContentType())) {
 			throw new BusinessValidationException(
 				"Tipo de archivo no permitido.",
-				Map.of("file", "Se aceptan: PDF, JPG, PNG, DOC, DOCX.")
+				Map.of("file", "Se aceptan: PDF, JPG, PNG, DOC, DOCX, XLS, XLSX.")
 			);
 		}
 		uploadedFileRepository.findByEntityTypeAndEntityIdAndAttachmentType(

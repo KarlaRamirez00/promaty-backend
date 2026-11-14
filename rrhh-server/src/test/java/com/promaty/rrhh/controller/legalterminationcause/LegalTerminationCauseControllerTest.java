@@ -18,7 +18,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.promaty.rrhh.config.SecurityConfig;
-import com.promaty.rrhh.dto.shared.CatalogOptionDto;
+import com.promaty.rrhh.dto.legalterminationcause.LegalTerminationCauseOptionDto;
 import com.promaty.rrhh.services.legalterminationcause.LegalTerminationCauseService;
 import com.promaty.rrhh.support.TestJwt;
 
@@ -40,12 +40,14 @@ class LegalTerminationCauseControllerTest {
 	@Test
 	void list_retorna200ConOpcionesYSinPaginacion() throws Exception {
 		when(legalTerminationCauseService.listOptions()).thenReturn(List.of(
-			new CatalogOptionDto(1L, "Renuncia voluntaria", "RESIGNATION")
+			new LegalTerminationCauseOptionDto(1L, "Renuncia voluntaria", "RESIGNATION", true, "Carta de renuncia")
 		));
 
 		mockMvc.perform(get("/legalTerminationCauses").header(HttpHeaders.AUTHORIZATION, TOKEN))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data[0].code").value("RESIGNATION"))
+			.andExpect(jsonPath("$.data[0].requiresAttachment").value(true))
+			.andExpect(jsonPath("$.data[0].attachmentLabel").value("Carta de renuncia"))
 			.andExpect(jsonPath("$.meta.pagination").doesNotExist());
 	}
 

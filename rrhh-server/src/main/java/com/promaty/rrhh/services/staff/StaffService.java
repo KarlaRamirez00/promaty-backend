@@ -32,6 +32,8 @@ public interface StaffService {
 
 	List<StaffTerminationSelectorOptionDto> listSelectorOptionsForTermination();
 
+	List<StaffSelectorOptionDto> listSelectorOptionsForAnnex();
+
 	FileAttachmentDto uploadAttachment(Long staffId, MultipartFile file);
 
 	void deleteAttachment(Long staffId, Long attachmentId);

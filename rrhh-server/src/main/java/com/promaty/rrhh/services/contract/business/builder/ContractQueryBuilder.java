@@ -7,7 +7,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 import com.promaty.rrhh.dto.contract.ContractFilterParams;
 import com.promaty.rrhh.entity.Contract;
-import com.promaty.rrhh.services.shared.SearchNormalizer;
+import com.promaty.rrhh.services.shared.StaffSearchPredicate;
 
 import jakarta.persistence.criteria.Predicate;
 
@@ -21,19 +21,7 @@ public final class ContractQueryBuilder {
 			List<Predicate> predicates = new ArrayList<>();
 
 			if (filters.getSearch() != null && !filters.getSearch().isBlank()) {
-				String unaccentedPattern = SearchNormalizer.likePattern(filters.getSearch());
-				String rutPattern = "%" + SearchNormalizer.withoutRutPunctuation(filters.getSearch()) + "%";
-				var staff = root.get("staff");
-				Predicate porNombre = cb.or(
-					cb.like(SearchNormalizer.unaccent(cb, cb.lower(staff.get("firstName"))), unaccentedPattern),
-					cb.like(SearchNormalizer.unaccent(cb, cb.lower(staff.get("paternalLastName"))), unaccentedPattern),
-					cb.like(SearchNormalizer.unaccent(cb, cb.lower(staff.get("maternalLastName"))), unaccentedPattern)
-				);
-				Predicate porRut = cb.like(
-					SearchNormalizer.withoutRutPunctuation(cb, cb.lower(staff.get("identificationNumber"))),
-					rutPattern
-				);
-				predicates.add(cb.or(porNombre, porRut));
+				predicates.add(StaffSearchPredicate.matchesNameOrRut(cb, root.get("staff"), filters.getSearch()));
 			}
 			if (filters.getProjectId() != null) {
 				predicates.add(cb.equal(root.get("project").get("id"), filters.getProjectId()));

@@ -1,0 +1,9 @@
+package com.promaty.rrhh.entity;
+
+public enum AnnexTypeCode {
+	CONTRACT_EXTENSION,
+	CONVERSION_TO_INDEFINITE,
+	SALARY_INCREASE,
+	JOB_TITLE_CHANGE,
+	SCHEDULE_OR_SITE_CHANGE
+}

@@ -15,6 +15,9 @@ public final class RequestTypeLabelResolver {
 		),
 		RequestEntityType.TERMINATION, Map.of(
 			RequestAction.CREATE, "Nuevo finiquito"
+		),
+		RequestEntityType.ANNEX, Map.of(
+			RequestAction.CREATE, "Nuevo anexo"
 		)
 	);
 
@@ -22,7 +25,8 @@ public final class RequestTypeLabelResolver {
 	// etiqueta propia) — nunca debe filtrar el nombre del enum a la pantalla del usuario final.
 	private static final Map<RequestEntityType, String> NOMBRE_GENERICO = Map.of(
 		RequestEntityType.CONTRACT, "Contrato",
-		RequestEntityType.TERMINATION, "Finiquito"
+		RequestEntityType.TERMINATION, "Finiquito",
+		RequestEntityType.ANNEX, "Anexo"
 	);
 	private static final String NOMBRE_GENERICO_DESCONOCIDO = "Solicitud";
 

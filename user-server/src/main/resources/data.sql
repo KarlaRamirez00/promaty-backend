@@ -25,6 +25,7 @@ FROM (VALUES
   ('requestRejectionReasons', 'Motivos de rechazo', '/motivos-rechazo'),
   ('terminations', 'Finiquitos', '/finiquitos'),
   ('nonRehireReasons', 'Motivos de no recontratación', '/motivos-no-recontratacion'),
+  ('annexes', 'Anexos', '/anexos'),
   ('settings', 'Configuración del sistema', '/configuracion')
 ) AS s(name, alias, path)
 CROSS JOIN (SELECT id FROM modules WHERE name = 'sistema') m
@@ -82,6 +83,11 @@ FROM (VALUES
   ('nonRehireReason.create', 'Crear motivos de no recontratación', 'nonRehireReasons'),
   ('nonRehireReason.update', 'Editar motivos de no recontratación', 'nonRehireReasons'),
   ('nonRehireReason.active', 'Activar motivos de no recontratación', 'nonRehireReasons'),
+  ('annex.read', 'Ver anexos', 'annexes'),
+  ('annex.create', 'Crear anexos', 'annexes'),
+  ('annex.update', 'Editar anexos', 'annexes'),
+  ('annex.approve', 'Aprobar solicitud de anexo (gerente de obra)', 'annexes'),
+  ('annex.validate', 'Validar solicitud de anexo (RRHH)', 'annexes'),
   ('setting.read', 'Ver configuración del sistema', 'settings'),
   ('setting.update', 'Editar configuración del sistema', 'settings')
 ) AS p(name, alias, sub)

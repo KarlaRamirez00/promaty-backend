@@ -44,11 +44,10 @@ import com.promaty.rrhh.repository.PlatformStatusRepository;
 import com.promaty.rrhh.repository.RequestRepository;
 import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.repository.TerminationRepository;
-import com.promaty.rrhh.repository.UploadedFileRepository;
 import com.promaty.rrhh.services.rexplus.RexPlusClient;
 import com.promaty.rrhh.services.rexplus.RexSyncResult;
-import com.promaty.rrhh.services.shared.FileStorageService;
 import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
+import com.promaty.rrhh.services.shared.attachment.AttachmentService;
 import com.promaty.rrhh.services.termination.business.validation.TerminationAnnulmentValidation;
 import com.promaty.rrhh.services.termination.business.validation.TerminationValidation;
 
@@ -76,9 +75,7 @@ class TerminationServiceImplTest {
 	@Mock
 	private RexPlusClient rexPlusClient;
 	@Mock
-	private UploadedFileRepository uploadedFileRepository;
-	@Mock
-	private FileStorageService fileStorageService;
+	private AttachmentService attachmentService;
 	@Spy
 	private RequestApprovalActionsResolver actionsResolver = new RequestApprovalActionsResolver();
 
@@ -108,6 +105,22 @@ class TerminationServiceImplTest {
 		assertThat(detalle.getStaff().getIdentificationNumber()).isEqualTo("12345678-5");
 		assertThat(detalle.getCostCenterCode()).isEqualTo("00824");
 		assertThat(detalle.getStatus().getCode()).isEqualTo("PENDING_APPROVAL");
+		assertThat(detalle.getRequiredAttachmentLabel()).isNull();
+		assertThat(detalle.getMissingRequiredAttachment()).isFalse();
+	}
+
+	@Test
+	void getTerminationDetail_causalExigeAdjuntoYNoHayArchivo_marcaAdjuntoObligatorioFaltante() {
+		Termination termination = terminacionCompleta();
+		termination.getLegalTerminationCause().setRequiresAttachment(true);
+		termination.getLegalTerminationCause().setAttachmentLabel("Carta de renuncia");
+		when(terminationRepository.findById(1L)).thenReturn(Optional.of(termination));
+		when(requestRepository.findByEntityTypeAndEntityId(RequestEntityType.TERMINATION, 1L)).thenReturn(Optional.empty());
+
+		TerminationDetailDto detalle = service.getTerminationDetail(1L);
+
+		assertThat(detalle.getRequiredAttachmentLabel()).isEqualTo("Carta de renuncia");
+		assertThat(detalle.getMissingRequiredAttachment()).isTrue();
 	}
 
 	@Test

@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.promaty.rrhh.dto.response.BaseListData;
-import com.promaty.rrhh.dto.shared.CatalogOptionDto;
+import com.promaty.rrhh.dto.legalterminationcause.LegalTerminationCauseOptionDto;
 import com.promaty.rrhh.services.legalterminationcause.LegalTerminationCauseService;
 
 @RestController
@@ -22,7 +22,7 @@ public class LegalTerminationCauseController {
 
 	@GetMapping
 	@PreAuthorize("hasAuthority('termination.read')")
-	public ResponseEntity<BaseListData<CatalogOptionDto>> list() {
+	public ResponseEntity<BaseListData<LegalTerminationCauseOptionDto>> list() {
 		return ResponseEntity.ok(BaseListData.of(legalTerminationCauseService.listOptions()));
 	}
 }

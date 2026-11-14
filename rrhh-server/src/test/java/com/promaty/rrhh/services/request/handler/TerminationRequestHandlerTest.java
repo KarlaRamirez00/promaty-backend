@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.promaty.rrhh.entity.ApprovalDecision;
 import com.promaty.rrhh.entity.ApprovalLevel;
+import com.promaty.rrhh.entity.AttachmentEntityType;
 import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.LegalTerminationCause;
 import com.promaty.rrhh.entity.NonRehireReason;
@@ -35,6 +36,8 @@ import com.promaty.rrhh.repository.NonRehireReasonRepository;
 import com.promaty.rrhh.repository.PlatformStatusRepository;
 import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.repository.TerminationRepository;
+import com.promaty.rrhh.repository.UploadedFileRepository;
+import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.services.rexplus.RexPlusClient;
 import com.promaty.rrhh.services.rexplus.RexSyncResult;
 
@@ -59,6 +62,8 @@ class TerminationRequestHandlerTest {
 	private PlatformStatusRepository platformStatusRepository;
 	@Mock
 	private RexPlusClient rexPlusClient;
+	@Mock
+	private UploadedFileRepository uploadedFileRepository;
 
 	private TerminationRequestHandler handler;
 
@@ -67,7 +72,8 @@ class TerminationRequestHandlerTest {
 		handler = new TerminationRequestHandler(
 			new ObjectMapper().registerModule(new JavaTimeModule()),
 			staffRepository, contractRepository, legalTerminationCauseRepository,
-			nonRehireReasonRepository, terminationRepository, platformStatusRepository, rexPlusClient
+			nonRehireReasonRepository, terminationRepository, platformStatusRepository, rexPlusClient,
+			uploadedFileRepository
 		);
 	}
 
@@ -137,6 +143,59 @@ class TerminationRequestHandlerTest {
 
 		assertThat(termination.getStatus()).isEqualTo(pendienteValidacion);
 		verify(rexPlusClient, never()).syncTermination(any());
+	}
+
+	@Test
+	void applyDecision_aprobarSinElAdjuntoQueExigeLaCausal_lanzaBusinessValidationYNoCambiaEstado() {
+		Request request = new Request();
+		request.setEntityId(60L);
+		PlatformStatus pendienteAprobacion = estadoConCodigo("PENDING_APPROVAL");
+		Termination termination = terminationConEstado(pendienteAprobacion);
+		termination.setId(60L);
+		termination.setLegalTerminationCause(causalQueExigeAdjunto());
+		when(terminationRepository.findById(60L)).thenReturn(Optional.of(termination));
+		when(uploadedFileRepository.countByEntityTypeAndEntityId(AttachmentEntityType.TERMINATION, 60L)).thenReturn(0L);
+
+		assertThatThrownBy(() -> handler.applyDecision(request, ApprovalLevel.PROJECT_MANAGER, ApprovalDecision.APPROVED))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsEntry("attachments", "Falta adjuntar: Carta de renuncia."));
+
+		assertThat(termination.getStatus()).isEqualTo(pendienteAprobacion);
+		verify(terminationRepository, never()).save(any());
+	}
+
+	@Test
+	void applyDecision_aprobarConElAdjuntoQueExigeLaCausal_avanzaAPendingValidation() {
+		Request request = new Request();
+		request.setEntityId(61L);
+		Termination termination = terminationConEstado(estadoConCodigo("PENDING_APPROVAL"));
+		termination.setId(61L);
+		termination.setLegalTerminationCause(causalQueExigeAdjunto());
+		when(terminationRepository.findById(61L)).thenReturn(Optional.of(termination));
+		when(uploadedFileRepository.countByEntityTypeAndEntityId(AttachmentEntityType.TERMINATION, 61L)).thenReturn(1L);
+		PlatformStatus pendienteValidacion = estadoConCodigo("PENDING_VALIDATION");
+		when(platformStatusRepository.findBySubModuleAndCode("termination", "PENDING_VALIDATION"))
+			.thenReturn(Optional.of(pendienteValidacion));
+
+		handler.applyDecision(request, ApprovalLevel.PROJECT_MANAGER, ApprovalDecision.APPROVED);
+
+		assertThat(termination.getStatus()).isEqualTo(pendienteValidacion);
+	}
+
+	@Test
+	void applyDecision_rechazarSinElAdjuntoQueExigeLaCausal_sePermite() {
+		Request request = new Request();
+		request.setEntityId(62L);
+		Termination termination = terminationConEstado(estadoConCodigo("PENDING_APPROVAL"));
+		termination.setLegalTerminationCause(causalQueExigeAdjunto());
+		when(terminationRepository.findById(62L)).thenReturn(Optional.of(termination));
+		PlatformStatus rechazado = estadoConCodigo("REJECTED");
+		when(platformStatusRepository.findBySubModuleAndCode("termination", "REJECTED")).thenReturn(Optional.of(rechazado));
+
+		handler.applyDecision(request, ApprovalLevel.PROJECT_MANAGER, ApprovalDecision.REJECTED);
+
+		assertThat(termination.getStatus()).isEqualTo(rechazado);
 	}
 
 	@Test
@@ -262,6 +321,14 @@ class TerminationRequestHandlerTest {
 	private Termination terminationConEstado(PlatformStatus estado) {
 		Termination termination = new Termination();
 		termination.setStatus(estado);
+		termination.setLegalTerminationCause(new LegalTerminationCause());
 		return termination;
+	}
+
+	private LegalTerminationCause causalQueExigeAdjunto() {
+		LegalTerminationCause causal = new LegalTerminationCause();
+		causal.setRequiresAttachment(true);
+		causal.setAttachmentLabel("Carta de renuncia");
+		return causal;
 	}
 }

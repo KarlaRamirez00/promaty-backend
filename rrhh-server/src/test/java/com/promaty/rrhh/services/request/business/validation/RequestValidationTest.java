@@ -4,12 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
@@ -24,6 +27,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import com.promaty.rrhh.dto.request.AnnexPendingDataDto;
 import com.promaty.rrhh.dto.request.ContractPendingDataDto;
 import com.promaty.rrhh.dto.request.CreateRequestDto;
 import com.promaty.rrhh.dto.request.TerminationPendingDataDto;
@@ -31,8 +35,10 @@ import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.ContractType;
 import com.promaty.rrhh.entity.LegalTerminationCause;
 import com.promaty.rrhh.entity.NonRehireReason;
+import com.promaty.rrhh.entity.PlatformStatus;
 import com.promaty.rrhh.entity.RequestAction;
 import com.promaty.rrhh.entity.RequestEntityType;
+import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.entity.Termination;
 import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.repository.CompanyRepository;
@@ -47,6 +53,7 @@ import com.promaty.rrhh.repository.SiteRepository;
 import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.repository.TerminationRepository;
 import com.promaty.rrhh.repository.TransportTypeRepository;
+import com.promaty.rrhh.services.annex.business.validation.AnnexValidation;
 import com.promaty.rrhh.services.request.handler.RequestHandler;
 import com.promaty.rrhh.services.request.handler.RequestHandlerRegistry;
 
@@ -90,6 +97,10 @@ class RequestValidationTest {
 	private NonRehireReasonRepository nonRehireReasonRepository;
 	@Mock
 	private TerminationRepository terminationRepository;
+	@Mock
+	private AnnexValidation annexValidation;
+	@Mock
+	private RequestHandler annexHandler;
 
 	@InjectMocks
 	private RequestValidation requestValidation;
@@ -228,6 +239,45 @@ class RequestValidationTest {
 			.isInstanceOf(BusinessValidationException.class)
 			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
 				.containsKey("staffId"));
+	}
+
+	@Test
+	void validateCreate_anexo_delegaLasReglasEnAnnexValidationYPropagaSusErrores() {
+		when(handlerRegistry.get(RequestEntityType.ANNEX)).thenReturn(annexHandler);
+		when(annexHandler.createPermission()).thenReturn("annex.create");
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+			"usuario", null, List.of(new SimpleGrantedAuthority("annex.create"))
+		));
+		AnnexPendingDataDto annexData = new AnnexPendingDataDto();
+		CreateRequestDto dto = new CreateRequestDto();
+		dto.setEntityType(RequestEntityType.ANNEX);
+		dto.setAction(RequestAction.CREATE);
+		dto.setAnnexData(annexData);
+		doAnswer(invocation -> {
+			Map<String, String> errores = invocation.getArgument(1);
+			errores.put("staffId", "El colaborador está bloqueado y no puede recibir anexos.");
+			return null;
+		}).when(annexValidation).collectCreateErrors(eq(annexData), any());
+
+		assertThatThrownBy(() -> requestValidation.validateCreate(dto))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsEntry("staffId", "El colaborador está bloqueado y no puede recibir anexos."));
+	}
+
+	@Test
+	void validateCreate_conStaffBloqueado_lanzaErrorEnStaffId() {
+		todasLasFkExisten();
+		PlatformStatus bloqueado = new PlatformStatus();
+		bloqueado.setCode("BLOCKED");
+		Staff staff = new Staff();
+		staff.setStatus(bloqueado);
+		when(staffRepository.findById(STAFF_ID)).thenReturn(Optional.of(staff));
+
+		assertThatThrownBy(() -> requestValidation.validateCreate(dtoValido()))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsEntry("staffId", "El colaborador está bloqueado y no puede ser contratado."));
 	}
 
 	@Test

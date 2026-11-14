@@ -36,7 +36,12 @@ VALUES
 	('Aprobado',                'APPROVED',           'Validado por RRHH, efectos ya aplicados.',             3, 'termination', true, now(), now(), 'system', 'system'),
 	('Rechazado',               'REJECTED',           'Rechazado en algún nivel de aprobación.',              4, 'termination', true, now(), now(), 'system', 'system'),
 	('Error de sincronización', 'SYNC_ERROR',         'Falló la sincronización con el ERP de RRHH.',          5, 'termination', true, now(), now(), 'system', 'system'),
-	('Anulado',                 'ANNULLED',           'Aprobado, pero sus efectos fueron revertidos.',        6, 'termination', true, now(), now(), 'system', 'system')
+	('Anulado',                 'ANNULLED',           'Aprobado, pero sus efectos fueron revertidos.',        6, 'termination', true, now(), now(), 'system', 'system'),
+	('Pendiente de aprobación', 'PENDING_APPROVAL',   'Esperando aprobación de jefatura.',                    1, 'annex', true, now(), now(), 'system', 'system'),
+	('Pendiente de validación', 'PENDING_VALIDATION', 'Aprobado por jefatura, esperando validación de RRHH.', 2, 'annex', true, now(), now(), 'system', 'system'),
+	('Aprobado',                'APPROVED',           'Validado por RRHH, cambio aplicado al contrato.',      3, 'annex', true, now(), now(), 'system', 'system'),
+	('Rechazado',               'REJECTED',           'Rechazado en algún nivel de aprobación.',              4, 'annex', true, now(), now(), 'system', 'system'),
+	('Error de sincronización', 'SYNC_ERROR',         'Falló la sincronización con el ERP de RRHH.',          5, 'annex', true, now(), now(), 'system', 'system')
 ON CONFLICT (sub_module, code) DO NOTHING;
 
 -- Catálogos de solo lectura para la ficha de Staff (HU-B23, extensión legal). Valores editables por
@@ -618,18 +623,32 @@ ON CONFLICT (code) DO NOTHING;
 -- sistema real se sincroniza desde Rex+, no es un mantenedor editable por el usuario acá. Listado
 -- según las causales informadas por la Dirección del Trabajo (confirmado con Codex del proyecto
 -- original) — code estable, nunca un id fijo, para no acoplar reglas de negocio a un id de seed.
-INSERT INTO legal_termination_cause (name, code, active, created_at, updated_at, created_by, updated_by)
+-- DO UPDATE (y no DO NOTHING) para que una BD ya sembrada reciba requires_attachment/attachment_label.
+INSERT INTO legal_termination_cause (name, code, requires_attachment, attachment_label, active, created_at, updated_at, created_by, updated_by)
 VALUES
-	('Mutuo acuerdo de las partes',          'MUTUAL_AGREEMENT',       true, now(), now(), 'system', 'system'),
-	('Renuncia voluntaria',                  'RESIGNATION',            true, now(), now(), 'system', 'system'),
-	('Muerte del trabajador',                'DEATH',                  true, now(), now(), 'system', 'system'),
-	('Vencimiento del plazo convenido',      'TERM_EXPIRATION',        true, now(), now(), 'system', 'system'),
-	('Conclusión del trabajo o servicio',    'WORK_COMPLETION',        true, now(), now(), 'system', 'system'),
-	('Caso fortuito o fuerza mayor',         'FORCE_MAJEURE',          true, now(), now(), 'system', 'system'),
-	('Necesidades de la empresa',            'BUSINESS_NEEDS',         true, now(), now(), 'system', 'system'),
-	('Causal disciplinaria (art. 160)',      'DISCIPLINARY',           true, now(), now(), 'system', 'system'),
-	('Desahucio escrito del empleador',      'EMPLOYER_NOTICE',        true, now(), now(), 'system', 'system'),
-	('Quiebra o liquidación concursal',      'BANKRUPTCY_LIQUIDATION', true, now(), now(), 'system', 'system')
+	('Mutuo acuerdo de las partes',          'MUTUAL_AGREEMENT',       true,  'Documento de mutuo acuerdo', true, now(), now(), 'system', 'system'),
+	('Renuncia voluntaria',                  'RESIGNATION',            true,  'Carta de renuncia',          true, now(), now(), 'system', 'system'),
+	('Muerte del trabajador',                'DEATH',                  false, NULL, true, now(), now(), 'system', 'system'),
+	('Vencimiento del plazo convenido',      'TERM_EXPIRATION',        false, NULL, true, now(), now(), 'system', 'system'),
+	('Conclusión del trabajo o servicio',    'WORK_COMPLETION',        false, NULL, true, now(), now(), 'system', 'system'),
+	('Caso fortuito o fuerza mayor',         'FORCE_MAJEURE',          false, NULL, true, now(), now(), 'system', 'system'),
+	('Necesidades de la empresa',            'BUSINESS_NEEDS',         false, NULL, true, now(), now(), 'system', 'system'),
+	('Causal disciplinaria (art. 160)',      'DISCIPLINARY',           false, NULL, true, now(), now(), 'system', 'system'),
+	('Desahucio escrito del empleador',      'EMPLOYER_NOTICE',        false, NULL, true, now(), now(), 'system', 'system'),
+	('Quiebra o liquidación concursal',      'BANKRUPTCY_LIQUIDATION', false, NULL, true, now(), now(), 'system', 'system')
+ON CONFLICT (code) DO UPDATE
+	SET requires_attachment = EXCLUDED.requires_attachment,
+	    attachment_label = EXCLUDED.attachment_label;
+
+-- Tipos de anexo (HU-B102). Catálogo de solo lectura: el comportamiento de cada tipo vive en el
+-- código (AnnexChangeRule por code), así que agregar un tipo exige desplegar su regla.
+INSERT INTO annex_type (name, code, active, created_at, updated_at, created_by, updated_by)
+VALUES
+	('Prórroga de plazo',         'CONTRACT_EXTENSION',       true, now(), now(), 'system', 'system'),
+	('Paso a indefinido',         'CONVERSION_TO_INDEFINITE', true, now(), now(), 'system', 'system'),
+	('Aumento de sueldo',         'SALARY_INCREASE',          true, now(), now(), 'system', 'system'),
+	('Cambio de cargo',           'JOB_TITLE_CHANGE',         true, now(), now(), 'system', 'system'),
+	('Cambio de horario o lugar', 'SCHEDULE_OR_SITE_CHANGE',  true, now(), now(), 'system', 'system')
 ON CONFLICT (code) DO NOTHING;
 
 -- Motivos de no recontratación (HU-B101, Finiquito). A diferencia de legal_termination_cause, este

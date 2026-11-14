@@ -40,4 +40,6 @@ public class TerminationDetailDto {
 	private Long requestId;
 	private List<Action> actions;
 	private List<FileAttachmentDto> attachments;
+	private String requiredAttachmentLabel;
+	private Boolean missingRequiredAttachment;
 }

@@ -1,5 +1,6 @@
 package com.promaty.rrhh.services.rexplus;
 
+import com.promaty.rrhh.entity.Annex;
 import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.Termination;
 
@@ -14,4 +15,6 @@ public interface RexPlusClient {
 	RexSyncResult syncTermination(Termination termination);
 
 	RexSyncResult annulTermination(Termination termination);
+
+	RexSyncResult syncAnnex(Annex annex);
 }

@@ -23,6 +23,8 @@ import lombok.Setter;
 @Table(name = "staff")
 public class Staff extends BaseDatedEntity {
 
+	private static final String CODE_STATUS_BLOCKED = "BLOCKED";
+
 	@Enumerated(EnumType.STRING)
 	@Column(name = "identification_type", nullable = false, length = 20)
 	private IdentificationType identificationType;
@@ -118,5 +120,9 @@ public class Staff extends BaseDatedEntity {
 
 	public String getFullName() {
 		return firstName + " " + paternalLastName + " " + maternalLastName;
+	}
+
+	public boolean isBlocked() {
+		return status != null && CODE_STATUS_BLOCKED.equals(status.getCode());
 	}
 }

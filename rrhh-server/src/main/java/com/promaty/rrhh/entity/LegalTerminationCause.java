@@ -24,4 +24,14 @@ public class LegalTerminationCause extends BaseDatedEntity {
 
 	@Column(nullable = false)
 	private Boolean active = true;
+
+	@Column(name = "requires_attachment", nullable = false)
+	private Boolean requiresAttachment = false;
+
+	@Column(name = "attachment_label", length = 100)
+	private String attachmentLabel;
+
+	public String requiredAttachmentLabel() {
+		return Boolean.TRUE.equals(requiresAttachment) ? attachmentLabel : null;
+	}
 }

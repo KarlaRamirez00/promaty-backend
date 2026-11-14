@@ -1,5 +1,7 @@
 package com.promaty.rrhh.services.request.handler;
 
+import java.util.Map;
+
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -7,12 +9,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.promaty.rrhh.dto.request.TerminationPendingDataDto;
 import com.promaty.rrhh.entity.ApprovalDecision;
 import com.promaty.rrhh.entity.ApprovalLevel;
+import com.promaty.rrhh.entity.AttachmentEntityType;
 import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.PlatformStatus;
 import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.entity.Termination;
+import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.LegalTerminationCauseRepository;
@@ -20,6 +24,7 @@ import com.promaty.rrhh.repository.NonRehireReasonRepository;
 import com.promaty.rrhh.repository.PlatformStatusRepository;
 import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.repository.TerminationRepository;
+import com.promaty.rrhh.repository.UploadedFileRepository;
 import com.promaty.rrhh.services.rexplus.RexPlusClient;
 import com.promaty.rrhh.services.rexplus.RexSyncResult;
 
@@ -48,6 +53,7 @@ public class TerminationRequestHandler implements RequestHandler {
 	private static final String PERMISO_VALIDAR = "termination.validate";
 	private static final String PERMISO_CREAR = "termination.create";
 	private static final String PERMISO_LEER = "termination.read";
+	private static final String FIELD_ATTACHMENTS = "attachments";
 
 	private final ObjectMapper objectMapper;
 	private final StaffRepository staffRepository;
@@ -57,6 +63,7 @@ public class TerminationRequestHandler implements RequestHandler {
 	private final TerminationRepository terminationRepository;
 	private final PlatformStatusRepository platformStatusRepository;
 	private final RexPlusClient rexPlusClient;
+	private final UploadedFileRepository uploadedFileRepository;
 
 	public TerminationRequestHandler(
 		ObjectMapper objectMapper,
@@ -66,7 +73,8 @@ public class TerminationRequestHandler implements RequestHandler {
 		NonRehireReasonRepository nonRehireReasonRepository,
 		TerminationRepository terminationRepository,
 		PlatformStatusRepository platformStatusRepository,
-		RexPlusClient rexPlusClient
+		RexPlusClient rexPlusClient,
+		UploadedFileRepository uploadedFileRepository
 	) {
 		this.objectMapper = objectMapper;
 		this.staffRepository = staffRepository;
@@ -76,6 +84,7 @@ public class TerminationRequestHandler implements RequestHandler {
 		this.terminationRepository = terminationRepository;
 		this.platformStatusRepository = platformStatusRepository;
 		this.rexPlusClient = rexPlusClient;
+		this.uploadedFileRepository = uploadedFileRepository;
 	}
 
 	@Override
@@ -136,12 +145,29 @@ public class TerminationRequestHandler implements RequestHandler {
 			terminationRepository.save(termination);
 			return;
 		}
+		validateRequiredAttachment(termination);
 		if (level == ApprovalLevel.PROJECT_MANAGER) {
 			termination.setStatus(resolveEstadoTermination(CODE_PENDING_VALIDATION));
 			terminationRepository.save(termination);
 			return;
 		}
 		aplicarValidacionRrhh(termination);
+	}
+
+	private void validateRequiredAttachment(Termination termination) {
+		String requiredLabel = termination.getLegalTerminationCause().requiredAttachmentLabel();
+		if (requiredLabel == null) {
+			return;
+		}
+		long attachmentCount = uploadedFileRepository.countByEntityTypeAndEntityId(
+			AttachmentEntityType.TERMINATION, termination.getId()
+		);
+		if (attachmentCount == 0) {
+			throw new BusinessValidationException(
+				"Falta el adjunto obligatorio del finiquito.",
+				Map.of(FIELD_ATTACHMENTS, "Falta adjuntar: " + requiredLabel + ".")
+			);
+		}
 	}
 
 	private void aplicarValidacionRrhh(Termination termination) {

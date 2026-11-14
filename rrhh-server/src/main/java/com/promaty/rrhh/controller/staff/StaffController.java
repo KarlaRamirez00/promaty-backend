@@ -82,6 +82,12 @@ public class StaffController {
 		return ResponseEntity.ok(BaseListData.of(staffService.listSelectorOptionsForTermination()));
 	}
 
+	@GetMapping("/selector/annexable")
+	@PreAuthorize("hasAuthority('annex.create')")
+	public ResponseEntity<BaseListData<StaffSelectorOptionDto>> selectorForAnnex() {
+		return ResponseEntity.ok(BaseListData.of(staffService.listSelectorOptionsForAnnex()));
+	}
+
 	@PutMapping(value = "/{id}", consumes = "multipart/form-data")
 	@PreAuthorize("hasAuthority('staff.update')")
 	public ResponseEntity<BaseData<StaffDetailDto>> update(
