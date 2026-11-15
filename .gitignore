@@ -9,6 +9,10 @@ target/
 # OS
 .DS_Store
 
+# Logs de crash de la JVM
+hs_err_pid*.log
+replay_pid*.log
+
 # Secretos / config local
 .env
 application-local.yml
