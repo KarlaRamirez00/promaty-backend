@@ -26,6 +26,7 @@ import com.promaty.rrhh.dto.response.BaseListData;
 import com.promaty.rrhh.dto.staff.CreateStaffDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffFilterParams;
+import com.promaty.rrhh.dto.staff.StaffAnnexSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.StaffListDto;
 import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.StaffTerminationSelectorOptionDto;
@@ -84,7 +85,7 @@ public class StaffController {
 
 	@GetMapping("/selector/annexable")
 	@PreAuthorize("hasAuthority('annex.create')")
-	public ResponseEntity<BaseListData<StaffSelectorOptionDto>> selectorForAnnex() {
+	public ResponseEntity<BaseListData<StaffAnnexSelectorOptionDto>> selectorForAnnex() {
 		return ResponseEntity.ok(BaseListData.of(staffService.listSelectorOptionsForAnnex()));
 	}
 

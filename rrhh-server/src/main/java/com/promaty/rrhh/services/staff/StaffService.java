@@ -11,6 +11,7 @@ import com.promaty.rrhh.dto.staff.CreateStaffDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffFilterParams;
 import com.promaty.rrhh.dto.staff.StaffListDto;
+import com.promaty.rrhh.dto.staff.StaffAnnexSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.StaffTerminationSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
@@ -32,7 +33,7 @@ public interface StaffService {
 
 	List<StaffTerminationSelectorOptionDto> listSelectorOptionsForTermination();
 
-	List<StaffSelectorOptionDto> listSelectorOptionsForAnnex();
+	List<StaffAnnexSelectorOptionDto> listSelectorOptionsForAnnex();
 
 	FileAttachmentDto uploadAttachment(Long staffId, MultipartFile file);
 

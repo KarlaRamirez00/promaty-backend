@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.promaty.rrhh.dto.contract.ContractSummaryDto;
 import com.promaty.rrhh.dto.contract.RelationSummaryDto;
 import com.promaty.rrhh.dto.contract.StaffSummaryDto;
 import com.promaty.rrhh.dto.file.AttachmentRequirementDto;
@@ -28,6 +29,8 @@ public class AnnexDetailDto {
 	private StaffSummaryDto staff;
 	private Long contractId;
 	private String costCenterCode;
+	private RelationSummaryDto project;
+	private ContractSummaryDto currentContract;
 	private CatalogOptionDto annexType;
 	private LocalDate effectiveDate;
 	private String description;

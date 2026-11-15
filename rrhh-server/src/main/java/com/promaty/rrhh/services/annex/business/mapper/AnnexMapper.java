@@ -13,6 +13,7 @@ import com.promaty.rrhh.entity.ContractType;
 import com.promaty.rrhh.entity.JobTitle;
 import com.promaty.rrhh.entity.Site;
 import com.promaty.rrhh.entity.Staff;
+import com.promaty.rrhh.services.contract.business.mapper.ContractMapper;
 
 public final class AnnexMapper {
 
@@ -50,6 +51,8 @@ public final class AnnexMapper {
 			toStaffSummary(annex.getStaff()),
 			annex.getContract().getId(),
 			annex.getProject().getCostCenterCode(),
+			new RelationSummaryDto(annex.getProject().getId(), annex.getProject().getDisplayName()),
+			ContractMapper.toSummaryDto(annex.getContract()),
 			toTypeOptionDto(annex.getAnnexType()),
 			annex.getEffectiveDate(),
 			annex.getDescription(),

@@ -100,6 +100,8 @@ class AnnexServiceImplTest {
 		assertThat(detalle.getRequestId()).isEqualTo(9L);
 		assertThat(detalle.getActions()).containsExactly(Action.APPROVE, Action.UPDATE);
 		assertThat(detalle.getAnnexType().getCode()).isEqualTo("SALARY_INCREASE");
+		assertThat(detalle.getProject().getId()).isEqualTo(7L);
+		assertThat(detalle.getCurrentContract().getContractId()).isEqualTo(10L);
 	}
 
 	@Test
@@ -159,6 +161,7 @@ class AnnexServiceImplTest {
 		staff.setPaternalLastName("Rojas");
 		staff.setMaternalLastName("Vera");
 		Project project = new Project();
+		project.setId(7L);
 		project.setCostCenterCode("00824");
 		Contract contract = new Contract();
 		contract.setId(10L);

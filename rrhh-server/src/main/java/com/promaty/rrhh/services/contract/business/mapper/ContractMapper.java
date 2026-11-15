@@ -3,11 +3,17 @@ package com.promaty.rrhh.services.contract.business.mapper;
 import com.promaty.rrhh.dto.request.ContractPendingDataDto;
 import com.promaty.rrhh.dto.contract.ContractDetailDto;
 import com.promaty.rrhh.dto.contract.ContractListDto;
+import com.promaty.rrhh.dto.contract.ContractSummaryDto;
 import com.promaty.rrhh.dto.contract.RelationSummaryDto;
 import com.promaty.rrhh.dto.contract.StaffSummaryDto;
 import com.promaty.rrhh.dto.platformstatus.PlatformStatusOptionDto;
+import com.promaty.rrhh.dto.shared.CatalogOptionDto;
 import com.promaty.rrhh.entity.Contract;
+import com.promaty.rrhh.entity.ContractType;
+import com.promaty.rrhh.entity.JobTitle;
 import com.promaty.rrhh.entity.MealType;
+import com.promaty.rrhh.entity.Project;
+import com.promaty.rrhh.entity.Site;
 import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.entity.TransportType;
 
@@ -71,6 +77,28 @@ public final class ContractMapper {
 
 	private static StaffSummaryDto toStaffSummary(Staff staff) {
 		return new StaffSummaryDto(staff.getId(), staff.getFullName(), staff.getIdentificationNumber());
+	}
+
+	public static ContractSummaryDto toSummaryDto(Contract contract) {
+		if (contract == null) {
+			return null;
+		}
+		ContractType type = contract.getContractType();
+		JobTitle jobTitle = contract.getJobTitle();
+		Site site = contract.getSite();
+		Project project = contract.getProject();
+		return new ContractSummaryDto(
+			contract.getId(),
+			type == null ? null : new CatalogOptionDto(type.getId(), type.getName(), type.getCode()),
+			contract.getStartDate(),
+			contract.getEndDate(),
+			contract.getBaseSalary(),
+			jobTitle == null ? null : new RelationSummaryDto(jobTitle.getId(), jobTitle.getName()),
+			contract.getWeeklyWorkHours(),
+			contract.getWorkDays(),
+			site == null ? null : new RelationSummaryDto(site.getId(), site.getName()),
+			project == null ? null : new RelationSummaryDto(project.getId(), project.getDisplayName())
+		);
 	}
 
 	private static RelationSummaryDto toRelationSummary(MealType mealType) {

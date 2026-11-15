@@ -8,6 +8,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +28,7 @@ import com.promaty.rrhh.dto.staff.CreateStaffDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffFilterParams;
 import com.promaty.rrhh.dto.staff.StaffListDto;
+import com.promaty.rrhh.dto.staff.StaffAnnexSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.StaffTerminationSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
@@ -263,9 +265,26 @@ class StaffServiceImplTest {
 		when(staffRepository.findWithActiveContractForAnnexSelector("ACTIVE", "BLOCKED")).thenReturn(List.of(propio, ajeno));
 		when(contractRepository.findAll(any(Specification.class))).thenReturn(List.of(contratoDe(propio)));
 
-		List<StaffSelectorOptionDto> opciones = service.listSelectorOptionsForAnnex();
+		List<StaffAnnexSelectorOptionDto> opciones = service.listSelectorOptionsForAnnex();
 
-		assertThat(opciones).extracting(StaffSelectorOptionDto::getId).containsExactly(1L);
+		assertThat(opciones).extracting(StaffAnnexSelectorOptionDto::getId).containsExactly(1L);
+	}
+
+	@Test
+	void listSelectorOptionsForAnnex_incluyeElResumenDelContratoActivo() {
+		Staff staff = staffConId(1L);
+		Contract contrato = contratoDe(staff);
+		contrato.setId(10L);
+		contrato.setBaseSalary(BigDecimal.valueOf(850000));
+		contrato.setEndDate(LocalDate.of(2026, 12, 31));
+		when(staffRepository.findWithActiveContractForAnnexSelector("ACTIVE", "BLOCKED")).thenReturn(List.of(staff));
+		when(contractRepository.findAll(any(Specification.class))).thenReturn(List.of(contrato));
+
+		StaffAnnexSelectorOptionDto opcion = service.listSelectorOptionsForAnnex().get(0);
+
+		assertThat(opcion.getActiveContract().getContractId()).isEqualTo(10L);
+		assertThat(opcion.getActiveContract().getBaseSalary()).isEqualByComparingTo("850000");
+		assertThat(opcion.getActiveContract().getEndDate()).isEqualTo(LocalDate.of(2026, 12, 31));
 	}
 
 	private static Contract contratoDe(Staff staff) {

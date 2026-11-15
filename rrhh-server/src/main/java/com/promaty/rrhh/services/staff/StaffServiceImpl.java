@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -25,6 +26,7 @@ import com.promaty.rrhh.dto.staff.CreateStaffDto;
 import com.promaty.rrhh.dto.staff.StaffDetailDto;
 import com.promaty.rrhh.dto.staff.StaffFilterParams;
 import com.promaty.rrhh.dto.staff.StaffListDto;
+import com.promaty.rrhh.dto.staff.StaffAnnexSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.StaffSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.StaffTerminationSelectorOptionDto;
 import com.promaty.rrhh.dto.staff.UpdateStaffDto;
@@ -41,6 +43,7 @@ import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.repository.UploadedFileRepository;
 import com.promaty.rrhh.services.file.business.mapper.UploadedFileMapper;
 import com.promaty.rrhh.services.shared.FileStorageService;
+import com.promaty.rrhh.services.contract.business.mapper.ContractMapper;
 import com.promaty.rrhh.services.shared.ProjectAccessSpecification;
 import com.promaty.rrhh.repository.projection.StaffActiveContractDateRangeProjection;
 import com.promaty.rrhh.repository.projection.StaffContractStartDateProjection;
@@ -260,20 +263,30 @@ public class StaffServiceImpl implements StaffService {
 
 	@Override
 	@Transactional(readOnly = true)
-	public List<StaffSelectorOptionDto> listSelectorOptionsForAnnex() {
-		return onlyWithAccessibleContract(staffRepository.findWithActiveContractForAnnexSelector(ESTADO_ACTIVO, CODIGO_ESTADO_BLOCKED))
+	public List<StaffAnnexSelectorOptionDto> listSelectorOptionsForAnnex() {
+		Map<Long, Contract> contractsByStaffId = accessibleActiveContractsByStaffId();
+		return staffRepository.findWithActiveContractForAnnexSelector(ESTADO_ACTIVO, CODIGO_ESTADO_BLOCKED)
 			.stream()
-			.map(StaffMapper::toSelectorOptionDto)
+			.filter(staff -> contractsByStaffId.containsKey(staff.getId()))
+			.map(staff -> new StaffAnnexSelectorOptionDto(
+				staff.getId(),
+				staff.getFullName(),
+				staff.getIdentificationNumber(),
+				ContractMapper.toSummaryDto(contractsByStaffId.get(staff.getId()))
+			))
 			.toList();
 	}
 
 	private List<Staff> onlyWithAccessibleContract(List<Staff> candidates) {
+		Set<Long> accessibleStaffIds = accessibleActiveContractsByStaffId().keySet();
+		return candidates.stream().filter(staff -> accessibleStaffIds.contains(staff.getId())).toList();
+	}
+
+	private Map<Long, Contract> accessibleActiveContractsByStaffId() {
 		Specification<Contract> accessibleActiveContracts = ProjectAccessSpecification.<Contract>onProject()
 			.and((root, query, cb) -> cb.equal(root.get("status").get("code"), ESTADO_ACTIVO));
-		Set<Long> accessibleStaffIds = contractRepository.findAll(accessibleActiveContracts).stream()
-			.map(contract -> contract.getStaff().getId())
-			.collect(Collectors.toSet());
-		return candidates.stream().filter(staff -> accessibleStaffIds.contains(staff.getId())).toList();
+		return contractRepository.findAll(accessibleActiveContracts).stream()
+			.collect(Collectors.toMap(contract -> contract.getStaff().getId(), Function.identity(), (first, second) -> first));
 	}
 
 	private String resolverCentroCosto(Long staffId) {
