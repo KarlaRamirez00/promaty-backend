@@ -211,6 +211,7 @@ class ContractServiceImplTest {
 		assertThat(detalle.getStaff().getIdentificationNumber()).isEqualTo("12345678-5");
 		assertThat(detalle.getCompany().getName()).isEqualTo("Constructora Promaty S.A.");
 		assertThat(detalle.getCostCenterCode()).isEqualTo("00824");
+		assertThat(detalle.getProject().getId()).isEqualTo(1L);
 		assertThat(detalle.getStatus().getCode()).isEqualTo("PENDING_APPROVAL");
 	}
 

@@ -45,6 +45,7 @@ public final class ContractMapper {
 			new RelationSummaryDto(contract.getContractType().getId(), contract.getContractType().getName()),
 			new RelationSummaryDto(contract.getJobTitle().getId(), contract.getJobTitle().getName()),
 			new RelationSummaryDto(contract.getSite().getId(), contract.getSite().getName()),
+			new RelationSummaryDto(contract.getProject().getId(), contract.getProject().getDisplayName()),
 			contract.getProject().getCostCenterCode(),
 			contract.getStartDate(),
 			contract.getEndDate(),

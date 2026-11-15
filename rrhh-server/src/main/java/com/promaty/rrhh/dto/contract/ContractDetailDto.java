@@ -27,6 +27,7 @@ public class ContractDetailDto {
 	private RelationSummaryDto contractType;
 	private RelationSummaryDto jobTitle;
 	private RelationSummaryDto site;
+	private RelationSummaryDto project;
 	private String costCenterCode;
 	private LocalDate startDate;
 	private LocalDate endDate;

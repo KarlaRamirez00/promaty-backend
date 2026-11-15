@@ -110,7 +110,7 @@ class ContractControllerTest {
 	@Test
 	void detail_registroExiste_retorna200() throws Exception {
 		StaffSummaryDto staff = new StaffSummaryDto(1L, "Juan Perez Soto", "12345678-5");
-		ContractDetailDto detalle = new ContractDetailDto(1L, staff, null, null, null, null, "00824",
+		ContractDetailDto detalle = new ContractDetailDto(1L, staff, null, null, null, null, null, "00824",
 			LocalDate.of(2026, 1, 1), null, null, null, null, null, null, null, null, null,
 			null, null, null, "system", null, null, List.of(), null, null);
 		when(contractService.getContractDetail(1L)).thenReturn(detalle);
