@@ -42,6 +42,7 @@ import com.promaty.rrhh.repository.TransportTypeRepository;
 import com.promaty.rrhh.services.holidayprovider.BusinessDayCalculator;
 import com.promaty.rrhh.services.rexplus.RexPlusClient;
 import com.promaty.rrhh.services.rexplus.RexSyncResult;
+import com.promaty.rrhh.services.shared.attachment.AttachmentService;
 
 @ExtendWith(MockitoExtension.class)
 class ContractRequestHandlerTest {
@@ -73,6 +74,8 @@ class ContractRequestHandlerTest {
 	private RexPlusClient rexPlusClient;
 	@Mock
 	private BusinessDayCalculator businessDayCalculator;
+	@Mock
+	private AttachmentService attachmentService;
 
 	private ContractRequestHandler handler;
 
@@ -82,7 +85,7 @@ class ContractRequestHandlerTest {
 			new ObjectMapper().registerModule(new JavaTimeModule()),
 			contractRepository, staffRepository, companyRepository, contractTypeRepository,
 			jobTitleRepository, siteRepository, mealTypeRepository, transportTypeRepository,
-			platformStatusRepository, rexPlusClient, businessDayCalculator
+			platformStatusRepository, rexPlusClient, businessDayCalculator, attachmentService
 		);
 	}
 

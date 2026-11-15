@@ -24,12 +24,15 @@ import com.promaty.rrhh.repository.ProjectRepository;
 import com.promaty.rrhh.services.project.business.builder.CreateProjectBuilder;
 import com.promaty.rrhh.services.project.business.builder.ProjectQueryBuilder;
 import com.promaty.rrhh.services.project.business.builder.ProjectRelationsResolver;
+import com.promaty.rrhh.services.project.business.builder.ProjectSortField;
 import com.promaty.rrhh.services.project.business.builder.UpdateProjectBuilder;
 import com.promaty.rrhh.services.project.business.mapper.ProjectMapper;
 import com.promaty.rrhh.services.project.business.validation.ProjectValidation;
 import com.promaty.rrhh.services.shared.ActionsResolver;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
 import com.promaty.rrhh.services.shared.ProjectAccessSpecification;
+import com.promaty.rrhh.services.shared.sort.ListSorting;
+import com.promaty.rrhh.services.shared.sort.SortedQuery;
 
 @Service
 public class ProjectServiceImpl implements ProjectService {
@@ -96,8 +99,9 @@ public class ProjectServiceImpl implements ProjectService {
 	public Page<ProjectListDto> listProjects(ProjectFilterParams filters, Pageable pageable) {
 		Specification<Project> especificacion = ProjectQueryBuilder.fromFilters(filters)
 			.and(ProjectAccessSpecification.onProjectId());
+		SortedQuery<Project> sorted = ListSorting.apply(especificacion, pageable, ProjectSortField.class);
 		List<Action> actions = actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES);
-		return projectRepository.findAll(especificacion, pageable)
+		return projectRepository.findAll(sorted.specification(), sorted.pageable())
 			.map(ProjectMapper::toListDto)
 			.map(dto -> conAcciones(dto, actions));
 	}

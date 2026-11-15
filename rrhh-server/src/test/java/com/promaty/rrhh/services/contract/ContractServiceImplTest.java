@@ -3,15 +3,24 @@ package com.promaty.rrhh.services.contract;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -19,10 +28,23 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.promaty.rrhh.dto.contract.ContractCountersDto;
 import com.promaty.rrhh.dto.contract.ContractDetailDto;
 import com.promaty.rrhh.dto.contract.ContractFilterParams;
+import com.promaty.rrhh.dto.contract.UpdateContractAttachmentsDto;
+import com.promaty.rrhh.dto.contract.UpdateContractDto;
+import com.promaty.rrhh.dto.request.ContractPendingDataDto;
+import com.promaty.rrhh.services.contract.business.builder.UpdateContractBuilder;
+import com.promaty.rrhh.services.contract.business.validation.ContractValidation;
+import com.promaty.rrhh.dto.shared.Action;
+import com.promaty.rrhh.entity.AttachmentEntityType;
+import com.promaty.rrhh.entity.Request;
+import com.promaty.rrhh.entity.RequestEntityType;
+import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.entity.Company;
 import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.ContractType;
@@ -36,9 +58,11 @@ import com.promaty.rrhh.entity.SettingKey;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.RequestRepository;
-import com.promaty.rrhh.repository.UploadedFileRepository;
 import com.promaty.rrhh.services.setting.SettingProvider;
-import com.promaty.rrhh.services.shared.FileStorageService;
+import com.promaty.rrhh.services.shared.RequestEditPolicy;
+import com.promaty.rrhh.services.shared.attachment.AttachmentOwner;
+import com.promaty.rrhh.services.shared.attachment.AttachmentService;
+import com.promaty.rrhh.services.contract.business.ContractAttachmentRules;
 import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,14 +75,124 @@ class ContractServiceImplTest {
 	@Mock
 	private SettingProvider settingProvider;
 	@Mock
-	private UploadedFileRepository uploadedFileRepository;
+	private AttachmentService attachmentService;
 	@Mock
-	private FileStorageService fileStorageService;
+	private RequestEditPolicy requestEditPolicy;
+	@Mock
+	private ContractValidation contractValidation;
+	@Mock
+	private UpdateContractBuilder updateContractBuilder;
 	@Spy
 	private RequestApprovalActionsResolver actionsResolver = new RequestApprovalActionsResolver();
 
 	@InjectMocks
 	private ContractServiceImpl service;
+
+	@AfterEach
+	void limpiarContextoDeSeguridad() {
+		SecurityContextHolder.clearContext();
+	}
+
+	@Test
+	void getContractDetail_editableConPermisoDeActualizar_incluyeAccionUpdate() {
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+			"juan", null, List.of(new SimpleGrantedAuthority("contract.update"))
+		));
+		Request request = new Request();
+		request.setStatus(contratoCompleto().getStatus());
+		when(contractRepository.findById(1L)).thenReturn(Optional.of(contratoCompleto()));
+		when(requestRepository.findByEntityTypeAndEntityId(RequestEntityType.CONTRACT, 1L)).thenReturn(Optional.of(request));
+		when(requestEditPolicy.isEditable(request)).thenReturn(true);
+
+		ContractDetailDto detalle = service.getContractDetail(1L);
+
+		assertThat(detalle.getActions()).containsExactly(Action.UPDATE);
+		verify(attachmentService).requirements(new AttachmentOwner(AttachmentEntityType.CONTRACT, 1L), ContractAttachmentRules.rules());
+	}
+
+	@Test
+	void updateContract_validaAplicaYActualizaLaSolicitudConElProyectoNuevo() {
+		Contract contrato = contratoCompleto();
+		Request request = new Request();
+		Project otroProyecto = new Project();
+		otroProyecto.setId(2L);
+		UpdateContractDto dto = new UpdateContractDto();
+		when(contractRepository.findById(1L)).thenReturn(Optional.of(contrato));
+		when(requestEditPolicy.requireEditable(RequestEntityType.CONTRACT, 1L)).thenReturn(request);
+		doAnswer(invocation -> {
+			contrato.setProject(otroProyecto);
+			return null;
+		}).when(updateContractBuilder).apply(contrato, dto);
+
+		service.updateContract(1L, dto, List.of());
+
+		InOrder orden = inOrder(contractValidation, updateContractBuilder, attachmentService, requestEditPolicy, contractRepository);
+		orden.verify(contractValidation).validateUpdate(contrato, dto);
+		orden.verify(updateContractBuilder).apply(contrato, dto);
+		orden.verify(attachmentService).sync(new AttachmentOwner(AttachmentEntityType.CONTRACT, 1L), ContractAttachmentRules.rules(), null, List.of());
+		orden.verify(requestEditPolicy).replacePendingData(eq(request), any(ContractPendingDataDto.class));
+		orden.verify(contractRepository).save(contrato);
+		assertThat(request.getProject()).isEqualTo(otroProyecto);
+	}
+
+	@Test
+	void updateContract_conErroresDeValidacion_noAplicaNiGuarda() {
+		when(contractRepository.findById(1L)).thenReturn(Optional.of(contratoCompleto()));
+		when(requestEditPolicy.requireEditable(RequestEntityType.CONTRACT, 1L)).thenReturn(new Request());
+		doThrow(new BusinessValidationException("x", Map.of("projectId", "sin acceso")))
+			.when(contractValidation).validateUpdate(any(), any());
+
+		assertThatThrownBy(() -> service.updateContract(1L, new UpdateContractDto(), List.of()))
+			.isInstanceOf(BusinessValidationException.class);
+
+		verifyNoInteractions(updateContractBuilder, attachmentService);
+		verify(contractRepository, never()).save(any());
+	}
+
+	@Test
+	void updateAttachments_enPendingApproval_sincronizaSinCambiarElEstado() {
+		Contract contrato = contratoCompleto();
+		Request request = new Request();
+		UpdateContractAttachmentsDto dto = new UpdateContractAttachmentsDto();
+		dto.setAttachments(List.of());
+		when(contractRepository.findById(1L)).thenReturn(Optional.of(contrato));
+		when(requestEditPolicy.requireEditable(RequestEntityType.CONTRACT, 1L)).thenReturn(request);
+
+		service.updateAttachments(1L, dto, List.of());
+
+		verify(attachmentService).sync(new AttachmentOwner(AttachmentEntityType.CONTRACT, 1L), ContractAttachmentRules.rules(), List.of(), List.of());
+		verify(contractRepository, never()).save(any());
+		assertThat(contrato.getStatus().getCode()).isEqualTo("PENDING_APPROVAL");
+	}
+
+	@Test
+	void updateAttachments_trasAprobacionDeJefatura_vuelveAPendingApproval() {
+		Contract contrato = contratoCompleto();
+		Request request = new Request();
+		PlatformStatus pendienteAprobacion = new PlatformStatus();
+		pendienteAprobacion.setCode("PENDING_APPROVAL");
+		when(contractRepository.findById(1L)).thenReturn(Optional.of(contrato));
+		when(requestEditPolicy.requireEditable(RequestEntityType.CONTRACT, 1L)).thenReturn(request);
+		when(requestEditPolicy.returnToPendingApproval(request)).thenReturn(true);
+		when(requestEditPolicy.pendingApprovalStatus("contract")).thenReturn(pendienteAprobacion);
+
+		service.updateAttachments(1L, new UpdateContractAttachmentsDto(), List.of());
+
+		assertThat(contrato.getStatus()).isEqualTo(pendienteAprobacion);
+		verify(contractRepository).save(contrato);
+	}
+
+	@Test
+	void updateAttachments_contratoAprobado_noTocaLosAdjuntos() {
+		when(contractRepository.findById(1L)).thenReturn(Optional.of(contratoCompleto()));
+		when(requestEditPolicy.requireEditable(RequestEntityType.CONTRACT, 1L))
+			.thenThrow(new BusinessValidationException("x", Map.of("status", "no editable")));
+
+		assertThatThrownBy(() -> service.updateAttachments(1L, new UpdateContractAttachmentsDto(), List.of()))
+			.isInstanceOf(BusinessValidationException.class);
+
+		verifyNoInteractions(attachmentService);
+	}
 
 	@Test
 	void getContractDetail_registroNoExiste_lanzaResourceNotFoundException() {

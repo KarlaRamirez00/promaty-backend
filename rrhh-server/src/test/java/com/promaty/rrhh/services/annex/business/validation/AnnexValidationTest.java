@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
@@ -127,15 +129,6 @@ class AnnexValidationTest {
 	}
 
 	@Test
-	void validateUpdate_conAnexoYaAprobadoPorJefatura_rechazaLaEdicion() {
-		Annex annex = anexoConEstado("PENDING_VALIDATION");
-
-		assertThatThrownBy(() -> validation.validateUpdate(annex, new UpdateAnnexDto()))
-			.isInstanceOf(BusinessValidationException.class)
-			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields()).containsKey("status"));
-	}
-
-	@Test
 	void validateApproval_conContratoQueYaNoEstaActivo_rechazaLaAprobacion() {
 		Annex annex = anexoConEstado("PENDING_APPROVAL");
 		annex.getContract().setStatus(estado("TERMINATED"));
@@ -151,6 +144,51 @@ class AnnexValidationTest {
 		Annex annex = anexoConEstado("PENDING_APPROVAL");
 
 		assertThatCode(() -> validation.validateApproval(annex)).doesNotThrowAnyException();
+	}
+
+	@Test
+	void validateUpdate_sinCambiarElTipo_validaContraElTipoActual() {
+		Annex annex = anexoConEstado("PENDING_APPROVAL");
+		UpdateAnnexDto dto = dtoDeEdicion(ANNEX_TYPE_ID);
+		dto.setNewEndDate(LocalDate.now().plusMonths(6));
+
+		assertThatThrownBy(() -> validation.validateUpdate(annex, dto))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsEntry("newEndDate", "No aplica al tipo de anexo seleccionado."));
+		verify(annexTypeRepository, never()).findById(any());
+	}
+
+	@Test
+	void validateUpdate_cambiandoATipoInactivo_loRechaza() {
+		AnnexType inactivo = tipoAumentoDeSueldo();
+		inactivo.setId(9L);
+		inactivo.setActive(false);
+		when(annexTypeRepository.findById(9L)).thenReturn(Optional.of(inactivo));
+
+		assertThatThrownBy(() -> validation.validateUpdate(anexoConEstado("PENDING_APPROVAL"), dtoDeEdicion(9L)))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsEntry("annexTypeId", "El tipo de anexo indicado no está activo."));
+	}
+
+	@Test
+	void validateUpdate_cambiandoATipoActivo_validaLosCamposDelTipoNuevo() {
+		AnnexType otro = tipoAumentoDeSueldo();
+		otro.setId(9L);
+		when(annexTypeRepository.findById(9L)).thenReturn(Optional.of(otro));
+
+		assertThatCode(() -> validation.validateUpdate(anexoConEstado("PENDING_APPROVAL"), dtoDeEdicion(9L)))
+			.doesNotThrowAnyException();
+	}
+
+	private UpdateAnnexDto dtoDeEdicion(Long annexTypeId) {
+		UpdateAnnexDto dto = new UpdateAnnexDto();
+		dto.setAnnexTypeId(annexTypeId);
+		dto.setEffectiveDate(LocalDate.now());
+		dto.setDescription("Aumento acordado por desempeño.");
+		dto.setNewBaseSalary(BigDecimal.valueOf(950000));
+		return dto;
 	}
 
 	private Map<String, String> errores(AnnexPendingDataDto dto) {

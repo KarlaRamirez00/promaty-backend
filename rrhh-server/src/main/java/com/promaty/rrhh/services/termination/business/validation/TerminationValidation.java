@@ -2,7 +2,6 @@ package com.promaty.rrhh.services.termination.business.validation;
 
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -21,7 +20,6 @@ import com.promaty.rrhh.repository.NonRehireReasonRepository;
 public class TerminationValidation {
 
 	private static final String MENSAJE_VALIDACION = "La validacion fallo para uno o mas campos.";
-	private static final List<String> CODES_FINIQUITO_EDITABLE = List.of("PENDING_APPROVAL", "PENDING_VALIDATION");
 	private static final int DIAS_MAXIMO_RETROACTIVO = 15;
 
 	private final LegalTerminationCauseRepository legalTerminationCauseRepository;
@@ -37,12 +35,6 @@ public class TerminationValidation {
 
 	public void validateUpdate(Termination existente, UpdateTerminationDto dto) {
 		Map<String, String> errores = new LinkedHashMap<>();
-
-		if (!CODES_FINIQUITO_EDITABLE.contains(existente.getStatus().getCode())) {
-			errores.put("status", "Este finiquito ya fue decidido, no admite edición.");
-			lanzarSiHayErrores(errores);
-			return;
-		}
 
 		validarCausaLegal(errores, dto.getLegalTerminationCauseId());
 		validarMotivoDeNoRecontratacion(errores, dto);

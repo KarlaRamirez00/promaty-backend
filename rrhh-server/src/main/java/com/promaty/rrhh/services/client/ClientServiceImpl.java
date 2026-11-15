@@ -19,10 +19,13 @@ import com.promaty.rrhh.entity.Client;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ClientRepository;
 import com.promaty.rrhh.services.client.business.builder.ClientQueryBuilder;
+import com.promaty.rrhh.services.client.business.builder.ClientSortField;
 import com.promaty.rrhh.services.client.business.mapper.ClientMapper;
 import com.promaty.rrhh.services.client.business.validation.ClientValidation;
 import com.promaty.rrhh.services.shared.ActionsResolver;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
+import com.promaty.rrhh.services.shared.sort.ListSorting;
+import com.promaty.rrhh.services.shared.sort.SortedQuery;
 
 @Service
 public class ClientServiceImpl implements ClientService {
@@ -67,8 +70,9 @@ public class ClientServiceImpl implements ClientService {
 	@Transactional(readOnly = true)
 	public Page<ClientListDto> listClients(ClientFilterParams filters, Pageable pageable) {
 		Specification<Client> especificacion = ClientQueryBuilder.fromFilters(filters);
+		SortedQuery<Client> sorted = ListSorting.apply(especificacion, pageable, ClientSortField.class);
 		List<Action> actions = actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES);
-		return clientRepository.findAll(especificacion, pageable)
+		return clientRepository.findAll(sorted.specification(), sorted.pageable())
 			.map(ClientMapper::toListDto)
 			.map(dto -> conAcciones(dto, actions));
 	}

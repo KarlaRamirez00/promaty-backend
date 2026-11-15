@@ -19,10 +19,13 @@ import com.promaty.rrhh.entity.ProjectSpecialty;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ProjectSpecialtyRepository;
 import com.promaty.rrhh.services.projectspecialty.business.builder.ProjectSpecialtyQueryBuilder;
+import com.promaty.rrhh.services.projectspecialty.business.builder.ProjectSpecialtySortField;
 import com.promaty.rrhh.services.projectspecialty.business.mapper.ProjectSpecialtyMapper;
 import com.promaty.rrhh.services.projectspecialty.business.validation.ProjectSpecialtyValidation;
 import com.promaty.rrhh.services.shared.ActionsResolver;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
+import com.promaty.rrhh.services.shared.sort.ListSorting;
+import com.promaty.rrhh.services.shared.sort.SortedQuery;
 
 @Service
 public class ProjectSpecialtyServiceImpl implements ProjectSpecialtyService {
@@ -67,8 +70,9 @@ public class ProjectSpecialtyServiceImpl implements ProjectSpecialtyService {
 	@Transactional(readOnly = true)
 	public Page<ProjectSpecialtyListDto> listProjectSpecialties(ProjectSpecialtyFilterParams filters, Pageable pageable) {
 		Specification<ProjectSpecialty> especificacion = ProjectSpecialtyQueryBuilder.fromFilters(filters);
+		SortedQuery<ProjectSpecialty> sorted = ListSorting.apply(especificacion, pageable, ProjectSpecialtySortField.class);
 		List<Action> actions = actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES);
-		return projectSpecialtyRepository.findAll(especificacion, pageable)
+		return projectSpecialtyRepository.findAll(sorted.specification(), sorted.pageable())
 			.map(ProjectSpecialtyMapper::toListDto)
 			.map(dto -> conAcciones(dto, actions));
 	}

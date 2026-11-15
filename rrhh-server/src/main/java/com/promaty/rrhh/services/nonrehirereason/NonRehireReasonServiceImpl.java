@@ -19,10 +19,13 @@ import com.promaty.rrhh.entity.NonRehireReason;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.NonRehireReasonRepository;
 import com.promaty.rrhh.services.nonrehirereason.business.builder.NonRehireReasonQueryBuilder;
+import com.promaty.rrhh.services.nonrehirereason.business.builder.NonRehireReasonSortField;
 import com.promaty.rrhh.services.nonrehirereason.business.mapper.NonRehireReasonMapper;
 import com.promaty.rrhh.services.nonrehirereason.business.validation.NonRehireReasonValidation;
 import com.promaty.rrhh.services.shared.ActionsResolver;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
+import com.promaty.rrhh.services.shared.sort.ListSorting;
+import com.promaty.rrhh.services.shared.sort.SortedQuery;
 
 @Service
 public class NonRehireReasonServiceImpl implements NonRehireReasonService {
@@ -76,8 +79,9 @@ public class NonRehireReasonServiceImpl implements NonRehireReasonService {
 	@Transactional(readOnly = true)
 	public Page<NonRehireReasonListDto> listNonRehireReasons(NonRehireReasonFilterParams filters, Pageable pageable) {
 		Specification<NonRehireReason> especificacion = NonRehireReasonQueryBuilder.fromFilters(filters);
+		SortedQuery<NonRehireReason> sorted = ListSorting.apply(especificacion, pageable, NonRehireReasonSortField.class);
 		List<Action> actions = actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES);
-		return nonRehireReasonRepository.findAll(especificacion, pageable)
+		return nonRehireReasonRepository.findAll(sorted.specification(), sorted.pageable())
 			.map(NonRehireReasonMapper::toListDto)
 			.map(dto -> conAcciones(dto, actions));
 	}

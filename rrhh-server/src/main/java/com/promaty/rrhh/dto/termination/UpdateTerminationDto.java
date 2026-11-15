@@ -1,7 +1,11 @@
 package com.promaty.rrhh.dto.termination;
 
 import java.time.LocalDate;
+import java.util.List;
 
+import com.promaty.rrhh.dto.file.AttachmentItemDto;
+
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -28,4 +32,7 @@ public class UpdateTerminationDto {
 
 	@Size(max = 500, message = "Las observaciones no pueden superar los 500 caracteres.")
 	private String notes;
+
+	@Valid
+	private List<AttachmentItemDto> attachments;
 }

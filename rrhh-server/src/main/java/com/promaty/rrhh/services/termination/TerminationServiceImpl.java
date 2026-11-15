@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.promaty.rrhh.dto.file.FileAttachmentDto;
 import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.dto.termination.AnnulTerminationDto;
 import com.promaty.rrhh.dto.termination.TerminationDetailDto;
@@ -44,8 +43,14 @@ import com.promaty.rrhh.services.rexplus.RexSyncResult;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
 import com.promaty.rrhh.services.shared.ProjectAccessSpecification;
 import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
+import com.promaty.rrhh.services.shared.RequestEditPolicy;
+import com.promaty.rrhh.services.shared.attachment.AttachmentOwner;
 import com.promaty.rrhh.services.shared.attachment.AttachmentService;
+import com.promaty.rrhh.services.shared.sort.ListSorting;
+import com.promaty.rrhh.services.shared.sort.SortedQuery;
+import com.promaty.rrhh.services.termination.business.TerminationAttachmentRules;
 import com.promaty.rrhh.services.termination.business.builder.TerminationQueryBuilder;
+import com.promaty.rrhh.services.termination.business.builder.TerminationSortField;
 import com.promaty.rrhh.services.termination.business.mapper.TerminationMapper;
 import com.promaty.rrhh.services.termination.business.validation.TerminationAnnulmentValidation;
 import com.promaty.rrhh.services.termination.business.validation.TerminationValidation;
@@ -58,7 +63,6 @@ public class TerminationServiceImpl implements TerminationService {
 	private static final String PERMISSION_VALIDATE = "termination.validate";
 	private static final String PERMISSION_UPDATE = "termination.update";
 	private static final String PERMISSION_ANNUL = "termination.annul";
-	private static final List<String> PENDING_CODES = List.of("PENDING_APPROVAL", "PENDING_VALIDATION");
 	private static final String CODE_APPROVED = "APPROVED";
 	private static final String SUBMODULE_TERMINATION = "termination";
 	private static final String SUBMODULE_CONTRACT = "contract";
@@ -81,6 +85,7 @@ public class TerminationServiceImpl implements TerminationService {
 	private final RequestApprovalActionsResolver actionsResolver;
 	private final RexPlusClient rexPlusClient;
 	private final AttachmentService attachmentService;
+	private final RequestEditPolicy requestEditPolicy;
 
 	public TerminationServiceImpl(
 		TerminationRepository terminationRepository,
@@ -94,7 +99,8 @@ public class TerminationServiceImpl implements TerminationService {
 		TerminationAnnulmentValidation terminationAnnulmentValidation,
 		RequestApprovalActionsResolver actionsResolver,
 		RexPlusClient rexPlusClient,
-		AttachmentService attachmentService
+		AttachmentService attachmentService,
+		RequestEditPolicy requestEditPolicy
 	) {
 		this.terminationRepository = terminationRepository;
 		this.requestRepository = requestRepository;
@@ -108,6 +114,7 @@ public class TerminationServiceImpl implements TerminationService {
 		this.actionsResolver = actionsResolver;
 		this.rexPlusClient = rexPlusClient;
 		this.attachmentService = attachmentService;
+		this.requestEditPolicy = requestEditPolicy;
 	}
 
 	@Override
@@ -115,7 +122,8 @@ public class TerminationServiceImpl implements TerminationService {
 	public Page<TerminationListDto> listTerminations(TerminationFilterParams filters, Pageable pageable) {
 		Specification<Termination> specification = TerminationQueryBuilder.fromFilters(filters)
 			.and(ProjectAccessSpecification.onProject());
-		Page<TerminationListDto> page = terminationRepository.findAll(specification, pageable).map(TerminationMapper::toListDto);
+		SortedQuery<Termination> sorted = ListSorting.apply(specification, pageable, TerminationSortField.class);
+		Page<TerminationListDto> page = terminationRepository.findAll(sorted.specification(), sorted.pageable()).map(TerminationMapper::toListDto);
 
 		Map<Long, Request> requestsByTerminationId = findRequestsByTerminationIds(page.map(TerminationListDto::getId).getContent());
 		return page.map(dto -> withRequestAndActions(dto, requestsByTerminationId.get(dto.getId())));
@@ -129,29 +137,19 @@ public class TerminationServiceImpl implements TerminationService {
 		Request request = requestRepository.findByEntityTypeAndEntityId(RequestEntityType.TERMINATION, id).orElse(null);
 		dto.setRequestId(request == null ? null : request.getId());
 		dto.setActions(resolveActions(request));
-		dto.setAttachments(attachmentService.list(AttachmentEntityType.TERMINATION, id));
-		dto.setMissingRequiredAttachment(dto.getRequiredAttachmentLabel() != null && dto.getAttachments().isEmpty());
+		AttachmentOwner owner = attachmentOwner(id);
+		dto.setAttachments(attachmentService.list(owner));
+		dto.setAttachmentRequirements(attachmentService.requirements(
+			owner, TerminationAttachmentRules.forCause(termination.getLegalTerminationCause())
+		));
 		return dto;
 	}
 
 	@Override
 	@Transactional
-	public FileAttachmentDto uploadAttachment(Long terminationId, MultipartFile file) {
-		findById(terminationId);
-		return attachmentService.replaceSingle(AttachmentEntityType.TERMINATION, terminationId, file);
-	}
-
-	@Override
-	@Transactional
-	public void deleteAttachment(Long terminationId, Long attachmentId) {
-		findById(terminationId);
-		attachmentService.delete(AttachmentEntityType.TERMINATION, terminationId, attachmentId);
-	}
-
-	@Override
-	@Transactional
-	public void updateTermination(Long id, UpdateTerminationDto dto) {
+	public void updateTermination(Long id, UpdateTerminationDto dto, List<MultipartFile> files) {
 		Termination existing = findById(id);
+		Request request = requestEditPolicy.requireEditable(RequestEntityType.TERMINATION, id);
 		terminationValidation.validateUpdate(existing, dto);
 
 		existing.setTerminationDate(dto.getTerminationDate());
@@ -159,7 +157,18 @@ public class TerminationServiceImpl implements TerminationService {
 		existing.setDefinitiveTermination(dto.getDefinitiveTermination());
 		existing.setNonRehireReason(dto.getNonRehireReasonId() == null ? null : resolveNonRehireReason(dto.getNonRehireReasonId()));
 		existing.setNotes(dto.getNotes());
+		attachmentService.sync(
+			attachmentOwner(id), TerminationAttachmentRules.forCause(existing.getLegalTerminationCause()), dto.getAttachments(), files
+		);
+		requestEditPolicy.replacePendingData(request, TerminationMapper.toPendingData(existing));
+		if (requestEditPolicy.returnToPendingApproval(request)) {
+			existing.setStatus(requestEditPolicy.pendingApprovalStatus(SUBMODULE_TERMINATION));
+		}
 		terminationRepository.save(existing);
+	}
+
+	private AttachmentOwner attachmentOwner(Long terminationId) {
+		return new AttachmentOwner(AttachmentEntityType.TERMINATION, terminationId);
 	}
 
 	@Override
@@ -243,7 +252,7 @@ public class TerminationServiceImpl implements TerminationService {
 		}
 		String statusCode = request.getStatus().getCode();
 		List<Action> actions = actionsResolver.resolve(statusCode, CurrentUserAuthorities.get(), PERMISSION_APPROVE, PERMISSION_VALIDATE);
-		if (PENDING_CODES.contains(statusCode) && CurrentUserAuthorities.get().contains(PERMISSION_UPDATE)) {
+		if (requestEditPolicy.isEditable(request) && CurrentUserAuthorities.get().contains(PERMISSION_UPDATE)) {
 			actions = new ArrayList<>(actions);
 			actions.add(Action.UPDATE);
 		}

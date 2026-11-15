@@ -3,11 +3,15 @@ package com.promaty.rrhh.services.termination;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
@@ -25,6 +29,7 @@ import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.dto.termination.AnnulTerminationDto;
 import com.promaty.rrhh.dto.termination.TerminationDetailDto;
 import com.promaty.rrhh.dto.termination.UpdateTerminationDto;
+import com.promaty.rrhh.dto.request.TerminationPendingDataDto;
 import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.IdentificationType;
 import com.promaty.rrhh.entity.JobTitle;
@@ -48,6 +53,9 @@ import com.promaty.rrhh.services.rexplus.RexPlusClient;
 import com.promaty.rrhh.services.rexplus.RexSyncResult;
 import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
 import com.promaty.rrhh.services.shared.attachment.AttachmentService;
+import com.promaty.rrhh.services.shared.attachment.AttachmentOwner;
+import com.promaty.rrhh.services.shared.RequestEditPolicy;
+import com.promaty.rrhh.entity.AttachmentEntityType;
 import com.promaty.rrhh.services.termination.business.validation.TerminationAnnulmentValidation;
 import com.promaty.rrhh.services.termination.business.validation.TerminationValidation;
 
@@ -76,6 +84,8 @@ class TerminationServiceImplTest {
 	private RexPlusClient rexPlusClient;
 	@Mock
 	private AttachmentService attachmentService;
+	@Mock
+	private RequestEditPolicy requestEditPolicy;
 	@Spy
 	private RequestApprovalActionsResolver actionsResolver = new RequestApprovalActionsResolver();
 
@@ -105,12 +115,14 @@ class TerminationServiceImplTest {
 		assertThat(detalle.getStaff().getIdentificationNumber()).isEqualTo("12345678-5");
 		assertThat(detalle.getCostCenterCode()).isEqualTo("00824");
 		assertThat(detalle.getStatus().getCode()).isEqualTo("PENDING_APPROVAL");
-		assertThat(detalle.getRequiredAttachmentLabel()).isNull();
-		assertThat(detalle.getMissingRequiredAttachment()).isFalse();
+		verify(attachmentService).requirements(
+			eq(new AttachmentOwner(AttachmentEntityType.TERMINATION, 1L)),
+			argThat(rules -> !rules.slots().get(0).required())
+		);
 	}
 
 	@Test
-	void getTerminationDetail_causalExigeAdjuntoYNoHayArchivo_marcaAdjuntoObligatorioFaltante() {
+	void getTerminationDetail_causalExigeAdjunto_pideLosRequisitosConLaEtiquetaDeLaCausal() {
 		Termination termination = terminacionCompleta();
 		termination.getLegalTerminationCause().setRequiresAttachment(true);
 		termination.getLegalTerminationCause().setAttachmentLabel("Carta de renuncia");
@@ -119,8 +131,11 @@ class TerminationServiceImplTest {
 
 		TerminationDetailDto detalle = service.getTerminationDetail(1L);
 
-		assertThat(detalle.getRequiredAttachmentLabel()).isEqualTo("Carta de renuncia");
-		assertThat(detalle.getMissingRequiredAttachment()).isTrue();
+		assertThat(detalle.getId()).isEqualTo(termination.getId());
+		verify(attachmentService).requirements(
+			eq(new AttachmentOwner(AttachmentEntityType.TERMINATION, 1L)),
+			argThat(rules -> rules.slots().get(0).required() && rules.slots().get(0).label().equals("Carta de renuncia"))
+		);
 	}
 
 	@Test
@@ -149,6 +164,7 @@ class TerminationServiceImplTest {
 		status.setCode("PENDING_VALIDATION");
 		request.setStatus(status);
 		when(requestRepository.findByEntityTypeAndEntityId(RequestEntityType.TERMINATION, 1L)).thenReturn(Optional.of(request));
+		when(requestEditPolicy.isEditable(request)).thenReturn(true);
 
 		TerminationDetailDto detalle = service.getTerminationDetail(1L);
 
@@ -159,7 +175,7 @@ class TerminationServiceImplTest {
 	void updateTermination_registroNoExiste_lanzaResourceNotFoundException() {
 		when(terminationRepository.findById(1L)).thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> service.updateTermination(1L, dtoValido()))
+		assertThatThrownBy(() -> service.updateTermination(1L, dtoValido(), List.of()))
 			.isInstanceOf(ResourceNotFoundException.class);
 	}
 
@@ -167,16 +183,49 @@ class TerminationServiceImplTest {
 	void updateTermination_conDatosValidos_validaYGuarda() {
 		Termination existente = terminacionCompleta();
 		when(terminationRepository.findById(1L)).thenReturn(Optional.of(existente));
+		when(requestEditPolicy.requireEditable(RequestEntityType.TERMINATION, 1L)).thenReturn(new Request());
 		LegalTerminationCause nuevaCausa = new LegalTerminationCause();
 		when(legalTerminationCauseRepository.findById(11L)).thenReturn(Optional.of(nuevaCausa));
 
 		UpdateTerminationDto dto = dtoValido();
 		dto.setLegalTerminationCauseId(11L);
-		service.updateTermination(1L, dto);
+		service.updateTermination(1L, dto, List.of());
 
 		verify(terminationValidation).validateUpdate(existente, dto);
+		verify(attachmentService).sync(eq(new AttachmentOwner(AttachmentEntityType.TERMINATION, 1L)), any(), eq(null), eq(List.of()));
 		verify(terminationRepository).save(existente);
+		verify(requestEditPolicy).replacePendingData(any(Request.class), any(TerminationPendingDataDto.class));
 		assertThat(existente.getLegalTerminationCause()).isEqualTo(nuevaCausa);
+	}
+
+	@Test
+	void updateTermination_rechazado_alGuardarVuelveAPendingApproval() {
+		Termination existente = terminacionCompleta();
+		Request request = new Request();
+		PlatformStatus pendienteAprobacion = new PlatformStatus();
+		pendienteAprobacion.setCode("PENDING_APPROVAL");
+		when(terminationRepository.findById(1L)).thenReturn(Optional.of(existente));
+		when(requestEditPolicy.requireEditable(RequestEntityType.TERMINATION, 1L)).thenReturn(request);
+		when(requestEditPolicy.returnToPendingApproval(request)).thenReturn(true);
+		when(requestEditPolicy.pendingApprovalStatus("termination")).thenReturn(pendienteAprobacion);
+		when(legalTerminationCauseRepository.findById(any())).thenReturn(Optional.of(new LegalTerminationCause()));
+
+		service.updateTermination(1L, dtoValido(), List.of());
+
+		assertThat(existente.getStatus()).isEqualTo(pendienteAprobacion);
+	}
+
+	@Test
+	void updateTermination_aprobado_noValidaNiGuarda() {
+		when(terminationRepository.findById(1L)).thenReturn(Optional.of(terminacionCompleta()));
+		when(requestEditPolicy.requireEditable(RequestEntityType.TERMINATION, 1L))
+			.thenThrow(new BusinessValidationException("x", Map.of("status", "no editable")));
+
+		assertThatThrownBy(() -> service.updateTermination(1L, dtoValido(), List.of()))
+			.isInstanceOf(BusinessValidationException.class);
+
+		verify(terminationValidation, never()).validateUpdate(any(), any());
+		verify(terminationRepository, never()).save(any());
 	}
 
 	@Test

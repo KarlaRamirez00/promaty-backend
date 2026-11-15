@@ -18,7 +18,6 @@ import com.promaty.rrhh.dto.annex.AnnexDetailDto;
 import com.promaty.rrhh.dto.annex.AnnexFilterParams;
 import com.promaty.rrhh.dto.annex.AnnexListDto;
 import com.promaty.rrhh.dto.annex.UpdateAnnexDto;
-import com.promaty.rrhh.dto.file.FileAttachmentDto;
 import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.entity.Annex;
 import com.promaty.rrhh.entity.AttachmentEntityType;
@@ -27,14 +26,20 @@ import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.AnnexRepository;
 import com.promaty.rrhh.repository.RequestRepository;
+import com.promaty.rrhh.services.annex.business.AnnexAttachmentRules;
 import com.promaty.rrhh.services.annex.business.builder.AnnexQueryBuilder;
+import com.promaty.rrhh.services.annex.business.builder.AnnexSortField;
 import com.promaty.rrhh.services.annex.business.builder.UpdateAnnexBuilder;
 import com.promaty.rrhh.services.annex.business.mapper.AnnexMapper;
 import com.promaty.rrhh.services.annex.business.validation.AnnexValidation;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
 import com.promaty.rrhh.services.shared.ProjectAccessSpecification;
 import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
+import com.promaty.rrhh.services.shared.RequestEditPolicy;
+import com.promaty.rrhh.services.shared.attachment.AttachmentOwner;
 import com.promaty.rrhh.services.shared.attachment.AttachmentService;
+import com.promaty.rrhh.services.shared.sort.ListSorting;
+import com.promaty.rrhh.services.shared.sort.SortedQuery;
 
 @Service
 public class AnnexServiceImpl implements AnnexService {
@@ -43,7 +48,7 @@ public class AnnexServiceImpl implements AnnexService {
 	private static final String PERMISSION_APPROVE = "annex.approve";
 	private static final String PERMISSION_VALIDATE = "annex.validate";
 	private static final String PERMISSION_UPDATE = "annex.update";
-	private static final String CODE_PENDING_APPROVAL = "PENDING_APPROVAL";
+	private static final String SUBMODULE_ANNEX = "annex";
 
 	private final AnnexRepository annexRepository;
 	private final RequestRepository requestRepository;
@@ -51,6 +56,7 @@ public class AnnexServiceImpl implements AnnexService {
 	private final UpdateAnnexBuilder updateAnnexBuilder;
 	private final RequestApprovalActionsResolver actionsResolver;
 	private final AttachmentService attachmentService;
+	private final RequestEditPolicy requestEditPolicy;
 
 	public AnnexServiceImpl(
 		AnnexRepository annexRepository,
@@ -58,7 +64,8 @@ public class AnnexServiceImpl implements AnnexService {
 		AnnexValidation annexValidation,
 		UpdateAnnexBuilder updateAnnexBuilder,
 		RequestApprovalActionsResolver actionsResolver,
-		AttachmentService attachmentService
+		AttachmentService attachmentService,
+		RequestEditPolicy requestEditPolicy
 	) {
 		this.annexRepository = annexRepository;
 		this.requestRepository = requestRepository;
@@ -66,6 +73,7 @@ public class AnnexServiceImpl implements AnnexService {
 		this.updateAnnexBuilder = updateAnnexBuilder;
 		this.actionsResolver = actionsResolver;
 		this.attachmentService = attachmentService;
+		this.requestEditPolicy = requestEditPolicy;
 	}
 
 	@Override
@@ -73,14 +81,15 @@ public class AnnexServiceImpl implements AnnexService {
 	public Page<AnnexListDto> listAnnexes(AnnexFilterParams filters, Pageable pageable) {
 		Specification<Annex> specification = AnnexQueryBuilder.fromFilters(filters)
 			.and(ProjectAccessSpecification.onProject());
-		Page<AnnexListDto> page = annexRepository.findAll(specification, pageable).map(AnnexMapper::toListDto);
+		SortedQuery<Annex> sorted = ListSorting.apply(specification, pageable, AnnexSortField.class);
+		Page<AnnexListDto> page = annexRepository.findAll(sorted.specification(), sorted.pageable()).map(AnnexMapper::toListDto);
 
 		Map<Long, Request> requestsByAnnexId = findRequestsByAnnexIds(page.map(AnnexListDto::getId).getContent());
 		Set<String> authorities = CurrentUserAuthorities.get();
 		return page.map(dto -> {
 			Request request = requestsByAnnexId.get(dto.getId());
 			dto.setRequestId(request == null ? null : request.getId());
-			dto.setActions(resolveActions(dto.getStatusCode(), request, authorities));
+			dto.setActions(resolveActions(request, authorities));
 			return dto;
 		});
 	}
@@ -92,32 +101,30 @@ public class AnnexServiceImpl implements AnnexService {
 		AnnexDetailDto dto = AnnexMapper.toDetailDto(annex);
 		Request request = requestRepository.findByEntityTypeAndEntityId(RequestEntityType.ANNEX, id).orElse(null);
 		dto.setRequestId(request == null ? null : request.getId());
-		dto.setActions(resolveActions(annex.getStatus().getCode(), request, CurrentUserAuthorities.get()));
-		dto.setAttachments(attachmentService.list(AttachmentEntityType.ANNEX, id));
+		dto.setActions(resolveActions(request, CurrentUserAuthorities.get()));
+		AttachmentOwner owner = attachmentOwner(id);
+		dto.setAttachments(attachmentService.list(owner));
+		dto.setAttachmentRequirements(attachmentService.requirements(owner, AnnexAttachmentRules.rules()));
 		return dto;
 	}
 
 	@Override
 	@Transactional
-	public void updateAnnex(Long id, UpdateAnnexDto dto) {
+	public void updateAnnex(Long id, UpdateAnnexDto dto, List<MultipartFile> files) {
 		Annex annex = findById(id);
+		Request request = requestEditPolicy.requireEditable(RequestEntityType.ANNEX, id);
 		annexValidation.validateUpdate(annex, dto);
-		updateAnnexBuilder.apply(annex, dto);
+		updateAnnexBuilder.applyUpdate(annex, dto);
+		attachmentService.sync(attachmentOwner(id), AnnexAttachmentRules.rules(), dto.getAttachments(), files);
+		requestEditPolicy.replacePendingData(request, AnnexMapper.toPendingData(annex));
+		if (requestEditPolicy.returnToPendingApproval(request)) {
+			annex.setStatus(requestEditPolicy.pendingApprovalStatus(SUBMODULE_ANNEX));
+		}
 		annexRepository.save(annex);
 	}
 
-	@Override
-	@Transactional
-	public FileAttachmentDto uploadAttachment(Long annexId, MultipartFile file) {
-		annexValidation.validateEditable(findById(annexId));
-		return attachmentService.replaceSingle(AttachmentEntityType.ANNEX, annexId, file);
-	}
-
-	@Override
-	@Transactional
-	public void deleteAttachment(Long annexId, Long attachmentId) {
-		annexValidation.validateEditable(findById(annexId));
-		attachmentService.delete(AttachmentEntityType.ANNEX, annexId, attachmentId);
+	private AttachmentOwner attachmentOwner(Long annexId) {
+		return new AttachmentOwner(AttachmentEntityType.ANNEX, annexId);
 	}
 
 	private Annex findById(Long id) {
@@ -133,14 +140,14 @@ public class AnnexServiceImpl implements AnnexService {
 			.collect(Collectors.toMap(Request::getEntityId, Function.identity()));
 	}
 
-	private List<Action> resolveActions(String annexStatusCode, Request request, Set<String> authorities) {
+	private List<Action> resolveActions(Request request, Set<String> authorities) {
 		if (request == null) {
 			return List.of();
 		}
 		List<Action> actions = new ArrayList<>(actionsResolver.resolve(
 			request.getStatus().getCode(), authorities, PERMISSION_APPROVE, PERMISSION_VALIDATE
 		));
-		if (CODE_PENDING_APPROVAL.equals(annexStatusCode) && authorities.contains(PERMISSION_UPDATE)) {
+		if (requestEditPolicy.isEditable(request) && authorities.contains(PERMISSION_UPDATE)) {
 			actions.add(Action.UPDATE);
 		}
 		return actions;

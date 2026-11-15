@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.promaty.rrhh.dto.request.ContractPendingDataDto;
 import com.promaty.rrhh.entity.ApprovalDecision;
 import com.promaty.rrhh.entity.ApprovalLevel;
+import com.promaty.rrhh.entity.AttachmentEntityType;
 import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.ContractType;
 import com.promaty.rrhh.entity.PlatformStatus;
@@ -25,10 +26,14 @@ import com.promaty.rrhh.repository.PlatformStatusRepository;
 import com.promaty.rrhh.repository.SiteRepository;
 import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.repository.TransportTypeRepository;
+import com.promaty.rrhh.services.contract.business.ContractAttachmentRules;
 import com.promaty.rrhh.services.holidayprovider.BusinessDayCalculator;
 import com.promaty.rrhh.services.rexplus.RexPlusClient;
 import com.promaty.rrhh.services.rexplus.RexSyncResult;
 import com.promaty.rrhh.services.shared.StaffEligibility;
+import com.promaty.rrhh.services.shared.attachment.AttachmentOwner;
+import com.promaty.rrhh.services.shared.attachment.AttachmentRules;
+import com.promaty.rrhh.services.shared.attachment.AttachmentService;
 
 /**
  * RequestValidation ya confirmó que las FK de contractData existen al crear la Request; para cuando
@@ -66,6 +71,7 @@ public class ContractRequestHandler implements RequestHandler {
 	private final PlatformStatusRepository platformStatusRepository;
 	private final RexPlusClient rexPlusClient;
 	private final BusinessDayCalculator businessDayCalculator;
+	private final AttachmentService attachmentService;
 
 	public ContractRequestHandler(
 		ObjectMapper objectMapper,
@@ -79,7 +85,8 @@ public class ContractRequestHandler implements RequestHandler {
 		TransportTypeRepository transportTypeRepository,
 		PlatformStatusRepository platformStatusRepository,
 		RexPlusClient rexPlusClient,
-		BusinessDayCalculator businessDayCalculator
+		BusinessDayCalculator businessDayCalculator,
+		AttachmentService attachmentService
 	) {
 		this.objectMapper = objectMapper;
 		this.contractRepository = contractRepository;
@@ -93,6 +100,7 @@ public class ContractRequestHandler implements RequestHandler {
 		this.platformStatusRepository = platformStatusRepository;
 		this.rexPlusClient = rexPlusClient;
 		this.businessDayCalculator = businessDayCalculator;
+		this.attachmentService = attachmentService;
 	}
 
 	@Override
@@ -118,6 +126,16 @@ public class ContractRequestHandler implements RequestHandler {
 	@Override
 	public String readPermission() {
 		return PERMISO_LEER;
+	}
+
+	@Override
+	public AttachmentEntityType attachmentEntityType() {
+		return AttachmentEntityType.CONTRACT;
+	}
+
+	@Override
+	public AttachmentRules attachmentRules(Long entityId) {
+		return ContractAttachmentRules.rules();
 	}
 
 	@Override
@@ -166,6 +184,9 @@ public class ContractRequestHandler implements RequestHandler {
 			return;
 		}
 		StaffEligibility.validateHireable(contract.getStaff());
+		attachmentService.validateRequired(
+			new AttachmentOwner(AttachmentEntityType.CONTRACT, contract.getId()), ContractAttachmentRules.rules()
+		);
 		if (level == ApprovalLevel.PROJECT_MANAGER) {
 			contract.setStatus(resolveEstado(CODE_PENDING_VALIDATION));
 			contractRepository.save(contract);

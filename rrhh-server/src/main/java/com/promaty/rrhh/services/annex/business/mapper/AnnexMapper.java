@@ -1,5 +1,6 @@
 package com.promaty.rrhh.services.annex.business.mapper;
 
+import com.promaty.rrhh.dto.request.AnnexPendingDataDto;
 import com.promaty.rrhh.dto.annex.AnnexDetailDto;
 import com.promaty.rrhh.dto.annex.AnnexListDto;
 import com.promaty.rrhh.dto.contract.RelationSummaryDto;
@@ -73,7 +74,8 @@ public final class AnnexMapper {
 			annex.getUpdatedBy(),
 			null, // requestId se resuelve por fuera: Annex no tiene FK hacia Request, es al revés
 			null, // actions depende de los permisos del usuario que pide: lo completa el service
-			null  // attachments se carga por separado en el service
+			null, // attachments se carga por separado en el service
+			null  // attachmentRequirements depende de los adjuntos: lo completa el service
 		);
 	}
 
@@ -91,5 +93,20 @@ public final class AnnexMapper {
 
 	private static RelationSummaryDto toRelationSummary(ContractType contractType) {
 		return contractType == null ? null : new RelationSummaryDto(contractType.getId(), contractType.getName());
+	}
+
+	public static AnnexPendingDataDto toPendingData(Annex annex) {
+		AnnexPendingDataDto data = new AnnexPendingDataDto();
+		data.setStaffId(annex.getStaff().getId());
+		data.setAnnexTypeId(annex.getAnnexType().getId());
+		data.setEffectiveDate(annex.getEffectiveDate());
+		data.setDescription(annex.getDescription());
+		data.setNewEndDate(annex.getNewEndDate());
+		data.setNewBaseSalary(annex.getNewBaseSalary());
+		data.setNewJobTitleId(annex.getNewJobTitleId());
+		data.setNewWeeklyWorkHours(annex.getNewWeeklyWorkHours());
+		data.setNewWorkDays(annex.getNewWorkDays());
+		data.setNewSiteId(annex.getNewSiteId());
+		return data;
 	}
 }

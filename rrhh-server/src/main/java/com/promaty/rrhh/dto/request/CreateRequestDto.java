@@ -1,5 +1,8 @@
 package com.promaty.rrhh.dto.request;
 
+import java.util.List;
+
+import com.promaty.rrhh.dto.file.AttachmentItemDto;
 import com.promaty.rrhh.entity.RequestAction;
 import com.promaty.rrhh.entity.RequestEntityType;
 
@@ -33,4 +36,7 @@ public class CreateRequestDto {
 
 	@Valid
 	private AnnexPendingDataDto annexData;
+
+	@Valid
+	private List<AttachmentItemDto> attachments;
 }

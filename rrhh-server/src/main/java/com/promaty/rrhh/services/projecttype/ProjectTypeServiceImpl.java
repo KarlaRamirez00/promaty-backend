@@ -19,10 +19,13 @@ import com.promaty.rrhh.entity.ProjectType;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ProjectTypeRepository;
 import com.promaty.rrhh.services.projecttype.business.builder.ProjectTypeQueryBuilder;
+import com.promaty.rrhh.services.projecttype.business.builder.ProjectTypeSortField;
 import com.promaty.rrhh.services.projecttype.business.mapper.ProjectTypeMapper;
 import com.promaty.rrhh.services.projecttype.business.validation.ProjectTypeValidation;
 import com.promaty.rrhh.services.shared.ActionsResolver;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
+import com.promaty.rrhh.services.shared.sort.ListSorting;
+import com.promaty.rrhh.services.shared.sort.SortedQuery;
 
 @Service
 public class ProjectTypeServiceImpl implements ProjectTypeService {
@@ -67,8 +70,9 @@ public class ProjectTypeServiceImpl implements ProjectTypeService {
 	@Transactional(readOnly = true)
 	public Page<ProjectTypeListDto> listProjectTypes(ProjectTypeFilterParams filters, Pageable pageable) {
 		Specification<ProjectType> especificacion = ProjectTypeQueryBuilder.fromFilters(filters);
+		SortedQuery<ProjectType> sorted = ListSorting.apply(especificacion, pageable, ProjectTypeSortField.class);
 		List<Action> actions = actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES);
-		return projectTypeRepository.findAll(especificacion, pageable)
+		return projectTypeRepository.findAll(sorted.specification(), sorted.pageable())
 			.map(ProjectTypeMapper::toListDto)
 			.map(dto -> conAcciones(dto, actions));
 	}

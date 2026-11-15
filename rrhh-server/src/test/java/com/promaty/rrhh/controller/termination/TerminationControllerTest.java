@@ -1,14 +1,18 @@
 package com.promaty.rrhh.controller.termination;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDate;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -18,15 +22,19 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 
 import com.promaty.rrhh.config.SecurityConfig;
 import com.promaty.rrhh.dto.termination.TerminationDetailDto;
 import com.promaty.rrhh.dto.termination.TerminationListDto;
+import com.promaty.rrhh.dto.termination.UpdateTerminationDto;
 import com.promaty.rrhh.dto.termination.StaffSummaryDto;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.services.termination.TerminationService;
@@ -58,6 +66,13 @@ class TerminationControllerTest {
 	@Autowired
 	private MockMvc mockMvc;
 
+	private static MockMultipartHttpServletRequestBuilder multipartPut(String url, String json, String token) {
+		MockMultipartHttpServletRequestBuilder builder = multipart(HttpMethod.PUT, url);
+		builder.file(new MockMultipartFile("data", "", MediaType.APPLICATION_JSON_VALUE, json.getBytes(StandardCharsets.UTF_8)));
+		builder.header(HttpHeaders.AUTHORIZATION, token);
+		return builder;
+	}
+
 	@MockitoBean
 	private TerminationService terminationService;
 
@@ -80,7 +95,7 @@ class TerminationControllerTest {
 		StaffSummaryDto staff = new StaffSummaryDto(1L, "Juan Perez Soto", "12345678-5");
 		TerminationDetailDto detalle = new TerminationDetailDto(1L, staff, "00824", "Albañil",
 			LocalDate.of(2025, 1, 1), null, LocalDate.of(2026, 1, 15), null, false, null, null,
-			null, null, null, null, null, "system", null, null, List.of(), null, null, null);
+			null, null, null, null, null, "system", null, null, List.of(), null, null);
 		when(terminationService.getTerminationDetail(1L)).thenReturn(detalle);
 
 		mockMvc.perform(get("/terminations/1").header(HttpHeaders.AUTHORIZATION, TOKEN))
@@ -102,14 +117,22 @@ class TerminationControllerTest {
 		StaffSummaryDto staff = new StaffSummaryDto(1L, "Juan Perez Soto", "12345678-5");
 		TerminationDetailDto detalle = new TerminationDetailDto(1L, staff, "00824", "Albañil",
 			LocalDate.of(2025, 1, 1), null, LocalDate.of(2026, 1, 15), null, false, null, null,
-			null, null, null, null, null, "system", null, null, List.of(), null, null, null);
+			null, null, null, null, null, "system", null, null, List.of(), null, null);
 		when(terminationService.getTerminationDetail(1L)).thenReturn(detalle);
 
+		mockMvc.perform(multipartPut("/terminations/1", UPDATE_JSON, TOKEN))
+			.andExpect(status().isOk());
+
+		verify(terminationService).updateTermination(eq(1L), any(UpdateTerminationDto.class), any());
+	}
+
+	@Test
+	void update_comoJson_retorna415() throws Exception {
 		mockMvc.perform(put("/terminations/1")
 				.header(HttpHeaders.AUTHORIZATION, TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(UPDATE_JSON))
-			.andExpect(status().isOk());
+			.andExpect(status().isUnsupportedMediaType());
 	}
 
 	@Test
@@ -117,7 +140,7 @@ class TerminationControllerTest {
 		StaffSummaryDto staff = new StaffSummaryDto(1L, "Juan Perez Soto", "12345678-5");
 		TerminationDetailDto detalle = new TerminationDetailDto(1L, staff, "00824", "Albañil",
 			LocalDate.of(2025, 1, 1), null, LocalDate.of(2026, 1, 15), null, false, null, null,
-			null, null, null, null, null, "system", null, null, List.of(), null, null, null);
+			null, null, null, null, null, "system", null, null, List.of(), null, null);
 		when(terminationService.getTerminationDetail(1L)).thenReturn(detalle);
 
 		mockMvc.perform(patch("/terminations/1/annul")
@@ -154,10 +177,7 @@ class TerminationControllerTest {
 
 	@Test
 	void update_sinPermiso_retorna403() throws Exception {
-		mockMvc.perform(put("/terminations/1")
-				.header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(UPDATE_JSON))
+		mockMvc.perform(multipartPut("/terminations/1", UPDATE_JSON, SIN_PERMISOS))
 			.andExpect(status().isForbidden());
 	}
 }

@@ -45,17 +45,6 @@ class TerminationValidationTest {
 	}
 
 	@Test
-	void validateUpdate_statusYaDecidido_lanzaErrorEnStatus() {
-		Termination existente = terminacionConEstado("APPROVED");
-		existente.setContract(contratoActivo());
-
-		assertThatThrownBy(() -> terminationValidation.validateUpdate(existente, dtoValido()))
-			.isInstanceOf(BusinessValidationException.class)
-			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
-				.containsKey("status"));
-	}
-
-	@Test
 	void validateUpdate_causaLegalInexistente_lanzaErrorEnLegalTerminationCauseId() {
 		when(legalTerminationCauseRepository.findById(10L)).thenReturn(Optional.empty());
 

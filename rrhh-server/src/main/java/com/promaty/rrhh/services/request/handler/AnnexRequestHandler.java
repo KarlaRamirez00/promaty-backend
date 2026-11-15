@@ -8,18 +8,21 @@ import com.promaty.rrhh.dto.request.AnnexPendingDataDto;
 import com.promaty.rrhh.entity.Annex;
 import com.promaty.rrhh.entity.ApprovalDecision;
 import com.promaty.rrhh.entity.ApprovalLevel;
+import com.promaty.rrhh.entity.AttachmentEntityType;
 import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.AnnexRepository;
 import com.promaty.rrhh.repository.ContractRepository;
+import com.promaty.rrhh.services.annex.business.AnnexAttachmentRules;
 import com.promaty.rrhh.services.annex.business.builder.AnnexRelationsResolver;
 import com.promaty.rrhh.services.annex.business.builder.CreateAnnexBuilder;
 import com.promaty.rrhh.services.annex.business.change.AnnexChangeRuleRegistry;
 import com.promaty.rrhh.services.annex.business.validation.AnnexValidation;
 import com.promaty.rrhh.services.rexplus.RexPlusClient;
 import com.promaty.rrhh.services.rexplus.RexSyncResult;
+import com.promaty.rrhh.services.shared.attachment.AttachmentRules;
 
 @Component
 public class AnnexRequestHandler implements RequestHandler {
@@ -85,6 +88,16 @@ public class AnnexRequestHandler implements RequestHandler {
 	@Override
 	public String readPermission() {
 		return PERMISSION_READ;
+	}
+
+	@Override
+	public AttachmentEntityType attachmentEntityType() {
+		return AttachmentEntityType.ANNEX;
+	}
+
+	@Override
+	public AttachmentRules attachmentRules(Long entityId) {
+		return AnnexAttachmentRules.rules();
 	}
 
 	@Override

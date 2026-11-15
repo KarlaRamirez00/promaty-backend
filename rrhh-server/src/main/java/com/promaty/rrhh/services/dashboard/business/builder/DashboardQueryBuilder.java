@@ -23,7 +23,6 @@ public final class DashboardQueryBuilder {
 	private static final String BIRTH_DATE = "birthDate";
 	private static final String ENTITY_TYPE = "entityType";
 	private static final String CODE_STAFF_BLOCKED = "BLOCKED";
-	private static final List<String> CONTRACT_CODES_EVER_ACTIVE = List.of("ACTIVE", "EXPIRED", "ANNULLED", "TERMINATED");
 
 	private DashboardQueryBuilder() {
 	}
@@ -60,11 +59,11 @@ public final class DashboardQueryBuilder {
 			latestStartDate.select(cb.greatest(other.<LocalDate>get(START_DATE)))
 				.where(
 					cb.equal(other.get(STAFF), root.get(STAFF)),
-					other.get(STATUS).get(CODE).in(CONTRACT_CODES_EVER_ACTIVE)
+					other.get(STATUS).get(CODE).in(Contract.STATUS_CODES_EVER_ACTIVE)
 				);
 			return cb.and(
 				cb.equal(root.get(STAFF).get(STATUS).get(CODE), CODE_STAFF_BLOCKED),
-				root.get(STATUS).get(CODE).in(CONTRACT_CODES_EVER_ACTIVE),
+				root.get(STATUS).get(CODE).in(Contract.STATUS_CODES_EVER_ACTIVE),
 				cb.equal(root.get(START_DATE), latestStartDate)
 			);
 		};

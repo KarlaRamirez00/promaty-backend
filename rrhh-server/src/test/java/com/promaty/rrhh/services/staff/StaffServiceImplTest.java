@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
@@ -239,6 +240,7 @@ class StaffServiceImplTest {
 	void listSelectorOptionsForTermination_delegaEnRepositoryYMapeaNombreCompletoConRangoDeFechas() {
 		Staff staff = staffCompleto();
 		when(staffRepository.findWithActiveContractForTerminationSelector("ACTIVE")).thenReturn(List.of(staff));
+		when(contractRepository.findAll(any(Specification.class))).thenReturn(List.of(contratoDe(staff)));
 		StaffActiveContractDateRangeProjection rango = mock(StaffActiveContractDateRangeProjection.class);
 		when(rango.getStaffId()).thenReturn(1L);
 		when(rango.getStartDate()).thenReturn(LocalDate.of(2025, 6, 1));
@@ -252,6 +254,24 @@ class StaffServiceImplTest {
 		assertThat(opciones.get(0).getIdentificationNumber()).isEqualTo("12345678-5");
 		assertThat(opciones.get(0).getMinTerminationDate()).isEqualTo(LocalDate.now().minusDays(15));
 		assertThat(opciones.get(0).getMaxTerminationDate()).isNull();
+	}
+
+	@Test
+	void listSelectorOptionsForAnnex_excluyeColaboradoresDeProyectosSinAcceso() {
+		Staff propio = staffConId(1L);
+		Staff ajeno = staffConId(2L);
+		when(staffRepository.findWithActiveContractForAnnexSelector("ACTIVE", "BLOCKED")).thenReturn(List.of(propio, ajeno));
+		when(contractRepository.findAll(any(Specification.class))).thenReturn(List.of(contratoDe(propio)));
+
+		List<StaffSelectorOptionDto> opciones = service.listSelectorOptionsForAnnex();
+
+		assertThat(opciones).extracting(StaffSelectorOptionDto::getId).containsExactly(1L);
+	}
+
+	private static Contract contratoDe(Staff staff) {
+		Contract contract = new Contract();
+		contract.setStaff(staff);
+		return contract;
 	}
 
 	@Test

@@ -1,5 +1,6 @@
 package com.promaty.rrhh.services.contract.business.mapper;
 
+import com.promaty.rrhh.dto.request.ContractPendingDataDto;
 import com.promaty.rrhh.dto.contract.ContractDetailDto;
 import com.promaty.rrhh.dto.contract.ContractListDto;
 import com.promaty.rrhh.dto.contract.RelationSummaryDto;
@@ -63,7 +64,7 @@ public final class ContractMapper {
 			null, // requestId se resuelve por fuera: Contract no tiene FK hacia Request, es al revés
 			null, // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
 			null, // attachments se carga por separado en el service
-			null  // missingAttachmentTypes se calcula por separado en el service
+			null  // attachmentRequirements depende de los adjuntos: lo completa el service
 		);
 	}
 
@@ -77,5 +78,24 @@ public final class ContractMapper {
 
 	private static RelationSummaryDto toRelationSummary(TransportType transportType) {
 		return transportType == null ? null : new RelationSummaryDto(transportType.getId(), transportType.getName());
+	}
+
+	public static ContractPendingDataDto toPendingData(Contract contract) {
+		ContractPendingDataDto data = new ContractPendingDataDto();
+		data.setStaffId(contract.getStaff().getId());
+		data.setCompanyId(contract.getCompany().getId());
+		data.setContractTypeId(contract.getContractType().getId());
+		data.setJobTitleId(contract.getJobTitle().getId());
+		data.setSiteId(contract.getSite().getId());
+		data.setStartDate(contract.getStartDate());
+		data.setEndDate(contract.getEndDate());
+		data.setBaseSalary(contract.getBaseSalary());
+		data.setAgreedSalary(contract.getAgreedSalary());
+		data.setWeeklyWorkHours(contract.getWeeklyWorkHours());
+		data.setWorkDays(contract.getWorkDays());
+		data.setContractDetail(contract.getContractDetail());
+		data.setMealTypeId(contract.getMealType() == null ? null : contract.getMealType().getId());
+		data.setTransportTypeId(contract.getTransportType() == null ? null : contract.getTransportType().getId());
+		return data;
 	}
 }

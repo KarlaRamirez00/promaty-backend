@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
@@ -14,6 +15,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.promaty.rrhh.dto.file.AttachmentRenameDto;
@@ -39,14 +41,18 @@ import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.repository.UploadedFileRepository;
 import com.promaty.rrhh.services.file.business.mapper.UploadedFileMapper;
 import com.promaty.rrhh.services.shared.FileStorageService;
+import com.promaty.rrhh.services.shared.ProjectAccessSpecification;
 import com.promaty.rrhh.repository.projection.StaffActiveContractDateRangeProjection;
 import com.promaty.rrhh.repository.projection.StaffContractStartDateProjection;
 import com.promaty.rrhh.repository.projection.StaffCostCenterProjection;
 import com.promaty.rrhh.services.shared.ActionsResolver;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
+import com.promaty.rrhh.services.shared.sort.ListSorting;
+import com.promaty.rrhh.services.shared.sort.SortedQuery;
 import com.promaty.rrhh.services.staff.business.builder.CreateStaffBuilder;
 import com.promaty.rrhh.services.staff.business.builder.StaffQueryBuilder;
 import com.promaty.rrhh.services.staff.business.builder.StaffRelationsResolver;
+import com.promaty.rrhh.services.staff.business.builder.StaffSortField;
 import com.promaty.rrhh.services.staff.business.builder.UpdateStaffBuilder;
 import com.promaty.rrhh.services.staff.business.mapper.StaffMapper;
 import com.promaty.rrhh.services.staff.business.validation.StaffValidation;
@@ -62,8 +68,6 @@ public class StaffServiceImpl implements StaffService {
 	);
 	private static final String ESTADO_ACTIVO = "ACTIVE";
 	private static final String CODIGO_ESTADO_BLOCKED = "BLOCKED";
-	private static final List<String> ESTADOS_CONTRATO_ALGUNA_VEZ_ACTIVO =
-		List.of("ACTIVE", "EXPIRED", "ANNULLED", "TERMINATED");
 
 	private static final Map<String, Action> REGLAS_ACCIONES = Map.of(
 		"staff.update", Action.UPDATE,
@@ -144,7 +148,8 @@ public class StaffServiceImpl implements StaffService {
 	public Page<StaffListDto> listStaff(StaffFilterParams filters, Pageable pageable) {
 		Specification<Staff> especificacion = StaffQueryBuilder.fromFilters(filters);
 		List<Action> actions = actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES);
-		Page<Staff> pagina = staffRepository.findAll(especificacion, pageable);
+		SortedQuery<Staff> sorted = ListSorting.apply(especificacion, pageable, StaffSortField.class);
+		Page<Staff> pagina = staffRepository.findAll(sorted.specification(), sorted.pageable());
 
 		List<Long> staffIds = pagina.getContent().stream().map(Staff::getId).toList();
 		Map<Long, String> centrosCostoPorStaff = resolverCentrosCostoEnLote(staffIds);
@@ -183,7 +188,7 @@ public class StaffServiceImpl implements StaffService {
 
 	private UploadedFile saveAttachment(MultipartFile file, Long staffId) {
 		validateFile(file);
-		String storagePath = fileStorageService.store(file, "staff/" + staffId);
+		String storagePath = fileStorageService.store(file, "staff/" + staffId, StringUtils.getFilenameExtension(file.getOriginalFilename()));
 		UploadedFile uploaded = new UploadedFile();
 		uploaded.setMediaFileId(UUID.randomUUID().toString());
 		uploaded.setEntityType(AttachmentEntityType.STAFF);
@@ -239,7 +244,9 @@ public class StaffServiceImpl implements StaffService {
 	@Override
 	@Transactional(readOnly = true)
 	public List<StaffTerminationSelectorOptionDto> listSelectorOptionsForTermination() {
-		List<Staff> staffConContratoActivo = staffRepository.findWithActiveContractForTerminationSelector(ESTADO_ACTIVO);
+		List<Staff> staffConContratoActivo = onlyWithAccessibleContract(
+			staffRepository.findWithActiveContractForTerminationSelector(ESTADO_ACTIVO)
+		);
 		List<Long> staffIds = staffConContratoActivo.stream().map(Staff::getId).toList();
 		Map<Long, StaffActiveContractDateRangeProjection> rangosPorStaff = contractRepository
 			.findActiveContractDateRangesByStaffIds(staffIds, ESTADO_ACTIVO)
@@ -254,10 +261,19 @@ public class StaffServiceImpl implements StaffService {
 	@Override
 	@Transactional(readOnly = true)
 	public List<StaffSelectorOptionDto> listSelectorOptionsForAnnex() {
-		return staffRepository.findWithActiveContractForAnnexSelector(ESTADO_ACTIVO, CODIGO_ESTADO_BLOCKED)
+		return onlyWithAccessibleContract(staffRepository.findWithActiveContractForAnnexSelector(ESTADO_ACTIVO, CODIGO_ESTADO_BLOCKED))
 			.stream()
 			.map(StaffMapper::toSelectorOptionDto)
 			.toList();
+	}
+
+	private List<Staff> onlyWithAccessibleContract(List<Staff> candidates) {
+		Specification<Contract> accessibleActiveContracts = ProjectAccessSpecification.<Contract>onProject()
+			.and((root, query, cb) -> cb.equal(root.get("status").get("code"), ESTADO_ACTIVO));
+		Set<Long> accessibleStaffIds = contractRepository.findAll(accessibleActiveContracts).stream()
+			.map(contract -> contract.getStaff().getId())
+			.collect(Collectors.toSet());
+		return candidates.stream().filter(staff -> accessibleStaffIds.contains(staff.getId())).toList();
 	}
 
 	private String resolverCentroCosto(Long staffId) {
@@ -269,7 +285,7 @@ public class StaffServiceImpl implements StaffService {
 
 	private LocalDate resolverFechaIngreso(Long staffId) {
 		return contractRepository
-			.findFirstByStaffIdAndStatus_CodeInOrderByStartDateDesc(staffId, ESTADOS_CONTRATO_ALGUNA_VEZ_ACTIVO)
+			.findFirstByStaffIdAndStatus_CodeInOrderByStartDateDesc(staffId, Contract.STATUS_CODES_EVER_ACTIVE)
 			.map(Contract::getStartDate)
 			.orElse(null);
 	}
@@ -286,7 +302,7 @@ public class StaffServiceImpl implements StaffService {
 		if (staffIds.isEmpty()) {
 			return Map.of();
 		}
-		return contractRepository.findStartDatesByStaffIds(staffIds, ESTADOS_CONTRATO_ALGUNA_VEZ_ACTIVO).stream()
+		return contractRepository.findStartDatesByStaffIds(staffIds, Contract.STATUS_CODES_EVER_ACTIVE).stream()
 			.collect(Collectors.toMap(
 				StaffContractStartDateProjection::getStaffId,
 				StaffContractStartDateProjection::getStartDate,

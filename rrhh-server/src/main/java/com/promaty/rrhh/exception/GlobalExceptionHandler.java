@@ -9,10 +9,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import com.promaty.rrhh.dto.response.BaseData;
 import com.promaty.rrhh.dto.response.ErrorResponse;
@@ -37,6 +41,28 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<BaseData<Void>> handleMissingParam(MissingServletRequestParameterException ex) {
 		Map<String, String> errorFields = Map.of(ex.getParameterName(), "Este parametro es obligatorio.");
 		return buildResponse(HttpStatus.BAD_REQUEST, mensajeConCampos(errorFields), errorFields);
+	}
+
+	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
+	public ResponseEntity<BaseData<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+		Map<String, String> errorFields = Map.of(ex.getName(), "El valor ingresado no es valido.");
+		return buildResponse(HttpStatus.BAD_REQUEST, mensajeConCampos(errorFields), errorFields);
+	}
+
+	@ExceptionHandler(MissingServletRequestPartException.class)
+	public ResponseEntity<BaseData<Void>> handleMissingPart(MissingServletRequestPartException ex) {
+		Map<String, String> errorFields = Map.of(ex.getRequestPartName(), "Esta parte del formulario es obligatoria.");
+		return buildResponse(HttpStatus.BAD_REQUEST, mensajeConCampos(errorFields), errorFields);
+	}
+
+	@ExceptionHandler(MaxUploadSizeExceededException.class)
+	public ResponseEntity<BaseData<Void>> handleMaxUploadSize(MaxUploadSizeExceededException ex) {
+		return buildResponse(HttpStatus.PAYLOAD_TOO_LARGE, "Los archivos superan el tamaño máximo permitido.", Map.of());
+	}
+
+	@ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+	public ResponseEntity<BaseData<Void>> handleUnsupportedMediaType(HttpMediaTypeNotSupportedException ex) {
+		return buildResponse(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "El formato del envío no es válido: se espera multipart/form-data o JSON según el endpoint.", Map.of());
 	}
 
 	@ExceptionHandler(ResourceNotFoundException.class)

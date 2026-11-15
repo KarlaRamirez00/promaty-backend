@@ -4,12 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
@@ -44,6 +46,7 @@ import com.promaty.rrhh.entity.Project;
 import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.RequestAction;
 import com.promaty.rrhh.entity.RequestEntityType;
+import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.AnnexRepository;
 import com.promaty.rrhh.repository.ApprovalRepository;
@@ -61,6 +64,12 @@ import com.promaty.rrhh.services.request.business.validation.RequestValidation;
 import com.promaty.rrhh.services.request.handler.RequestHandler;
 import com.promaty.rrhh.services.request.handler.RequestHandlerRegistry;
 import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
+import com.promaty.rrhh.services.shared.attachment.AttachmentOwner;
+import com.promaty.rrhh.services.shared.attachment.AttachmentService;
+import com.promaty.rrhh.services.contract.business.ContractAttachmentRules;
+import com.promaty.rrhh.dto.request.CreatedRequestDto;
+import com.promaty.rrhh.entity.AttachmentEntityType;
+import org.springframework.web.multipart.MultipartFile;
 
 @ExtendWith(MockitoExtension.class)
 class RequestServiceImplTest {
@@ -95,6 +104,8 @@ class RequestServiceImplTest {
 	private TerminationPendingDataResolver terminationPendingDataResolver;
 	@Spy
 	private RequestApprovalActionsResolver actionsResolver = new RequestApprovalActionsResolver();
+	@Mock
+	private AttachmentService attachmentService;
 
 	@AfterEach
 	void limpiarContextoDeSeguridad() {
@@ -105,9 +116,10 @@ class RequestServiceImplTest {
 	private RequestServiceImpl requestService;
 
 	@Test
-	void createRequest_validaArmaCreaLaEntidadYGuarda_retornaIdGenerado() {
+	void createRequest_validaArmaCreaLaEntidadGuardaYSincronizaAdjuntos_retornaAmbosIds() {
 		CreateRequestDto dto = new CreateRequestDto();
 		dto.setEntityType(RequestEntityType.CONTRACT);
+		List<MultipartFile> files = List.of();
 		Request request = new Request();
 		request.setEntityType(RequestEntityType.CONTRACT);
 		Request guardado = new Request();
@@ -117,12 +129,39 @@ class RequestServiceImplTest {
 		when(handlerRegistry.get(RequestEntityType.CONTRACT)).thenReturn(contractRequestHandler);
 		when(contractRequestHandler.create(request)).thenReturn(77L);
 		when(requestRepository.save(request)).thenReturn(guardado);
+		when(contractRequestHandler.attachmentEntityType()).thenReturn(AttachmentEntityType.CONTRACT);
+		when(contractRequestHandler.attachmentRules(77L)).thenReturn(ContractAttachmentRules.rules());
 
-		Long id = requestService.createRequest(dto);
+		CreatedRequestDto creado = requestService.createRequest(dto, files);
 
-		assertThat(id).isEqualTo(10L);
+		assertThat(creado.getRequestId()).isEqualTo(10L);
+		assertThat(creado.getEntityId()).isEqualTo(77L);
 		assertThat(request.getEntityId()).isEqualTo(77L);
 		verify(requestValidation).validateCreate(dto);
+		verify(attachmentService).sync(
+			new AttachmentOwner(AttachmentEntityType.CONTRACT, 77L), ContractAttachmentRules.rules(), List.of(), files
+		);
+	}
+
+	@Test
+	void createRequest_siFaltanAdjuntos_propagaElErrorParaRevertirTodo() {
+		CreateRequestDto dto = new CreateRequestDto();
+		dto.setEntityType(RequestEntityType.CONTRACT);
+		Request request = new Request();
+		request.setEntityType(RequestEntityType.CONTRACT);
+		Request guardado = new Request();
+		guardado.setId(10L);
+		when(createRequestBuilder.build(dto)).thenReturn(request);
+		when(handlerRegistry.get(RequestEntityType.CONTRACT)).thenReturn(contractRequestHandler);
+		when(contractRequestHandler.create(request)).thenReturn(77L);
+		when(requestRepository.save(request)).thenReturn(guardado);
+		when(contractRequestHandler.attachmentEntityType()).thenReturn(AttachmentEntityType.CONTRACT);
+		when(contractRequestHandler.attachmentRules(77L)).thenReturn(ContractAttachmentRules.rules());
+		doThrow(new BusinessValidationException("x", Map.of("attachments", "Falta adjuntar: Certificado de AFP.")))
+			.when(attachmentService).sync(any(), any(), any(), any());
+
+		assertThatThrownBy(() -> requestService.createRequest(dto, List.of()))
+			.isInstanceOf(BusinessValidationException.class);
 	}
 
 	@Test

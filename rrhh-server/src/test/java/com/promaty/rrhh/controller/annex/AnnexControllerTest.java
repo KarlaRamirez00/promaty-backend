@@ -5,10 +5,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -18,11 +19,14 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 
 import com.promaty.rrhh.config.SecurityConfig;
 import com.promaty.rrhh.dto.annex.AnnexDetailDto;
@@ -47,6 +51,13 @@ class AnnexControllerTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	private static MockMultipartHttpServletRequestBuilder multipartPut(String url, String json, String token) {
+		MockMultipartHttpServletRequestBuilder builder = multipart(HttpMethod.PUT, url);
+		builder.file(new MockMultipartFile("data", "", MediaType.APPLICATION_JSON_VALUE, json.getBytes(StandardCharsets.UTF_8)));
+		builder.header(HttpHeaders.AUTHORIZATION, token);
+		return builder;
+	}
 
 	@MockitoBean
 	private AnnexService annexService;
@@ -84,31 +95,22 @@ class AnnexControllerTest {
 	void update_conDatosValidos_retorna200YDelegaEnElService() throws Exception {
 		when(annexService.getAnnexDetail(1L)).thenReturn(new AnnexDetailDto());
 
-		mockMvc.perform(put("/annexes/1")
-				.header(HttpHeaders.AUTHORIZATION, EDICION)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(UPDATE_JSON))
+		mockMvc.perform(multipartPut("/annexes/1", UPDATE_JSON, EDICION))
 			.andExpect(status().isOk());
 
-		verify(annexService).updateAnnex(eq(1L), any(UpdateAnnexDto.class));
+		verify(annexService).updateAnnex(eq(1L), any(UpdateAnnexDto.class), any());
 	}
 
 	@Test
 	void update_sinDescripcion_retorna400ConElCampo() throws Exception {
-		mockMvc.perform(put("/annexes/1")
-				.header(HttpHeaders.AUTHORIZATION, EDICION)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"effectiveDate\":\"2026-11-20\"}"))
+		mockMvc.perform(multipartPut("/annexes/1", "{\"effectiveDate\":\"2026-11-20\"}", EDICION))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.error.errorFields.description").exists());
 	}
 
 	@Test
 	void update_soloConLectura_retorna403() throws Exception {
-		mockMvc.perform(put("/annexes/1")
-				.header(HttpHeaders.AUTHORIZATION, LECTURA)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(UPDATE_JSON))
+		mockMvc.perform(multipartPut("/annexes/1", UPDATE_JSON, LECTURA))
 			.andExpect(status().isForbidden());
 	}
 }

@@ -19,7 +19,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
@@ -54,6 +53,8 @@ import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.repository.TerminationRepository;
 import com.promaty.rrhh.repository.TransportTypeRepository;
 import com.promaty.rrhh.services.annex.business.validation.AnnexValidation;
+import com.promaty.security.JwtPrincipal;
+import com.promaty.rrhh.services.contract.business.validation.ContractValidation;
 import com.promaty.rrhh.services.request.handler.RequestHandler;
 import com.promaty.rrhh.services.request.handler.RequestHandlerRegistry;
 
@@ -102,18 +103,43 @@ class RequestValidationTest {
 	@Mock
 	private RequestHandler annexHandler;
 
-	@InjectMocks
 	private RequestValidation requestValidation;
 
 	@BeforeEach
 	void autenticarConPermisosDeCreacion() {
+		ContractValidation contractValidation = new ContractValidation(
+			projectRepository, companyRepository, contractTypeRepository, jobTitleRepository,
+			siteRepository, mealTypeRepository, transportTypeRepository
+		);
+		requestValidation = new RequestValidation(
+			staffRepository, contractRepository, legalTerminationCauseRepository,
+			nonRehireReasonRepository, terminationRepository, handlerRegistry, annexValidation, contractValidation
+		);
 		lenient().when(handlerRegistry.get(RequestEntityType.CONTRACT)).thenReturn(contractHandler);
 		lenient().when(handlerRegistry.get(RequestEntityType.TERMINATION)).thenReturn(terminationHandler);
 		lenient().when(contractHandler.createPermission()).thenReturn("contract.create");
 		lenient().when(terminationHandler.createPermission()).thenReturn("termination.create");
 		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
-			"usuario", null, List.of(new SimpleGrantedAuthority("contract.create"), new SimpleGrantedAuthority("termination.create"))
+			jefeDeObraCon(List.of(PROJECT_ID)), null,
+			List.of(new SimpleGrantedAuthority("contract.create"), new SimpleGrantedAuthority("termination.create"))
 		));
+	}
+
+	@Test
+	void validateCreate_contratoEnProyectoSinAcceso_rechazaElCentroDeCosto() {
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+			jefeDeObraCon(List.of(99L)), null, List.of(new SimpleGrantedAuthority("contract.create"))
+		));
+		when(projectRepository.existsById(PROJECT_ID)).thenReturn(true);
+
+		assertThatThrownBy(() -> requestValidation.validateCreate(dtoValido()))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsEntry("projectId", "No tienes acceso al centro de costo indicado."));
+	}
+
+	private static JwtPrincipal jefeDeObraCon(List<Long> projectIds) {
+		return new JwtPrincipal("1", "Jefe de obra", "Juan", List.of(), false, projectIds, false);
 	}
 
 	@AfterEach

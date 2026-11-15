@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: gateway-server
+  servlet:
+    multipart:
+      max-file-size: ${FILE_MAX_SIZE_MB:20}MB
+      max-request-size: ${FILE_MAX_REQUEST_SIZE_MB:110}MB
 
 eureka:
   client:

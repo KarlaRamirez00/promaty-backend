@@ -7,7 +7,7 @@ spring:
   servlet:
     multipart:
       max-file-size: ${FILE_MAX_SIZE_MB:20}MB
-      max-request-size: ${FILE_MAX_SIZE_MB:20}MB
+      max-request-size: ${FILE_MAX_REQUEST_SIZE_MB:110}MB
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:5432/promaty_rrhh
     username: ${DB_USERNAME}

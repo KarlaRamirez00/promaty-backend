@@ -36,7 +36,7 @@ public class Annex extends BaseDatedEntity implements AnnexChangeValues {
 	private Project project;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "annex_type_id", nullable = false, updatable = false)
+	@JoinColumn(name = "annex_type_id", nullable = false)
 	private AnnexType annexType;
 
 	@Column(name = "effective_date", nullable = false)

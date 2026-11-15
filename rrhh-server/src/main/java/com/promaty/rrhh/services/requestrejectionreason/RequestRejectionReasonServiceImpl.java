@@ -23,10 +23,13 @@ import com.promaty.rrhh.entity.RequestRejectionReasonSubModule;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.RequestRejectionReasonRepository;
 import com.promaty.rrhh.services.requestrejectionreason.business.builder.RequestRejectionReasonQueryBuilder;
+import com.promaty.rrhh.services.requestrejectionreason.business.builder.RequestRejectionReasonSortField;
 import com.promaty.rrhh.services.requestrejectionreason.business.mapper.RequestRejectionReasonMapper;
 import com.promaty.rrhh.services.requestrejectionreason.business.validation.RequestRejectionReasonValidation;
 import com.promaty.rrhh.services.shared.ActionsResolver;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
+import com.promaty.rrhh.services.shared.sort.ListSorting;
+import com.promaty.rrhh.services.shared.sort.SortedQuery;
 
 @Service
 public class RequestRejectionReasonServiceImpl implements RequestRejectionReasonService {
@@ -77,8 +80,9 @@ public class RequestRejectionReasonServiceImpl implements RequestRejectionReason
 	@Transactional(readOnly = true)
 	public Page<RequestRejectionReasonListDto> listRequestRejectionReasons(RequestRejectionReasonFilterParams filters, Pageable pageable) {
 		Specification<RequestRejectionReason> especificacion = RequestRejectionReasonQueryBuilder.fromFilters(filters);
+		SortedQuery<RequestRejectionReason> sorted = ListSorting.apply(especificacion, pageable, RequestRejectionReasonSortField.class);
 		List<Action> actions = actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES);
-		return requestRejectionReasonRepository.findAll(especificacion, pageable)
+		return requestRejectionReasonRepository.findAll(sorted.specification(), sorted.pageable())
 			.map(RequestRejectionReasonMapper::toListDto)
 			.map(dto -> conAcciones(dto, actions));
 	}

@@ -4,14 +4,17 @@ import java.util.List;
 
 import org.springframework.web.multipart.MultipartFile;
 
+import com.promaty.rrhh.dto.file.AttachmentItemDto;
+import com.promaty.rrhh.dto.file.AttachmentRequirementDto;
 import com.promaty.rrhh.dto.file.FileAttachmentDto;
-import com.promaty.rrhh.entity.AttachmentEntityType;
 
 public interface AttachmentService {
 
-	List<FileAttachmentDto> list(AttachmentEntityType entityType, Long entityId);
+	List<FileAttachmentDto> list(AttachmentOwner owner);
 
-	FileAttachmentDto replaceSingle(AttachmentEntityType entityType, Long entityId, MultipartFile file);
+	List<AttachmentRequirementDto> requirements(AttachmentOwner owner, AttachmentRules rules);
 
-	void delete(AttachmentEntityType entityType, Long entityId, Long attachmentId);
+	void sync(AttachmentOwner owner, AttachmentRules rules, List<AttachmentItemDto> items, List<MultipartFile> files);
+
+	void validateRequired(AttachmentOwner owner, AttachmentRules rules);
 }

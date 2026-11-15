@@ -1,15 +1,19 @@
 package com.promaty.rrhh.controller.request;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -19,12 +23,15 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 
 import com.promaty.rrhh.config.SecurityConfig;
+import com.promaty.rrhh.dto.request.CreatedRequestDto;
 import com.promaty.rrhh.dto.request.RequestDetailDto;
 import com.promaty.rrhh.dto.request.RequestListDto;
 import com.promaty.rrhh.entity.RequestAction;
@@ -71,17 +78,26 @@ class RequestControllerTest {
 	@Autowired
 	private MockMvc mockMvc;
 
+	private static MockMultipartFile pdf() {
+		return new MockMultipartFile("files", "cedula.pdf", MediaType.APPLICATION_PDF_VALUE, new byte[] {0x25, 0x50, 0x44, 0x46});
+	}
+
+	private static MockMultipartHttpServletRequestBuilder createMultipart(String token) {
+		MockMultipartHttpServletRequestBuilder builder = multipart("/requests")
+			.file(new MockMultipartFile("data", "", MediaType.APPLICATION_JSON_VALUE, REQUEST_JSON.getBytes(StandardCharsets.UTF_8)))
+			.file(pdf());
+		builder.header(HttpHeaders.AUTHORIZATION, token);
+		return builder;
+	}
+
 	@MockitoBean
 	private RequestService requestService;
 
 	@Test
 	void create_conSoloPermisoDeFiniquito_retorna201ConId() throws Exception {
-		when(requestService.createRequest(any())).thenReturn(10L);
+		when(requestService.createRequest(any(), any())).thenReturn(new CreatedRequestDto(10L, 20L));
 
-		mockMvc.perform(post("/requests")
-				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("termination.create"))
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(REQUEST_JSON))
+		mockMvc.perform(createMultipart(TestJwt.bearer("termination.create")))
 			.andExpect(status().isCreated());
 	}
 
@@ -105,23 +121,82 @@ class RequestControllerTest {
 	}
 
 	@Test
-	void create_conDatosValidos_retorna201ConId() throws Exception {
-		when(requestService.createRequest(any())).thenReturn(10L);
+	void create_withOnlyAnnexPermission_returns201() throws Exception {
+		when(requestService.createRequest(any(), any())).thenReturn(new CreatedRequestDto(10L, 20L));
 
+		mockMvc.perform(createMultipart(TestJwt.bearer("annex.create")))
+			.andExpect(status().isCreated());
+	}
+
+	@Test
+	void list_withOnlyAnnexPermission_returns200() throws Exception {
+		when(requestService.listRequests(any(), any())).thenReturn(new PageImpl<>(List.of()));
+
+		mockMvc.perform(get("/requests").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("annex.read")))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void detail_withOnlyAnnexPermission_returns200() throws Exception {
+		mockMvc.perform(get("/requests/1").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("annex.read")))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void decide_withOnlyAnnexApprovePermission_returns200() throws Exception {
+		doNothing().when(requestService).decideRequest(eq(1L), any());
+
+		mockMvc.perform(patch("/requests/1/decide")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("annex.approve"))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(DECIDE_JSON))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void decide_withOnlyAnnexValidatePermission_returns200() throws Exception {
+		doNothing().when(requestService).decideRequest(eq(1L), any());
+
+		mockMvc.perform(patch("/requests/1/decide")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("annex.validate"))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(DECIDE_JSON))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void create_conDatosValidos_retorna201ConId() throws Exception {
+		when(requestService.createRequest(any(), any())).thenReturn(new CreatedRequestDto(10L, 20L));
+
+		mockMvc.perform(createMultipart(TOKEN))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.data.requestId").value(10))
+			.andExpect(jsonPath("$.data.entityId").value(20));
+
+		verify(requestService).createRequest(any(), argThat(files -> files != null && files.size() == 1));
+	}
+
+	@Test
+	void create_sinParteData_retorna400() throws Exception {
+		mockMvc.perform(multipart("/requests")
+				.file(pdf())
+				.header(HttpHeaders.AUTHORIZATION, TOKEN))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.error.errorFields.data").exists());
+	}
+
+	@Test
+	void create_comoJson_retorna415() throws Exception {
 		mockMvc.perform(post("/requests")
 				.header(HttpHeaders.AUTHORIZATION, TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(REQUEST_JSON))
-			.andExpect(status().isCreated())
-			.andExpect(jsonPath("$.data").value(10));
+			.andExpect(status().isUnsupportedMediaType());
 	}
 
 	@Test
 	void create_sinPermiso_retorna403() throws Exception {
-		mockMvc.perform(post("/requests")
-				.header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(REQUEST_JSON))
+		mockMvc.perform(createMultipart(SIN_PERMISOS))
 			.andExpect(status().isForbidden());
 	}
 

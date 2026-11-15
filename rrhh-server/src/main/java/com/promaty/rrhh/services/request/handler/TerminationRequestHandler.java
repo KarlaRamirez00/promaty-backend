@@ -1,6 +1,5 @@
 package com.promaty.rrhh.services.request.handler;
 
-import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
@@ -16,7 +15,6 @@ import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.entity.Termination;
-import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.LegalTerminationCauseRepository;
@@ -24,7 +22,10 @@ import com.promaty.rrhh.repository.NonRehireReasonRepository;
 import com.promaty.rrhh.repository.PlatformStatusRepository;
 import com.promaty.rrhh.repository.StaffRepository;
 import com.promaty.rrhh.repository.TerminationRepository;
-import com.promaty.rrhh.repository.UploadedFileRepository;
+import com.promaty.rrhh.services.shared.attachment.AttachmentOwner;
+import com.promaty.rrhh.services.shared.attachment.AttachmentRules;
+import com.promaty.rrhh.services.shared.attachment.AttachmentService;
+import com.promaty.rrhh.services.termination.business.TerminationAttachmentRules;
 import com.promaty.rrhh.services.rexplus.RexPlusClient;
 import com.promaty.rrhh.services.rexplus.RexSyncResult;
 
@@ -53,7 +54,6 @@ public class TerminationRequestHandler implements RequestHandler {
 	private static final String PERMISO_VALIDAR = "termination.validate";
 	private static final String PERMISO_CREAR = "termination.create";
 	private static final String PERMISO_LEER = "termination.read";
-	private static final String FIELD_ATTACHMENTS = "attachments";
 
 	private final ObjectMapper objectMapper;
 	private final StaffRepository staffRepository;
@@ -63,7 +63,7 @@ public class TerminationRequestHandler implements RequestHandler {
 	private final TerminationRepository terminationRepository;
 	private final PlatformStatusRepository platformStatusRepository;
 	private final RexPlusClient rexPlusClient;
-	private final UploadedFileRepository uploadedFileRepository;
+	private final AttachmentService attachmentService;
 
 	public TerminationRequestHandler(
 		ObjectMapper objectMapper,
@@ -74,7 +74,7 @@ public class TerminationRequestHandler implements RequestHandler {
 		TerminationRepository terminationRepository,
 		PlatformStatusRepository platformStatusRepository,
 		RexPlusClient rexPlusClient,
-		UploadedFileRepository uploadedFileRepository
+		AttachmentService attachmentService
 	) {
 		this.objectMapper = objectMapper;
 		this.staffRepository = staffRepository;
@@ -84,7 +84,7 @@ public class TerminationRequestHandler implements RequestHandler {
 		this.terminationRepository = terminationRepository;
 		this.platformStatusRepository = platformStatusRepository;
 		this.rexPlusClient = rexPlusClient;
-		this.uploadedFileRepository = uploadedFileRepository;
+		this.attachmentService = attachmentService;
 	}
 
 	@Override
@@ -110,6 +110,18 @@ public class TerminationRequestHandler implements RequestHandler {
 	@Override
 	public String readPermission() {
 		return PERMISO_LEER;
+	}
+
+	@Override
+	public AttachmentEntityType attachmentEntityType() {
+		return AttachmentEntityType.TERMINATION;
+	}
+
+	@Override
+	public AttachmentRules attachmentRules(Long entityId) {
+		Termination termination = terminationRepository.findById(entityId)
+			.orElseThrow(() -> new ResourceNotFoundException("El finiquito de la solicitud no existe."));
+		return TerminationAttachmentRules.forCause(termination.getLegalTerminationCause());
 	}
 
 	@Override
@@ -155,19 +167,10 @@ public class TerminationRequestHandler implements RequestHandler {
 	}
 
 	private void validateRequiredAttachment(Termination termination) {
-		String requiredLabel = termination.getLegalTerminationCause().requiredAttachmentLabel();
-		if (requiredLabel == null) {
-			return;
-		}
-		long attachmentCount = uploadedFileRepository.countByEntityTypeAndEntityId(
-			AttachmentEntityType.TERMINATION, termination.getId()
+		attachmentService.validateRequired(
+			new AttachmentOwner(AttachmentEntityType.TERMINATION, termination.getId()),
+			TerminationAttachmentRules.forCause(termination.getLegalTerminationCause())
 		);
-		if (attachmentCount == 0) {
-			throw new BusinessValidationException(
-				"Falta el adjunto obligatorio del finiquito.",
-				Map.of(FIELD_ATTACHMENTS, "Falta adjuntar: " + requiredLabel + ".")
-			);
-		}
 	}
 
 	private void aplicarValidacionRrhh(Termination termination) {

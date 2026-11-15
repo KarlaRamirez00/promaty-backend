@@ -11,8 +11,10 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.promaty.rrhh.dto.request.CreateRequestDto;
+import com.promaty.rrhh.dto.request.CreatedRequestDto;
 import com.promaty.rrhh.dto.request.DecideRequestDto;
 import com.promaty.rrhh.dto.request.RequestCountersDto;
 import com.promaty.rrhh.dto.request.RequestDetailDto;
@@ -35,16 +37,22 @@ import com.promaty.rrhh.repository.projection.RequestStaffDataProjection;
 import com.promaty.rrhh.services.request.business.builder.CreateRequestBuilder;
 import com.promaty.rrhh.services.request.business.builder.RequestQueryBuilder;
 import com.promaty.rrhh.services.request.business.builder.RequestRelationsResolver;
+import com.promaty.rrhh.services.request.business.builder.RequestSortField;
 import com.promaty.rrhh.services.request.business.mapper.ContractPendingDataResolver;
 import com.promaty.rrhh.services.request.business.mapper.RequestMapper;
 import com.promaty.rrhh.services.request.business.mapper.TerminationPendingDataResolver;
 import com.promaty.rrhh.services.request.business.validation.RequestDecisionValidation;
 import com.promaty.rrhh.services.request.business.validation.RequestValidation;
+import com.promaty.rrhh.services.request.handler.RequestHandler;
 import com.promaty.rrhh.services.request.handler.RequestHandlerRegistry;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
 import com.promaty.rrhh.services.shared.CurrentUserId;
 import com.promaty.rrhh.services.shared.ProjectAccessSpecification;
 import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
+import com.promaty.rrhh.services.shared.attachment.AttachmentOwner;
+import com.promaty.rrhh.services.shared.attachment.AttachmentService;
+import com.promaty.rrhh.services.shared.sort.ListSorting;
+import com.promaty.rrhh.services.shared.sort.SortedQuery;
 
 @Service
 public class RequestServiceImpl implements RequestService {
@@ -67,6 +75,7 @@ public class RequestServiceImpl implements RequestService {
 	private final ContractPendingDataResolver contractPendingDataResolver;
 	private final TerminationPendingDataResolver terminationPendingDataResolver;
 	private final RequestApprovalActionsResolver actionsResolver;
+	private final AttachmentService attachmentService;
 
 	public RequestServiceImpl(
 		RequestRepository requestRepository,
@@ -82,7 +91,8 @@ public class RequestServiceImpl implements RequestService {
 		RequestHandlerRegistry handlerRegistry,
 		ContractPendingDataResolver contractPendingDataResolver,
 		TerminationPendingDataResolver terminationPendingDataResolver,
-		RequestApprovalActionsResolver actionsResolver
+		RequestApprovalActionsResolver actionsResolver,
+		AttachmentService attachmentService
 	) {
 		this.requestRepository = requestRepository;
 		this.approvalRepository = approvalRepository;
@@ -98,16 +108,25 @@ public class RequestServiceImpl implements RequestService {
 		this.contractPendingDataResolver = contractPendingDataResolver;
 		this.terminationPendingDataResolver = terminationPendingDataResolver;
 		this.actionsResolver = actionsResolver;
+		this.attachmentService = attachmentService;
 	}
 
 	@Override
 	@Transactional
-	public Long createRequest(CreateRequestDto dto) {
+	public CreatedRequestDto createRequest(CreateRequestDto dto, List<MultipartFile> files) {
 		requestValidation.validateCreate(dto);
 		Request request = createRequestBuilder.build(dto);
-		Long entityId = handlerRegistry.get(request.getEntityType()).create(request);
+		RequestHandler handler = handlerRegistry.get(request.getEntityType());
+		Long entityId = handler.create(request);
 		request.setEntityId(entityId);
-		return requestRepository.save(request).getId();
+		Long requestId = requestRepository.save(request).getId();
+		attachmentService.sync(
+			new AttachmentOwner(handler.attachmentEntityType(), entityId),
+			handler.attachmentRules(entityId),
+			dto.getAttachments() == null ? List.of() : dto.getAttachments(),
+			files
+		);
+		return new CreatedRequestDto(requestId, entityId);
 	}
 
 	@Override
@@ -131,7 +150,8 @@ public class RequestServiceImpl implements RequestService {
 		Specification<Request> especificacion = RequestQueryBuilder.fromFilters(filters)
 			.and(RequestQueryBuilder.restrictToEntityTypes(tiposLegibles))
 			.and(ProjectAccessSpecification.onProject());
-		Page<Request> pagina = requestRepository.findAll(especificacion, pageable);
+		SortedQuery<Request> sorted = ListSorting.apply(especificacion, pageable, RequestSortField.class);
+		Page<Request> pagina = requestRepository.findAll(sorted.specification(), sorted.pageable());
 
 		Map<RequestEntityType, Map<Long, RequestStaffDataProjection>> staffDataByType = Map.of(
 			RequestEntityType.CONTRACT, indexById(idsDeEntidad(pagina, RequestEntityType.CONTRACT), contractRepository::findStaffDataByContractIds),

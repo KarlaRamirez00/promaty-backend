@@ -7,6 +7,7 @@ import java.util.List;
 
 import com.promaty.rrhh.dto.contract.RelationSummaryDto;
 import com.promaty.rrhh.dto.contract.StaffSummaryDto;
+import com.promaty.rrhh.dto.file.AttachmentRequirementDto;
 import com.promaty.rrhh.dto.file.FileAttachmentDto;
 import com.promaty.rrhh.dto.platformstatus.PlatformStatusOptionDto;
 import com.promaty.rrhh.dto.shared.Action;
@@ -52,4 +53,5 @@ public class AnnexDetailDto {
 	private Long requestId;
 	private List<Action> actions;
 	private List<FileAttachmentDto> attachments;
+	private List<AttachmentRequirementDto> attachmentRequirements;
 }

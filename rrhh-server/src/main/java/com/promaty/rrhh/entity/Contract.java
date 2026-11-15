@@ -2,6 +2,7 @@ package com.promaty.rrhh.entity;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 import com.promaty.rrhh.entity.base.BaseDatedEntity;
 
@@ -21,6 +22,9 @@ import lombok.Setter;
 @Entity
 @Table(name = "contract")
 public class Contract extends BaseDatedEntity {
+
+	public static final String STATUS_CODE_ACTIVE = "ACTIVE";
+	public static final List<String> STATUS_CODES_EVER_ACTIVE = List.of(STATUS_CODE_ACTIVE, "EXPIRED", "ANNULLED", "TERMINATED");
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "staff_id", nullable = false)

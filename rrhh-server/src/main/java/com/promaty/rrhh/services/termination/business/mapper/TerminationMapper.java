@@ -1,5 +1,6 @@
 package com.promaty.rrhh.services.termination.business.mapper;
 
+import com.promaty.rrhh.dto.request.TerminationPendingDataDto;
 import com.promaty.rrhh.dto.platformstatus.PlatformStatusOptionDto;
 import com.promaty.rrhh.dto.termination.RelationSummaryDto;
 import com.promaty.rrhh.dto.termination.StaffSummaryDto;
@@ -58,8 +59,7 @@ public final class TerminationMapper {
 			null, // requestId se resuelve por fuera: Termination no tiene FK hacia Request, es al revés
 			null, // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
 			null, // attachments se carga por separado en el service
-			termination.getLegalTerminationCause().requiredAttachmentLabel(),
-			null  // missingRequiredAttachment depende de los adjuntos: lo completa el service
+			null  // attachmentRequirements depende de los adjuntos: lo completa el service
 		);
 	}
 
@@ -69,5 +69,16 @@ public final class TerminationMapper {
 
 	private static RelationSummaryDto toRelationSummary(NonRehireReason nonRehireReason) {
 		return nonRehireReason == null ? null : new RelationSummaryDto(nonRehireReason.getId(), nonRehireReason.getName());
+	}
+
+	public static TerminationPendingDataDto toPendingData(Termination termination) {
+		TerminationPendingDataDto data = new TerminationPendingDataDto();
+		data.setStaffId(termination.getStaff().getId());
+		data.setTerminationDate(termination.getTerminationDate());
+		data.setLegalTerminationCauseId(termination.getLegalTerminationCause().getId());
+		data.setDefinitiveTermination(termination.getDefinitiveTermination());
+		data.setNonRehireReasonId(termination.getNonRehireReason() == null ? null : termination.getNonRehireReason().getId());
+		data.setNotes(termination.getNotes());
+		return data;
 	}
 }

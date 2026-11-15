@@ -85,18 +85,19 @@ public class AnnexValidation {
 	}
 
 	public void validateUpdate(Annex annex, UpdateAnnexDto dto) {
-		validateEditable(annex);
 		Map<String, String> errors = new LinkedHashMap<>();
 		StaffEligibility.collectAnnexErrors(annex.getStaff(), errors);
 		collectEffectiveDateErrors(dto.getEffectiveDate(), annex.getContract(), errors);
-		collectChangeErrors(annex.getTypeCode(), dto, annex.getContract(), errors);
+		resolveTypeForUpdate(annex, dto.getAnnexTypeId(), errors)
+			.ifPresent(typeCode -> collectChangeErrors(typeCode, dto, annex.getContract(), errors));
 		throwIfErrors(errors);
 	}
 
-	public void validateEditable(Annex annex) {
-		if (!CODE_PENDING_APPROVAL.equals(annex.getStatus().getCode())) {
-			throwIfErrors(Map.of(FIELD_STATUS, "Este anexo ya no admite cambios: solo se edita antes de la primera aprobación."));
+	private Optional<AnnexTypeCode> resolveTypeForUpdate(Annex annex, Long annexTypeId, Map<String, String> errors) {
+		if (annexTypeId == null || annexTypeId.equals(annex.getAnnexType().getId())) {
+			return Optional.of(annex.getTypeCode());
 		}
+		return resolveActiveType(annexTypeId, errors).map(AnnexType::getCode);
 	}
 
 	public void validateApproval(Annex annex) {

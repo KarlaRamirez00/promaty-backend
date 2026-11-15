@@ -2,8 +2,10 @@ package com.promaty.rrhh.services.request.handler;
 
 import com.promaty.rrhh.entity.ApprovalDecision;
 import com.promaty.rrhh.entity.ApprovalLevel;
+import com.promaty.rrhh.entity.AttachmentEntityType;
 import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.RequestEntityType;
+import com.promaty.rrhh.services.shared.attachment.AttachmentRules;
 
 public interface RequestHandler {
 
@@ -26,4 +28,8 @@ public interface RequestHandler {
 
 	/** Permiso que habilita leer (listar/ver detalle) una solicitud de este tipo. */
 	String readPermission();
+
+	AttachmentEntityType attachmentEntityType();
+
+	AttachmentRules attachmentRules(Long entityId);
 }

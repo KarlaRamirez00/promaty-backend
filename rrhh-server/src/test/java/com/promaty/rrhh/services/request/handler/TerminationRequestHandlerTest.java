@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +31,7 @@ import com.promaty.rrhh.entity.Project;
 import com.promaty.rrhh.entity.Request;
 import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.entity.Termination;
+import com.promaty.rrhh.entity.UploadedFile;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.LegalTerminationCauseRepository;
 import com.promaty.rrhh.repository.NonRehireReasonRepository;
@@ -40,6 +42,9 @@ import com.promaty.rrhh.repository.UploadedFileRepository;
 import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.services.rexplus.RexPlusClient;
 import com.promaty.rrhh.services.rexplus.RexSyncResult;
+import com.promaty.rrhh.services.shared.FileStorageService;
+import com.promaty.rrhh.services.shared.attachment.AttachmentServiceImpl;
+import com.promaty.rrhh.services.shared.attachment.business.validation.AttachmentValidation;
 
 @ExtendWith(MockitoExtension.class)
 class TerminationRequestHandlerTest {
@@ -64,6 +69,8 @@ class TerminationRequestHandlerTest {
 	private RexPlusClient rexPlusClient;
 	@Mock
 	private UploadedFileRepository uploadedFileRepository;
+	@Mock
+	private FileStorageService fileStorageService;
 
 	private TerminationRequestHandler handler;
 
@@ -73,7 +80,7 @@ class TerminationRequestHandlerTest {
 			new ObjectMapper().registerModule(new JavaTimeModule()),
 			staffRepository, contractRepository, legalTerminationCauseRepository,
 			nonRehireReasonRepository, terminationRepository, platformStatusRepository, rexPlusClient,
-			uploadedFileRepository
+			new AttachmentServiceImpl(uploadedFileRepository, fileStorageService, new AttachmentValidation())
 		);
 	}
 
@@ -154,7 +161,7 @@ class TerminationRequestHandlerTest {
 		termination.setId(60L);
 		termination.setLegalTerminationCause(causalQueExigeAdjunto());
 		when(terminationRepository.findById(60L)).thenReturn(Optional.of(termination));
-		when(uploadedFileRepository.countByEntityTypeAndEntityId(AttachmentEntityType.TERMINATION, 60L)).thenReturn(0L);
+		when(uploadedFileRepository.findByEntityTypeAndEntityId(AttachmentEntityType.TERMINATION, 60L)).thenReturn(List.of());
 
 		assertThatThrownBy(() -> handler.applyDecision(request, ApprovalLevel.PROJECT_MANAGER, ApprovalDecision.APPROVED))
 			.isInstanceOf(BusinessValidationException.class)
@@ -173,7 +180,7 @@ class TerminationRequestHandlerTest {
 		termination.setId(61L);
 		termination.setLegalTerminationCause(causalQueExigeAdjunto());
 		when(terminationRepository.findById(61L)).thenReturn(Optional.of(termination));
-		when(uploadedFileRepository.countByEntityTypeAndEntityId(AttachmentEntityType.TERMINATION, 61L)).thenReturn(1L);
+		when(uploadedFileRepository.findByEntityTypeAndEntityId(AttachmentEntityType.TERMINATION, 61L)).thenReturn(List.of(new UploadedFile()));
 		PlatformStatus pendienteValidacion = estadoConCodigo("PENDING_VALIDATION");
 		when(platformStatusRepository.findBySubModuleAndCode("termination", "PENDING_VALIDATION"))
 			.thenReturn(Optional.of(pendienteValidacion));

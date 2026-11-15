@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.promaty.rrhh.dto.file.AttachmentRequirementDto;
 import com.promaty.rrhh.dto.file.FileAttachmentDto;
 import com.promaty.rrhh.dto.platformstatus.PlatformStatusOptionDto;
 import com.promaty.rrhh.dto.shared.Action;
@@ -45,5 +46,5 @@ public class ContractDetailDto {
 	private Long requestId;
 	private List<Action> actions;
 	private List<FileAttachmentDto> attachments;
-	private List<String> missingAttachmentTypes;
+	private List<AttachmentRequirementDto> attachmentRequirements;
 }

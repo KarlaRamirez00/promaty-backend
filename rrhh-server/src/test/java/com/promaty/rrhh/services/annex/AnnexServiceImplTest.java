@@ -3,7 +3,7 @@ package com.promaty.rrhh.services.annex;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -22,13 +22,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.promaty.rrhh.dto.annex.AnnexDetailDto;
 import com.promaty.rrhh.dto.annex.UpdateAnnexDto;
+import com.promaty.rrhh.dto.request.AnnexPendingDataDto;
 import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.entity.Annex;
 import com.promaty.rrhh.entity.AnnexType;
@@ -48,6 +48,10 @@ import com.promaty.rrhh.services.annex.business.builder.UpdateAnnexBuilder;
 import com.promaty.rrhh.services.annex.business.validation.AnnexValidation;
 import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
 import com.promaty.rrhh.services.shared.attachment.AttachmentService;
+import com.promaty.rrhh.services.shared.attachment.AttachmentOwner;
+import com.promaty.rrhh.services.shared.RequestEditPolicy;
+import com.promaty.rrhh.services.annex.business.AnnexAttachmentRules;
+import org.springframework.web.multipart.MultipartFile;
 
 @ExtendWith(MockitoExtension.class)
 class AnnexServiceImplTest {
@@ -64,6 +68,8 @@ class AnnexServiceImplTest {
 	private RequestApprovalActionsResolver actionsResolver = new RequestApprovalActionsResolver();
 	@Mock
 	private AttachmentService attachmentService;
+	@Mock
+	private RequestEditPolicy requestEditPolicy;
 
 	@InjectMocks
 	private AnnexServiceImpl service;
@@ -86,7 +92,8 @@ class AnnexServiceImplTest {
 		when(annexRepository.findById(1L)).thenReturn(Optional.of(anexoConEstado("PENDING_APPROVAL")));
 		when(requestRepository.findByEntityTypeAndEntityId(RequestEntityType.ANNEX, 1L))
 			.thenReturn(Optional.of(requestConEstado("PENDING_APPROVAL")));
-		when(attachmentService.list(AttachmentEntityType.ANNEX, 1L)).thenReturn(List.of());
+		when(requestEditPolicy.isEditable(any())).thenReturn(true);
+		when(attachmentService.list(new AttachmentOwner(AttachmentEntityType.ANNEX, 1L))).thenReturn(List.of());
 
 		AnnexDetailDto detalle = service.getAnnexDetail(1L);
 
@@ -96,29 +103,54 @@ class AnnexServiceImplTest {
 	}
 
 	@Test
-	void updateAnnex_validaAntesDeAplicarYGuardar() {
+	void updateAnnex_validaAplicaSincronizaAdjuntosYGuarda() {
 		Annex annex = anexoConEstado("PENDING_APPROVAL");
+		Request request = requestConEstado("PENDING_APPROVAL");
 		when(annexRepository.findById(1L)).thenReturn(Optional.of(annex));
+		when(requestEditPolicy.requireEditable(RequestEntityType.ANNEX, 1L)).thenReturn(request);
 		UpdateAnnexDto dto = new UpdateAnnexDto();
+		List<MultipartFile> files = List.of();
 
-		service.updateAnnex(1L, dto);
+		service.updateAnnex(1L, dto, files);
 
-		InOrder orden = inOrder(annexValidation, updateAnnexBuilder, annexRepository);
+		InOrder orden = inOrder(annexValidation, updateAnnexBuilder, attachmentService, annexRepository);
 		orden.verify(annexValidation).validateUpdate(annex, dto);
-		orden.verify(updateAnnexBuilder).apply(annex, dto);
+		orden.verify(updateAnnexBuilder).applyUpdate(annex, dto);
+		orden.verify(attachmentService).sync(new AttachmentOwner(AttachmentEntityType.ANNEX, 1L), AnnexAttachmentRules.rules(), null, files);
 		orden.verify(annexRepository).save(annex);
+		assertThat(annex.getStatus().getCode()).isEqualTo("PENDING_APPROVAL");
+		verify(requestEditPolicy).replacePendingData(eq(request), any(AnnexPendingDataDto.class));
 	}
 
 	@Test
-	void uploadAttachment_conAnexoNoEditable_noSubeElArchivo() {
-		Annex annex = anexoConEstado("APPROVED");
+	void updateAnnex_trasLaAprobacionDeJefatura_vuelveAPendingApproval() {
+		Annex annex = anexoConEstado("PENDING_VALIDATION");
+		Request request = requestConEstado("PENDING_VALIDATION");
+		PlatformStatus pendienteAprobacion = new PlatformStatus();
+		pendienteAprobacion.setCode("PENDING_APPROVAL");
 		when(annexRepository.findById(1L)).thenReturn(Optional.of(annex));
-		doThrow(new BusinessValidationException("x", Map.of("status", "no editable"))).when(annexValidation).validateEditable(annex);
-		MockMultipartFile file = new MockMultipartFile("file", "a.pdf", "application/pdf", new byte[] {1});
+		when(requestEditPolicy.requireEditable(RequestEntityType.ANNEX, 1L)).thenReturn(request);
+		when(requestEditPolicy.returnToPendingApproval(request)).thenReturn(true);
+		when(requestEditPolicy.pendingApprovalStatus("annex")).thenReturn(pendienteAprobacion);
 
-		assertThatThrownBy(() -> service.uploadAttachment(1L, file)).isInstanceOf(BusinessValidationException.class);
+		service.updateAnnex(1L, new UpdateAnnexDto(), List.of());
 
-		verify(attachmentService, never()).replaceSingle(any(), any(), any());
+		assertThat(annex.getStatus()).isEqualTo(pendienteAprobacion);
+		verify(annexRepository).save(annex);
+	}
+
+	@Test
+	void updateAnnex_aprobado_noValidaNiTocaAdjuntos() {
+		when(annexRepository.findById(1L)).thenReturn(Optional.of(anexoConEstado("APPROVED")));
+		when(requestEditPolicy.requireEditable(RequestEntityType.ANNEX, 1L))
+			.thenThrow(new BusinessValidationException("x", Map.of("status", "no editable")));
+
+		assertThatThrownBy(() -> service.updateAnnex(1L, new UpdateAnnexDto(), List.of()))
+			.isInstanceOf(BusinessValidationException.class);
+
+		verify(annexValidation, never()).validateUpdate(any(), any());
+		verify(attachmentService, never()).sync(any(), any(), any(), any());
+		verify(annexRepository, never()).save(any());
 	}
 
 	private Annex anexoConEstado(String code) {
