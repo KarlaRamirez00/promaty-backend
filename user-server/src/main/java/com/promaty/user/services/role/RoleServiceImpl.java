@@ -33,11 +33,14 @@ import com.promaty.user.repository.projection.RoleUserCount;
 import com.promaty.user.services.role.business.builder.CreateRoleBuilder;
 import com.promaty.user.services.role.business.builder.RoleQueryBuilder;
 import com.promaty.user.services.role.business.builder.RoleRelationsResolver;
+import com.promaty.user.services.role.business.builder.RoleSortField;
 import com.promaty.user.services.role.business.builder.UpdateRoleBuilder;
 import com.promaty.user.services.role.business.mapper.RoleMapper;
 import com.promaty.user.services.role.business.validation.RoleValidation;
 import com.promaty.user.services.shared.ActionsResolver;
 import com.promaty.user.services.shared.CurrentUserAuthorities;
+import com.promaty.user.services.shared.sort.ListSorting;
+import com.promaty.user.services.shared.sort.SortedQuery;
 
 @Service
 public class RoleServiceImpl implements RoleService {
@@ -99,7 +102,8 @@ public class RoleServiceImpl implements RoleService {
 	@Transactional(readOnly = true)
 	public Page<RoleListDto> listRoles(RoleFilterParams filters, Pageable pageable) {
 		Specification<Role> especificacion = RoleQueryBuilder.fromFilters(filters);
-		Page<Role> roles = roleRepository.findAll(especificacion, pageable);
+		SortedQuery<Role> sorted = ListSorting.apply(especificacion, pageable, RoleSortField.class);
+		Page<Role> roles = roleRepository.findAll(sorted.specification(), sorted.pageable());
 
 		Map<Long, Long> usuariosPorRol = userRepository.countUsersGroupedByRole().stream()
 			.collect(Collectors.toMap(RoleUserCount::getRoleId, RoleUserCount::getTotal));

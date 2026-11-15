@@ -29,9 +29,12 @@ import com.promaty.user.services.credential.OneTimeCodeIssuer;
 import com.promaty.user.services.credential.TemporaryCodeIssuedEvent;
 import com.promaty.user.services.shared.ActionsResolver;
 import com.promaty.user.services.shared.CurrentUserAuthorities;
+import com.promaty.user.services.shared.sort.ListSorting;
+import com.promaty.user.services.shared.sort.SortedQuery;
 import com.promaty.user.services.user.business.builder.CreateUserBuilder;
 import com.promaty.user.services.user.business.builder.UpdateUserBuilder;
 import com.promaty.user.services.user.business.builder.UserQueryBuilder;
+import com.promaty.user.services.user.business.builder.UserSortField;
 import com.promaty.user.services.user.business.mapper.UserMapper;
 import com.promaty.user.services.user.business.validation.UserValidation;
 
@@ -105,8 +108,9 @@ public class UserServiceImpl implements UserService {
 	@Transactional(readOnly = true)
 	public Page<UserListDto> listUsers(UserFilterParams filters, Pageable pageable) {
 		Specification<User> especificacion = UserQueryBuilder.fromFilters(filters);
+		SortedQuery<User> sorted = ListSorting.apply(especificacion, pageable, UserSortField.class);
 		List<Action> actions = actionsResolver.resolve(CurrentUserAuthorities.get(), REGLAS_ACCIONES);
-		return userRepository.findAll(especificacion, pageable)
+		return userRepository.findAll(sorted.specification(), sorted.pageable())
 			.map(UserMapper::toListDto)
 			.map(dto -> conAcciones(dto, actions));
 	}

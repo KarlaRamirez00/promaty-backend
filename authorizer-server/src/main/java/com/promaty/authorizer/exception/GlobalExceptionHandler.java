@@ -12,6 +12,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import com.promaty.authorizer.dto.response.BaseData;
 import com.promaty.authorizer.dto.response.ErrorResponse;
@@ -31,6 +32,12 @@ public class GlobalExceptionHandler {
 		for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
 			errorFields.put(fieldError.getField(), fieldError.getDefaultMessage());
 		}
+		return buildResponse(HttpStatus.BAD_REQUEST, mensajeConCampos(errorFields), errorFields);
+	}
+
+	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
+	public ResponseEntity<BaseData<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+		Map<String, String> errorFields = Map.of(ex.getName(), "El valor ingresado no es valido.");
 		return buildResponse(HttpStatus.BAD_REQUEST, mensajeConCampos(errorFields), errorFields);
 	}
 
