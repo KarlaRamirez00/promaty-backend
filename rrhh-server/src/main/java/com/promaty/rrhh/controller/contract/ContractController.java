@@ -20,7 +20,6 @@ import org.springframework.web.multipart.MultipartFile;
 import com.promaty.rrhh.dto.contract.ContractDetailDto;
 import com.promaty.rrhh.dto.contract.ContractFilterParams;
 import com.promaty.rrhh.dto.contract.ContractListDto;
-import com.promaty.rrhh.dto.contract.UpdateContractAttachmentsDto;
 import com.promaty.rrhh.dto.contract.UpdateContractDto;
 import com.promaty.rrhh.dto.response.BaseData;
 import com.promaty.rrhh.dto.response.BaseListData;
@@ -61,17 +60,6 @@ public class ContractController {
 		@RequestPart(value = "files", required = false) List<MultipartFile> files
 	) {
 		contractService.updateContract(id, dto, files);
-		return ResponseEntity.ok(BaseData.success(contractService.getContractDetail(id)));
-	}
-
-	@PutMapping(value = "/{id}/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	@PreAuthorize("hasAuthority('contract.update')")
-	public ResponseEntity<BaseData<ContractDetailDto>> updateAttachments(
-		@PathVariable Long id,
-		@RequestPart("data") @Valid UpdateContractAttachmentsDto dto,
-		@RequestPart(value = "files", required = false) List<MultipartFile> files
-	) {
-		contractService.updateAttachments(id, dto, files);
 		return ResponseEntity.ok(BaseData.success(contractService.getContractDetail(id)));
 	}
 }

@@ -10,7 +10,6 @@ import com.promaty.rrhh.dto.contract.ContractCountersDto;
 import com.promaty.rrhh.dto.contract.ContractDetailDto;
 import com.promaty.rrhh.dto.contract.ContractFilterParams;
 import com.promaty.rrhh.dto.contract.ContractListDto;
-import com.promaty.rrhh.dto.contract.UpdateContractAttachmentsDto;
 import com.promaty.rrhh.dto.contract.UpdateContractDto;
 
 public interface ContractService {
@@ -23,5 +22,4 @@ public interface ContractService {
 
 	void updateContract(Long contractId, UpdateContractDto dto, List<MultipartFile> files);
 
-	void updateAttachments(Long contractId, UpdateContractAttachmentsDto dto, List<MultipartFile> files);
 }

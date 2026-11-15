@@ -35,7 +35,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.promaty.rrhh.dto.contract.ContractCountersDto;
 import com.promaty.rrhh.dto.contract.ContractDetailDto;
 import com.promaty.rrhh.dto.contract.ContractFilterParams;
-import com.promaty.rrhh.dto.contract.UpdateContractAttachmentsDto;
 import com.promaty.rrhh.dto.contract.UpdateContractDto;
 import com.promaty.rrhh.dto.request.ContractPendingDataDto;
 import com.promaty.rrhh.services.contract.business.builder.UpdateContractBuilder;
@@ -150,23 +149,7 @@ class ContractServiceImplTest {
 	}
 
 	@Test
-	void updateAttachments_enPendingApproval_sincronizaSinCambiarElEstado() {
-		Contract contrato = contratoCompleto();
-		Request request = new Request();
-		UpdateContractAttachmentsDto dto = new UpdateContractAttachmentsDto();
-		dto.setAttachments(List.of());
-		when(contractRepository.findById(1L)).thenReturn(Optional.of(contrato));
-		when(requestEditPolicy.requireEditable(RequestEntityType.CONTRACT, 1L)).thenReturn(request);
-
-		service.updateAttachments(1L, dto, List.of());
-
-		verify(attachmentService).sync(new AttachmentOwner(AttachmentEntityType.CONTRACT, 1L), ContractAttachmentRules.rules(), List.of(), List.of());
-		verify(contractRepository, never()).save(any());
-		assertThat(contrato.getStatus().getCode()).isEqualTo("PENDING_APPROVAL");
-	}
-
-	@Test
-	void updateAttachments_trasAprobacionDeJefatura_vuelveAPendingApproval() {
+	void updateContract_trasAprobacionDeJefatura_vuelveAPendingApproval() {
 		Contract contrato = contratoCompleto();
 		Request request = new Request();
 		PlatformStatus pendienteAprobacion = new PlatformStatus();
@@ -176,19 +159,19 @@ class ContractServiceImplTest {
 		when(requestEditPolicy.returnToPendingApproval(request)).thenReturn(true);
 		when(requestEditPolicy.pendingApprovalStatus("contract")).thenReturn(pendienteAprobacion);
 
-		service.updateAttachments(1L, new UpdateContractAttachmentsDto(), List.of());
+		service.updateContract(1L, new UpdateContractDto(), List.of());
 
 		assertThat(contrato.getStatus()).isEqualTo(pendienteAprobacion);
 		verify(contractRepository).save(contrato);
 	}
 
 	@Test
-	void updateAttachments_contratoAprobado_noTocaLosAdjuntos() {
+	void updateContract_contratoAprobado_noValidaNiTocaAdjuntos() {
 		when(contractRepository.findById(1L)).thenReturn(Optional.of(contratoCompleto()));
 		when(requestEditPolicy.requireEditable(RequestEntityType.CONTRACT, 1L))
 			.thenThrow(new BusinessValidationException("x", Map.of("status", "no editable")));
 
-		assertThatThrownBy(() -> service.updateAttachments(1L, new UpdateContractAttachmentsDto(), List.of()))
+		assertThatThrownBy(() -> service.updateContract(1L, new UpdateContractDto(), List.of()))
 			.isInstanceOf(BusinessValidationException.class);
 
 		verifyNoInteractions(attachmentService);

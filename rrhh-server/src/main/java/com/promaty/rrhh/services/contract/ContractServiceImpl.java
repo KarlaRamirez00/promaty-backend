@@ -19,7 +19,6 @@ import com.promaty.rrhh.dto.contract.ContractCountersDto;
 import com.promaty.rrhh.dto.contract.ContractDetailDto;
 import com.promaty.rrhh.dto.contract.ContractFilterParams;
 import com.promaty.rrhh.dto.contract.ContractListDto;
-import com.promaty.rrhh.dto.contract.UpdateContractAttachmentsDto;
 import com.promaty.rrhh.dto.contract.UpdateContractDto;
 import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.entity.AttachmentEntityType;
@@ -128,18 +127,6 @@ public class ContractServiceImpl implements ContractService {
 			contract.setStatus(requestEditPolicy.pendingApprovalStatus(SUBMODULE_CONTRACT));
 		}
 		contractRepository.save(contract);
-	}
-
-	@Override
-	@Transactional
-	public void updateAttachments(Long contractId, UpdateContractAttachmentsDto dto, List<MultipartFile> files) {
-		Contract contract = buscarPorId(contractId);
-		Request request = requestEditPolicy.requireEditable(RequestEntityType.CONTRACT, contractId);
-		attachmentService.sync(attachmentOwner(contractId), ContractAttachmentRules.rules(), dto.getAttachments(), files);
-		if (requestEditPolicy.returnToPendingApproval(request)) {
-			contract.setStatus(requestEditPolicy.pendingApprovalStatus(SUBMODULE_CONTRACT));
-			contractRepository.save(contract);
-		}
 	}
 
 	@Override

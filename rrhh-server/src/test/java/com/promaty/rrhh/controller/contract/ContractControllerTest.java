@@ -2,7 +2,6 @@ package com.promaty.rrhh.controller.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -38,7 +37,6 @@ import com.promaty.rrhh.dto.contract.ContractDetailDto;
 import com.promaty.rrhh.dto.contract.ContractFilterParams;
 import com.promaty.rrhh.dto.contract.ContractListDto;
 import com.promaty.rrhh.dto.contract.StaffSummaryDto;
-import com.promaty.rrhh.dto.contract.UpdateContractAttachmentsDto;
 import com.promaty.rrhh.dto.contract.UpdateContractDto;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.services.contract.ContractService;
@@ -56,9 +54,6 @@ class ContractControllerTest {
 	private static final String UPDATE_JSON = """
 		{ "projectId": 2, "companyId": 3, "contractTypeId": 4, "jobTitleId": 5, "siteId": 6,
 		  "startDate": "2026-12-01", "baseSalary": 900000, "weeklyWorkHours": 45, "workDays": 5 }
-		""";
-	private static final String ATTACHMENTS_JSON = """
-		{ "attachments": [ { "fileIndex": 0, "type": "CERT_AFP" } ] }
 		""";
 
 	@Autowired
@@ -149,41 +144,10 @@ class ContractControllerTest {
 			.andExpect(status().isForbidden());
 	}
 
-	@Test
-	void updateAttachments_conPermiso_retorna200YDelegaConLosArchivos() throws Exception {
-		when(contractService.getContractDetail(1L)).thenReturn(new ContractDetailDto());
-
-		mockMvc.perform(attachmentsPut(EDICION, ATTACHMENTS_JSON).file(pdf()))
-			.andExpect(status().isOk());
-
-		verify(contractService).updateAttachments(eq(1L), any(UpdateContractAttachmentsDto.class), argThat(files -> files.size() == 1));
-	}
-
-	@Test
-	void updateAttachments_sinListaDeAdjuntos_retorna400() throws Exception {
-		mockMvc.perform(attachmentsPut(EDICION, "{}"))
-			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.error.errorFields.attachments").exists());
-	}
-
-	@Test
-	void updateAttachments_soloConLectura_retorna403() throws Exception {
-		mockMvc.perform(attachmentsPut(TOKEN, ATTACHMENTS_JSON))
-			.andExpect(status().isForbidden());
-	}
-
-	private static MockMultipartHttpServletRequestBuilder attachmentsPut(String token, String json) {
-		return contractPut("/contracts/1/attachments", token, json);
-	}
-
 	private static MockMultipartHttpServletRequestBuilder contractPut(String url, String token, String json) {
 		MockMultipartHttpServletRequestBuilder builder = multipart(HttpMethod.PUT, url);
 		builder.file(new MockMultipartFile("data", "", MediaType.APPLICATION_JSON_VALUE, json.getBytes(StandardCharsets.UTF_8)));
 		builder.header(HttpHeaders.AUTHORIZATION, token);
 		return builder;
-	}
-
-	private static MockMultipartFile pdf() {
-		return new MockMultipartFile("files", "afp.pdf", MediaType.APPLICATION_PDF_VALUE, new byte[] {0x25, 0x50, 0x44, 0x46});
 	}
 }
