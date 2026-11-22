@@ -49,4 +49,5 @@ public class ContractDetailDto {
 	private List<FileAttachmentDto> attachments;
 	private List<AttachmentRequirementDto> attachmentRequirements;
 	private String annulmentReason;
+	private String syncErrorMessage;
 }

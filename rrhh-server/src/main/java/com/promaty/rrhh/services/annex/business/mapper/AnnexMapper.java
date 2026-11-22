@@ -78,7 +78,8 @@ public final class AnnexMapper {
 			null, // requestId se resuelve por fuera: Annex no tiene FK hacia Request, es al revés
 			null, // actions depende de los permisos del usuario que pide: lo completa el service
 			null, // attachments se carga por separado en el service
-			null  // attachmentRequirements depende de los adjuntos: lo completa el service
+			null, // attachmentRequirements depende de los adjuntos: lo completa el service
+			null  // syncErrorMessage vive en la Request: lo completa el service
 		);
 	}
 

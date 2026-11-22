@@ -35,6 +35,7 @@ import com.promaty.rrhh.dto.request.CreatedRequestDto;
 import com.promaty.rrhh.dto.request.RequestDetailDto;
 import com.promaty.rrhh.dto.request.RequestListDto;
 import com.promaty.rrhh.dto.request.RequesterOptionDto;
+import com.promaty.rrhh.dto.request.RetrySyncResultDto;
 import com.promaty.rrhh.entity.RequestAction;
 import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.services.request.RequestService;
@@ -231,6 +232,24 @@ class RequestControllerTest {
 	}
 
 	@Test
+	void retrySync_conPermisoDeValidar_retorna200ConElResultado() throws Exception {
+		when(requestService.retrySync(1L)).thenReturn(new RetrySyncResultDto(false, "El RUT no existe en Rex+."));
+
+		mockMvc.perform(patch("/requests/1/retrySync")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("annex.validate")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.synced").value(false))
+			.andExpect(jsonPath("$.data.syncErrorMessage").value("El RUT no existe en Rex+."));
+	}
+
+	@Test
+	void retrySync_soloConPermisoDeAprobar_retorna403() throws Exception {
+		mockMvc.perform(patch("/requests/1/retrySync")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN_APROBAR))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
 	void list_conPermisoDeLectura_retorna200ConLista() throws Exception {
 		RequestListDto dto = new RequestListDto(
 			1L, RequestEntityType.CONTRACT, RequestAction.CREATE, "Nuevo contrato", null, "Edificio Centro",
@@ -275,7 +294,7 @@ class RequestControllerTest {
 	void detail_conPermisoDeLectura_retorna200ConDetalle() throws Exception {
 		RequestDetailDto dto = new RequestDetailDto(
 			1L, RequestEntityType.CONTRACT, RequestAction.CREATE, "Nuevo contrato", null, "{}", null, null, 7L,
-			"Edificio Centro", "CC-01", 7L, "Juan Pérez", null, List.of(), null, null, null, null, List.of()
+			"Edificio Centro", "CC-01", 7L, "Juan Pérez", null, List.of(), null, null, null, null, List.of(), null
 		);
 		when(requestService.getRequestDetail(1L)).thenReturn(dto);
 

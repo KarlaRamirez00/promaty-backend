@@ -47,6 +47,7 @@ import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
 import com.promaty.rrhh.services.shared.ProjectAccessSpecification;
 import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
 import com.promaty.rrhh.services.shared.RequestEditPolicy;
+import com.promaty.rrhh.services.shared.SyncRetryAction;
 import com.promaty.rrhh.services.shared.attachment.AttachmentOwner;
 import com.promaty.rrhh.services.shared.attachment.AttachmentService;
 import com.promaty.rrhh.services.shared.sort.ListSorting;
@@ -125,6 +126,7 @@ public class ContractServiceImpl implements ContractService {
 		Request request = requestRepository.findByEntityTypeAndEntityId(RequestEntityType.CONTRACT, id).orElse(null);
 		dto.setRequestId(request == null ? null : request.getId());
 		dto.setActions(resolveActions(request, contract.getStatus().getCode(), CurrentUserAuthorities.get()));
+		dto.setSyncErrorMessage(request == null ? null : request.getSyncErrorMessage());
 		AttachmentOwner owner = attachmentOwner(id);
 		dto.setAttachments(attachmentService.list(owner));
 		dto.setAttachmentRequirements(attachmentService.requirements(owner, ContractAttachmentRules.rules()));
@@ -218,6 +220,9 @@ public class ContractServiceImpl implements ContractService {
 		}
 		if (Contract.STATUS_CODE_ACTIVE.equals(contractStatusCode) && authorities.contains(PERMISO_ANULAR)) {
 			actions.add(Action.ANNUL);
+		}
+		if (SyncRetryAction.isAvailable(contractStatusCode, authorities, PERMISO_VALIDAR)) {
+			actions.add(Action.RETRY_SYNC);
 		}
 		return actions;
 	}

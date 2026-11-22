@@ -3,6 +3,8 @@ package com.promaty.rrhh.services.request;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -17,6 +19,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -25,6 +28,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -32,6 +36,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.promaty.rrhh.dto.request.ContractPendingDataResolvedDto;
 import com.promaty.rrhh.dto.request.CreateRequestDto;
 import com.promaty.rrhh.dto.request.DecideRequestDto;
+import com.promaty.rrhh.services.request.business.validation.RequestSyncRetryValidation;
+import com.promaty.rrhh.dto.request.RetrySyncResultDto;
 import com.promaty.rrhh.dto.request.RequestCountersDto;
 import com.promaty.rrhh.dto.request.RequestDetailDto;
 import com.promaty.rrhh.dto.request.RequestFilterParams;
@@ -109,6 +115,8 @@ class RequestServiceImplTest {
 	private RequestApprovalActionsResolver actionsResolver = new RequestApprovalActionsResolver();
 	@Mock
 	private AttachmentService attachmentService;
+	@Mock
+	private RequestSyncRetryValidation requestSyncRetryValidation;
 
 	@AfterEach
 	void limpiarContextoDeSeguridad() {
@@ -185,6 +193,58 @@ class RequestServiceImplTest {
 		verify(contractRequestHandler).applyDecision(request, ApprovalLevel.PROJECT_MANAGER, ApprovalDecision.APPROVED);
 		verify(approvalRepository).save(any());
 		verify(requestRepository).save(request);
+	}
+
+	@Test
+	void retrySync_validaReintentaGuardaYRetornaSincronizadoSinMotivo() {
+		Request request = requestConId(1L, RequestEntityType.CONTRACT);
+		request.recordSyncFailure("Rex+ no respondió.");
+		when(requestRepository.findById(1L)).thenReturn(Optional.of(request));
+		when(handlerRegistry.get(RequestEntityType.CONTRACT)).thenReturn(contractRequestHandler);
+		doAnswer(invocation -> {
+			request.clearSyncFailure();
+			return null;
+		}).when(contractRequestHandler).retrySync(request);
+
+		RetrySyncResultDto resultado = requestService.retrySync(1L);
+
+		InOrder orden = inOrder(requestSyncRetryValidation, contractRequestHandler, requestRepository);
+		orden.verify(requestSyncRetryValidation).validate(request, contractRequestHandler);
+		orden.verify(contractRequestHandler).retrySync(request);
+		orden.verify(requestRepository).save(request);
+		assertThat(resultado.isSynced()).isTrue();
+		assertThat(resultado.getSyncErrorMessage()).isNull();
+	}
+
+	@Test
+	void retrySync_siVuelveAFallar_retornaNoSincronizadoConElMotivoNuevo() {
+		Request request = requestConId(1L, RequestEntityType.CONTRACT);
+		when(requestRepository.findById(1L)).thenReturn(Optional.of(request));
+		when(handlerRegistry.get(RequestEntityType.CONTRACT)).thenReturn(contractRequestHandler);
+		doAnswer(invocation -> {
+			request.recordSyncFailure("El RUT no existe en Rex+.");
+			return null;
+		}).when(contractRequestHandler).retrySync(request);
+
+		RetrySyncResultDto resultado = requestService.retrySync(1L);
+
+		assertThat(resultado.isSynced()).isFalse();
+		assertThat(resultado.getSyncErrorMessage()).isEqualTo("El RUT no existe en Rex+.");
+	}
+
+	@Test
+	void retrySync_validacionRechaza_noReintentaNiGuarda() {
+		Request request = requestConId(1L, RequestEntityType.CONTRACT);
+		when(requestRepository.findById(1L)).thenReturn(Optional.of(request));
+		when(handlerRegistry.get(RequestEntityType.CONTRACT)).thenReturn(contractRequestHandler);
+		doThrow(new AccessDeniedException("sin permiso"))
+			.when(requestSyncRetryValidation).validate(request, contractRequestHandler);
+
+		assertThatThrownBy(() -> requestService.retrySync(1L))
+			.isInstanceOf(AccessDeniedException.class);
+
+		verify(contractRequestHandler, never()).retrySync(any());
+		verify(requestRepository, never()).save(any());
 	}
 
 	@Test
@@ -401,7 +461,7 @@ class RequestServiceImplTest {
 		when(contractRequestHandler.readPermission()).thenReturn("contract.read");
 
 		assertThatThrownBy(() -> requestService.getRequestDetail(7L))
-			.isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+			.isInstanceOf(AccessDeniedException.class);
 	}
 
 	@Test
@@ -419,8 +479,8 @@ class RequestServiceImplTest {
 	void listRequesterOptions_withAllProjects_queriesWithoutProjectScopeAndSortsByName() {
 		authenticateWithProjectScope(true, List.of());
 		when(handlerRegistry.entityTypesReadableBy(any())).thenReturn(List.of(RequestEntityType.CONTRACT));
-		when(requestRepository.findRequesters(List.of(RequestEntityType.CONTRACT)))
-			.thenReturn(List.of(requester(2L, "Zoe Pérez"), requester(1L, "Ana Soto")));
+		List<RequesterOptionProjection> requesters = List.of(requester(2L, "Zoe Pérez"), requester(1L, "Ana Soto"));
+		when(requestRepository.findRequesters(List.of(RequestEntityType.CONTRACT))).thenReturn(requesters);
 
 		List<RequesterOptionDto> options = requestService.listRequesterOptions();
 
@@ -432,8 +492,8 @@ class RequestServiceImplTest {
 	void listRequesterOptions_withProjectScope_queriesOnlyAssignedProjects() {
 		authenticateWithProjectScope(false, List.of(5L));
 		when(handlerRegistry.entityTypesReadableBy(any())).thenReturn(List.of(RequestEntityType.CONTRACT));
-		when(requestRepository.findRequestersInProjects(List.of(RequestEntityType.CONTRACT), List.of(5L)))
-			.thenReturn(List.of(requester(1L, "Ana Soto")));
+		List<RequesterOptionProjection> requesters = List.of(requester(1L, "Ana Soto"));
+		when(requestRepository.findRequestersInProjects(List.of(RequestEntityType.CONTRACT), List.of(5L))).thenReturn(requesters);
 
 		assertThat(requestService.listRequesterOptions()).extracting(RequesterOptionDto::getId).containsExactly(1L);
 		verify(requestRepository, never()).findRequesters(any());
@@ -461,8 +521,8 @@ class RequestServiceImplTest {
 	void listRequesterOptions_sameUserWithTwoNames_returnsOneOption() {
 		authenticateWithProjectScope(true, List.of());
 		when(handlerRegistry.entityTypesReadableBy(any())).thenReturn(List.of(RequestEntityType.CONTRACT));
-		when(requestRepository.findRequesters(any()))
-			.thenReturn(List.of(requester(1L, "Ana Soto"), requester(1L, "Ana Soto Rojas")));
+		List<RequesterOptionProjection> requesters = List.of(requester(1L, "Ana Soto"), requester(1L, "Ana Soto Rojas"));
+		when(requestRepository.findRequesters(any())).thenReturn(requesters);
 
 		assertThat(requestService.listRequesterOptions()).hasSize(1);
 	}

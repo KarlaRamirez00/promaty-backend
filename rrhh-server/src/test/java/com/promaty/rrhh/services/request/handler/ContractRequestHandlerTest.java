@@ -264,6 +264,61 @@ class ContractRequestHandlerTest {
 		verify(contractRepository).save(captor.capture());
 		assertThat(captor.getValue().getStatus()).isEqualTo(syncError);
 		assertThat(captor.getValue().getRexContractNumber()).isNull();
+		assertThat(request.getSyncErrorMessage()).isEqualTo("Rex+ no respondió.");
+	}
+
+	@Test
+	void retrySync_conSincronizacionExitosa_activaElContratoYBorraElMotivoSinReevaluarElPlazoLegal() {
+		Request request = new Request();
+		request.setEntityId(57L);
+		request.recordSyncFailure("Rex+ no respondió.");
+		Contract contract = new Contract();
+		contract.setStartDate(java.time.LocalDate.now().minusDays(60));
+		contract.setStatus(estadoStaffConCodigo("SYNC_ERROR"));
+		Staff staff = staffConEstado(estadoStaffConCodigo("PENDING_CONTRACT"));
+		contract.setStaff(staff);
+		when(contractRepository.findById(57L)).thenReturn(Optional.of(contract));
+		when(rexPlusClient.syncContract(contract)).thenReturn(RexSyncResult.success("REX-789"));
+		when(platformStatusRepository.findBySubModuleAndCode("contract", "ACTIVE")).thenReturn(Optional.of(estadoStaffConCodigo("ACTIVE")));
+		when(platformStatusRepository.findBySubModuleAndCode("staff", "ACTIVE")).thenReturn(Optional.of(estadoStaffConCodigo("ACTIVE")));
+
+		handler.retrySync(request);
+
+		assertThat(contract.getStatus().getCode()).isEqualTo("ACTIVE");
+		assertThat(contract.getRexContractNumber()).isEqualTo("REX-789");
+		assertThat(request.getSyncErrorMessage()).isNull();
+		verify(businessDayCalculator, never()).countBusinessDaysBetween(any(), any());
+	}
+
+	@Test
+	void retrySync_conSincronizacionFallidaOtraVez_guardaElMotivoNuevo() {
+		Request request = new Request();
+		request.setEntityId(58L);
+		request.recordSyncFailure("Rex+ no respondió.");
+		Contract contract = new Contract();
+		contract.setStatus(estadoStaffConCodigo("SYNC_ERROR"));
+		contract.setStaff(staffConEstado(estadoStaffConCodigo("PENDING_CONTRACT")));
+		when(contractRepository.findById(58L)).thenReturn(Optional.of(contract));
+		when(rexPlusClient.syncContract(contract)).thenReturn(RexSyncResult.failure("El RUT no existe en Rex+."));
+		when(platformStatusRepository.findBySubModuleAndCode("contract", "SYNC_ERROR")).thenReturn(Optional.of(estadoStaffConCodigo("SYNC_ERROR")));
+
+		handler.retrySync(request);
+
+		assertThat(contract.getStatus().getCode()).isEqualTo("SYNC_ERROR");
+		assertThat(request.getSyncErrorMessage()).isEqualTo("El RUT no existe en Rex+.");
+	}
+
+	@Test
+	void isInSyncError_segunElEstadoDelContrato() {
+		Contract enError = new Contract();
+		enError.setStatus(estadoStaffConCodigo("SYNC_ERROR"));
+		Contract activo = new Contract();
+		activo.setStatus(estadoStaffConCodigo("ACTIVE"));
+		when(contractRepository.findById(1L)).thenReturn(Optional.of(enError));
+		when(contractRepository.findById(2L)).thenReturn(Optional.of(activo));
+
+		assertThat(handler.isInSyncError(1L)).isTrue();
+		assertThat(handler.isInSyncError(2L)).isFalse();
 	}
 
 	@Test

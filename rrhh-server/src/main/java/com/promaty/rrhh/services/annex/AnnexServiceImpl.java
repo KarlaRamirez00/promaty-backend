@@ -36,6 +36,7 @@ import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
 import com.promaty.rrhh.services.shared.ProjectAccessSpecification;
 import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
 import com.promaty.rrhh.services.shared.RequestEditPolicy;
+import com.promaty.rrhh.services.shared.SyncRetryAction;
 import com.promaty.rrhh.services.shared.attachment.AttachmentOwner;
 import com.promaty.rrhh.services.shared.attachment.AttachmentService;
 import com.promaty.rrhh.services.shared.sort.ListSorting;
@@ -89,7 +90,7 @@ public class AnnexServiceImpl implements AnnexService {
 		return page.map(dto -> {
 			Request request = requestsByAnnexId.get(dto.getId());
 			dto.setRequestId(request == null ? null : request.getId());
-			dto.setActions(resolveActions(request, authorities));
+			dto.setActions(resolveActions(request, dto.getStatusCode(), authorities));
 			return dto;
 		});
 	}
@@ -101,7 +102,8 @@ public class AnnexServiceImpl implements AnnexService {
 		AnnexDetailDto dto = AnnexMapper.toDetailDto(annex);
 		Request request = requestRepository.findByEntityTypeAndEntityId(RequestEntityType.ANNEX, id).orElse(null);
 		dto.setRequestId(request == null ? null : request.getId());
-		dto.setActions(resolveActions(request, CurrentUserAuthorities.get()));
+		dto.setActions(resolveActions(request, annex.getStatus().getCode(), CurrentUserAuthorities.get()));
+		dto.setSyncErrorMessage(request == null ? null : request.getSyncErrorMessage());
 		AttachmentOwner owner = attachmentOwner(id);
 		dto.setAttachments(attachmentService.list(owner));
 		dto.setAttachmentRequirements(attachmentService.requirements(owner, AnnexAttachmentRules.rules()));
@@ -140,7 +142,7 @@ public class AnnexServiceImpl implements AnnexService {
 			.collect(Collectors.toMap(Request::getEntityId, Function.identity()));
 	}
 
-	private List<Action> resolveActions(Request request, Set<String> authorities) {
+	private List<Action> resolveActions(Request request, String annexStatusCode, Set<String> authorities) {
 		if (request == null) {
 			return List.of();
 		}
@@ -149,6 +151,9 @@ public class AnnexServiceImpl implements AnnexService {
 		));
 		if (requestEditPolicy.isEditable(request) && authorities.contains(PERMISSION_UPDATE)) {
 			actions.add(Action.UPDATE);
+		}
+		if (SyncRetryAction.isAvailable(annexStatusCode, authorities, PERMISSION_VALIDATE)) {
+			actions.add(Action.RETRY_SYNC);
 		}
 		return actions;
 	}

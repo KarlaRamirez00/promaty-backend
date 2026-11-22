@@ -28,6 +28,7 @@ import com.promaty.rrhh.dto.request.RequestDetailDto;
 import com.promaty.rrhh.dto.request.RequestFilterParams;
 import com.promaty.rrhh.dto.request.RequestListDto;
 import com.promaty.rrhh.dto.request.RequesterOptionDto;
+import com.promaty.rrhh.dto.request.RetrySyncResultDto;
 import com.promaty.rrhh.dto.response.BaseData;
 import com.promaty.rrhh.dto.response.BaseListData;
 import com.promaty.rrhh.services.request.RequestService;
@@ -59,6 +60,12 @@ public class RequestController {
 	public ResponseEntity<BaseData<Void>> decide(@PathVariable Long id, @Valid @RequestBody DecideRequestDto dto) {
 		requestService.decideRequest(id, dto);
 		return ResponseEntity.ok(BaseData.success(null));
+	}
+
+	@PatchMapping("/{id}/retrySync")
+	@PreAuthorize("hasAnyAuthority('contract.validate', 'termination.validate', 'annex.validate')")
+	public ResponseEntity<BaseData<RetrySyncResultDto>> retrySync(@PathVariable Long id) {
+		return ResponseEntity.ok(BaseData.success(requestService.retrySync(id)));
 	}
 
 	@GetMapping

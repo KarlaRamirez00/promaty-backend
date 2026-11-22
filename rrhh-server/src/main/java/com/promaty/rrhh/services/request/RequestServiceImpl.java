@@ -21,6 +21,7 @@ import com.promaty.rrhh.dto.request.RequestDetailDto;
 import com.promaty.rrhh.dto.request.RequestFilterParams;
 import com.promaty.rrhh.dto.request.RequestListDto;
 import com.promaty.rrhh.dto.request.RequesterOptionDto;
+import com.promaty.rrhh.dto.request.RetrySyncResultDto;
 import com.promaty.rrhh.entity.Approval;
 import com.promaty.rrhh.entity.ApprovalLevel;
 import com.promaty.rrhh.entity.PlatformStatus;
@@ -43,6 +44,7 @@ import com.promaty.rrhh.services.request.business.mapper.ContractPendingDataReso
 import com.promaty.rrhh.services.request.business.mapper.RequestMapper;
 import com.promaty.rrhh.services.request.business.mapper.TerminationPendingDataResolver;
 import com.promaty.rrhh.services.request.business.validation.RequestDecisionValidation;
+import com.promaty.rrhh.services.request.business.validation.RequestSyncRetryValidation;
 import com.promaty.rrhh.services.request.business.validation.RequestValidation;
 import com.promaty.rrhh.services.request.handler.RequestHandler;
 import com.promaty.rrhh.services.request.handler.RequestHandlerRegistry;
@@ -78,6 +80,7 @@ public class RequestServiceImpl implements RequestService {
 	private final TerminationPendingDataResolver terminationPendingDataResolver;
 	private final RequestApprovalActionsResolver actionsResolver;
 	private final AttachmentService attachmentService;
+	private final RequestSyncRetryValidation requestSyncRetryValidation;
 
 	public RequestServiceImpl(
 		RequestRepository requestRepository,
@@ -94,7 +97,8 @@ public class RequestServiceImpl implements RequestService {
 		ContractPendingDataResolver contractPendingDataResolver,
 		TerminationPendingDataResolver terminationPendingDataResolver,
 		RequestApprovalActionsResolver actionsResolver,
-		AttachmentService attachmentService
+		AttachmentService attachmentService,
+		RequestSyncRetryValidation requestSyncRetryValidation
 	) {
 		this.requestRepository = requestRepository;
 		this.approvalRepository = approvalRepository;
@@ -111,6 +115,7 @@ public class RequestServiceImpl implements RequestService {
 		this.terminationPendingDataResolver = terminationPendingDataResolver;
 		this.actionsResolver = actionsResolver;
 		this.attachmentService = attachmentService;
+		this.requestSyncRetryValidation = requestSyncRetryValidation;
 	}
 
 	@Override
@@ -143,6 +148,17 @@ public class RequestServiceImpl implements RequestService {
 		request.setStatus(siguienteStatus);
 		handlerRegistry.get(request.getEntityType()).applyDecision(request, nivelDecidido, dto.getDecision());
 		requestRepository.save(request);
+	}
+
+	@Override
+	@Transactional
+	public RetrySyncResultDto retrySync(Long id) {
+		Request request = buscarPorId(id);
+		RequestHandler handler = handlerRegistry.get(request.getEntityType());
+		requestSyncRetryValidation.validate(request, handler);
+		handler.retrySync(request);
+		requestRepository.save(request);
+		return new RetrySyncResultDto(request.getSyncErrorMessage() == null, request.getSyncErrorMessage());
 	}
 
 	@Override

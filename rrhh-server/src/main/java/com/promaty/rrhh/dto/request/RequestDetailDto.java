@@ -39,4 +39,5 @@ public class RequestDetailDto {
 	private String createdBy;
 	private String updatedBy;
 	private List<Action> actions;
+	private String syncErrorMessage;
 }

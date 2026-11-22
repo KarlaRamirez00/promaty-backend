@@ -198,6 +198,22 @@ class TerminationServiceImplTest {
 	}
 
 	@Test
+	void getTerminationDetail_enSyncErrorConPermisoDeValidar_incluyeRetrySyncYElMotivo() {
+		autenticarCon("termination.validate");
+		Termination termination = terminacionCompleta();
+		termination.setStatus(statusCon("termination", "SYNC_ERROR"));
+		Request request = solicitudConEstado("APPROVED");
+		request.recordSyncFailure("Rex+ no respondió.");
+		when(terminationRepository.findById(1L)).thenReturn(Optional.of(termination));
+		when(requestRepository.findByEntityTypeAndEntityId(RequestEntityType.TERMINATION, 1L)).thenReturn(Optional.of(request));
+
+		TerminationDetailDto detalle = service.getTerminationDetail(1L);
+
+		assertThat(detalle.getActions()).contains(Action.RETRY_SYNC).doesNotContain(Action.ANNUL);
+		assertThat(detalle.getSyncErrorMessage()).isEqualTo("Rex+ no respondió.");
+	}
+
+	@Test
 	void updateTermination_registroNoExiste_lanzaResourceNotFoundException() {
 		when(terminationRepository.findById(1L)).thenReturn(Optional.empty());
 

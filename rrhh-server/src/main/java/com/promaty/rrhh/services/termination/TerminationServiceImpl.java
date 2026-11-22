@@ -41,6 +41,7 @@ import com.promaty.rrhh.repository.TerminationRepository;
 import com.promaty.rrhh.services.rexplus.RexPlusClient;
 import com.promaty.rrhh.services.rexplus.RexSyncResult;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
+import com.promaty.rrhh.services.shared.SyncRetryAction;
 import com.promaty.rrhh.services.shared.ProjectAccessSpecification;
 import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
 import com.promaty.rrhh.services.shared.RequestEditPolicy;
@@ -137,6 +138,7 @@ public class TerminationServiceImpl implements TerminationService {
 		Request request = requestRepository.findByEntityTypeAndEntityId(RequestEntityType.TERMINATION, id).orElse(null);
 		dto.setRequestId(request == null ? null : request.getId());
 		dto.setActions(resolveActions(request, termination.getStatus().getCode()));
+		dto.setSyncErrorMessage(request == null ? null : request.getSyncErrorMessage());
 		AttachmentOwner owner = attachmentOwner(id);
 		dto.setAttachments(attachmentService.list(owner));
 		dto.setAttachmentRequirements(attachmentService.requirements(
@@ -259,6 +261,10 @@ public class TerminationServiceImpl implements TerminationService {
 		if (CODE_APPROVED.equals(terminationStatusCode) && CurrentUserAuthorities.get().contains(PERMISSION_ANNUL)) {
 			actions = new ArrayList<>(actions);
 			actions.add(Action.ANNUL);
+		}
+		if (SyncRetryAction.isAvailable(terminationStatusCode, CurrentUserAuthorities.get(), PERMISSION_VALIDATE)) {
+			actions = new ArrayList<>(actions);
+			actions.add(Action.RETRY_SYNC);
 		}
 		return actions;
 	}

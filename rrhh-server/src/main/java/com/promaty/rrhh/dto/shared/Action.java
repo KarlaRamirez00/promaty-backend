@@ -8,5 +8,6 @@ public enum Action {
 	STATUS,
 	APPROVE,
 	VALIDATE,
-	ANNUL
+	ANNUL,
+	RETRY_SYNC
 }

@@ -17,6 +17,11 @@ public interface RequestHandler {
 	/** Aplica el efecto de una decisión de aprobación/rechazo sobre la entidad ya creada por create(). */
 	void applyDecision(Request request, ApprovalLevel level, ApprovalDecision decision);
 
+	boolean isInSyncError(Long entityId);
+
+	/** Repite solo la sincronización con Rex+ de una entidad en SYNC_ERROR, sin reevaluar reglas de la aprobación. */
+	void retrySync(Request request);
+
 	/** Permiso que habilita la decisión de nivel 1 (jefatura de centro de costo) para este tipo de solicitud. */
 	String approvePermission();
 

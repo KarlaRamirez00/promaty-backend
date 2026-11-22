@@ -72,7 +72,8 @@ public final class ContractMapper {
 			null, // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
 			null, // attachments se carga por separado en el service
 			null, // attachmentRequirements depende de los adjuntos: lo completa el service
-			contract.getAnnulmentReason()
+			contract.getAnnulmentReason(),
+			null // syncErrorMessage vive en la Request: lo completa el service
 		);
 	}
 

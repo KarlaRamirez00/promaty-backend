@@ -175,8 +175,7 @@ public class ContractRequestHandler implements RequestHandler {
 
 	@Override
 	public void applyDecision(Request request, ApprovalLevel level, ApprovalDecision decision) {
-		Contract contract = contractRepository.findById(request.getEntityId())
-			.orElseThrow(() -> new ResourceNotFoundException("El contrato de la solicitud no existe."));
+		Contract contract = findContract(request.getEntityId());
 
 		if (decision == ApprovalDecision.REJECTED) {
 			contract.setStatus(resolveEstado(CODE_REJECTED));
@@ -192,26 +191,47 @@ public class ContractRequestHandler implements RequestHandler {
 			contractRepository.save(contract);
 			return;
 		}
-		aplicarValidacionRrhh(contract);
+		aplicarValidacionRrhh(contract, request);
 	}
 
-	private void aplicarValidacionRrhh(Contract contract) {
+	@Override
+	public boolean isInSyncError(Long entityId) {
+		return CODE_SYNC_ERROR.equals(findContract(entityId).getStatus().getCode());
+	}
+
+	@Override
+	public void retrySync(Request request) {
+		syncAndActivate(findContract(request.getEntityId()), request);
+	}
+
+	private Contract findContract(Long contractId) {
+		return contractRepository.findById(contractId)
+			.orElseThrow(() -> new ResourceNotFoundException("El contrato de la solicitud no existe."));
+	}
+
+	private void aplicarValidacionRrhh(Contract contract, Request request) {
 		if (superoPlazoLegal(contract.getStartDate(), contract.getContractType())) {
 			contract.setStatus(resolveEstado(CODE_LATE_REGISTRATION));
 			contractRepository.save(contract);
 			return;
 		}
-		RexSyncResult sincronizacion = rexPlusClient.syncContract(contract);
-		if (sincronizacion.success()) {
-			contract.setStaffStatusBeforeActivation(contract.getStaff().getStatus());
-			contract.setRexContractNumber(sincronizacion.externalReferenceNumber());
-			contract.setStatus(resolveEstado(CODE_ACTIVE));
+		syncAndActivate(contract, request);
+	}
+
+	private void syncAndActivate(Contract contract, Request request) {
+		RexSyncResult sync = rexPlusClient.syncContract(contract);
+		if (!sync.success()) {
+			request.recordSyncFailure(sync.errorMessage());
+			contract.setStatus(resolveEstado(CODE_SYNC_ERROR));
 			contractRepository.save(contract);
-			activateStaff(contract.getStaff());
 			return;
 		}
-		contract.setStatus(resolveEstado(CODE_SYNC_ERROR));
+		request.clearSyncFailure();
+		contract.setStaffStatusBeforeActivation(contract.getStaff().getStatus());
+		contract.setRexContractNumber(sync.externalReferenceNumber());
+		contract.setStatus(resolveEstado(CODE_ACTIVE));
 		contractRepository.save(contract);
+		activateStaff(contract.getStaff());
 	}
 
 	private void activateStaff(Staff staff) {

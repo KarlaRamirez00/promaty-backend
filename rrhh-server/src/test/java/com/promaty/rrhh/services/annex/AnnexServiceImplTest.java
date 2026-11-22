@@ -105,6 +105,20 @@ class AnnexServiceImplTest {
 	}
 
 	@Test
+	void getAnnexDetail_enSyncErrorConPermisoDeValidar_incluyeRetrySyncYElMotivo() {
+		autenticarCon("annex.validate");
+		when(annexRepository.findById(1L)).thenReturn(Optional.of(anexoConEstado("SYNC_ERROR")));
+		Request request = requestConEstado("APPROVED");
+		request.recordSyncFailure("Rex+ no respondió.");
+		when(requestRepository.findByEntityTypeAndEntityId(RequestEntityType.ANNEX, 1L)).thenReturn(Optional.of(request));
+
+		AnnexDetailDto detalle = service.getAnnexDetail(1L);
+
+		assertThat(detalle.getActions()).containsExactly(Action.RETRY_SYNC);
+		assertThat(detalle.getSyncErrorMessage()).isEqualTo("Rex+ no respondió.");
+	}
+
+	@Test
 	void updateAnnex_validaAplicaSincronizaAdjuntosYGuarda() {
 		Annex annex = anexoConEstado("PENDING_APPROVAL");
 		Request request = requestConEstado("PENDING_APPROVAL");

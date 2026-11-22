@@ -149,8 +149,7 @@ public class TerminationRequestHandler implements RequestHandler {
 
 	@Override
 	public void applyDecision(Request request, ApprovalLevel level, ApprovalDecision decision) {
-		Termination termination = terminationRepository.findById(request.getEntityId())
-			.orElseThrow(() -> new ResourceNotFoundException("El finiquito de la solicitud no existe."));
+		Termination termination = findTermination(request.getEntityId());
 
 		if (decision == ApprovalDecision.REJECTED) {
 			termination.setStatus(resolveEstadoTermination(CODE_REJECTED));
@@ -163,7 +162,22 @@ public class TerminationRequestHandler implements RequestHandler {
 			terminationRepository.save(termination);
 			return;
 		}
-		aplicarValidacionRrhh(termination);
+		aplicarValidacionRrhh(termination, request);
+	}
+
+	@Override
+	public boolean isInSyncError(Long entityId) {
+		return CODE_SYNC_ERROR.equals(findTermination(entityId).getStatus().getCode());
+	}
+
+	@Override
+	public void retrySync(Request request) {
+		aplicarValidacionRrhh(findTermination(request.getEntityId()), request);
+	}
+
+	private Termination findTermination(Long terminationId) {
+		return terminationRepository.findById(terminationId)
+			.orElseThrow(() -> new ResourceNotFoundException("El finiquito de la solicitud no existe."));
 	}
 
 	private void validateRequiredAttachment(Termination termination) {
@@ -173,17 +187,19 @@ public class TerminationRequestHandler implements RequestHandler {
 		);
 	}
 
-	private void aplicarValidacionRrhh(Termination termination) {
+	private void aplicarValidacionRrhh(Termination termination, Request request) {
 		if (CODE_APPROVED.equals(termination.getStatus().getCode())) {
 			return;
 		}
 
 		RexSyncResult sincronizacion = rexPlusClient.syncTermination(termination);
 		if (!sincronizacion.success()) {
+			request.recordSyncFailure(sincronizacion.errorMessage());
 			termination.setStatus(resolveEstadoTermination(CODE_SYNC_ERROR));
 			terminationRepository.save(termination);
 			return;
 		}
+		request.clearSyncFailure();
 
 		Contract contrato = termination.getContract();
 		termination.setContractEndDateBeforeTermination(contrato.getEndDate());

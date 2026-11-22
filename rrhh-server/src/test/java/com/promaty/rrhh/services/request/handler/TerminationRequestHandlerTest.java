@@ -280,6 +280,41 @@ class TerminationRequestHandlerTest {
 		assertThat(captor.getValue().getStatus()).isEqualTo(syncError);
 		assertThat(contract.getStatus()).isNull();
 		assertThat(staff.getStatus()).isNull();
+		assertThat(request.getSyncErrorMessage()).isEqualTo("Rex+ no respondió.");
+	}
+
+	@Test
+	void retrySync_conSincronizacionExitosa_apruebaAplicaEfectosYBorraElMotivo() {
+		Request request = new Request();
+		request.setEntityId(56L);
+		request.recordSyncFailure("Rex+ no respondió.");
+		Termination termination = terminationConEstado(estadoConCodigo("SYNC_ERROR"));
+		termination.setDefinitiveTermination(false);
+		Contract contract = new Contract();
+		termination.setContract(contract);
+		Staff staff = new Staff();
+		termination.setStaff(staff);
+		when(terminationRepository.findById(56L)).thenReturn(Optional.of(termination));
+		when(rexPlusClient.syncTermination(termination)).thenReturn(RexSyncResult.success("REX-TERM-200"));
+		when(platformStatusRepository.findBySubModuleAndCode("contract", "TERMINATED")).thenReturn(Optional.of(estadoConCodigo("TERMINATED")));
+		when(platformStatusRepository.findBySubModuleAndCode("staff", "UNLINKED")).thenReturn(Optional.of(estadoConCodigo("UNLINKED")));
+		when(platformStatusRepository.findBySubModuleAndCode("termination", "APPROVED")).thenReturn(Optional.of(estadoConCodigo("APPROVED")));
+
+		handler.retrySync(request);
+
+		assertThat(termination.getStatus().getCode()).isEqualTo("APPROVED");
+		assertThat(termination.getRexTerminationNumber()).isEqualTo("REX-TERM-200");
+		assertThat(contract.getStatus().getCode()).isEqualTo("TERMINATED");
+		assertThat(request.getSyncErrorMessage()).isNull();
+	}
+
+	@Test
+	void isInSyncError_segunElEstadoDelFiniquito() {
+		when(terminationRepository.findById(1L)).thenReturn(Optional.of(terminationConEstado(estadoConCodigo("SYNC_ERROR"))));
+		when(terminationRepository.findById(2L)).thenReturn(Optional.of(terminationConEstado(estadoConCodigo("APPROVED"))));
+
+		assertThat(handler.isInSyncError(1L)).isTrue();
+		assertThat(handler.isInSyncError(2L)).isFalse();
 	}
 
 	@Test

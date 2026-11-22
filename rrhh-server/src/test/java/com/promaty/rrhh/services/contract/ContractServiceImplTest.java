@@ -155,6 +155,35 @@ class ContractServiceImplTest {
 	}
 
 	@Test
+	void getContractDetail_enSyncErrorConPermisoDeValidar_incluyeRetrySyncYElMotivo() {
+		autenticarCon("contract.validate");
+		Contract contrato = contratoCompleto();
+		contrato.getStatus().setCode("SYNC_ERROR");
+		Request request = new Request();
+		request.setStatus(contrato.getStatus());
+		request.recordSyncFailure("Rex+ no respondió.");
+		when(contractRepository.findById(1L)).thenReturn(Optional.of(contrato));
+		when(requestRepository.findByEntityTypeAndEntityId(RequestEntityType.CONTRACT, 1L)).thenReturn(Optional.of(request));
+
+		ContractDetailDto detalle = service.getContractDetail(1L);
+
+		assertThat(detalle.getActions()).contains(Action.RETRY_SYNC);
+		assertThat(detalle.getSyncErrorMessage()).isEqualTo("Rex+ no respondió.");
+	}
+
+	@Test
+	void getContractDetail_enSyncErrorSinPermisoDeValidar_noIncluyeRetrySync() {
+		autenticarCon("contract.read");
+		Contract contrato = contratoCompleto();
+		contrato.getStatus().setCode("SYNC_ERROR");
+		when(contractRepository.findById(1L)).thenReturn(Optional.of(contrato));
+
+		ContractDetailDto detalle = service.getContractDetail(1L);
+
+		assertThat(detalle.getActions()).doesNotContain(Action.RETRY_SYNC);
+	}
+
+	@Test
 	void annulContract_conSincronizacionExitosa_validaSincronizaYAplicaLaAnulacion() {
 		Contract contrato = contratoCompleto();
 		AnnulContractDto dto = anulacion("No se presentó a trabajar");

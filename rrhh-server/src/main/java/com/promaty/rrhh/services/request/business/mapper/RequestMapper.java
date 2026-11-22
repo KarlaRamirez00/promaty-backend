@@ -75,7 +75,8 @@ public final class RequestMapper {
 			request.getUpdatedAt(),
 			request.getCreatedBy(),
 			request.getUpdatedBy(),
-			null // actions depende del status de la fila y de los permisos del usuario: lo completa el service
+			null, // actions depende del status de la fila y de los permisos del usuario: lo completa el service
+			request.getSyncErrorMessage()
 		);
 	}
 

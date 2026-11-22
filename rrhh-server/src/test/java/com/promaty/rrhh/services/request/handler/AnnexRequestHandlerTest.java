@@ -151,11 +151,36 @@ class AnnexRequestHandlerTest {
 		PlatformStatus syncError = estado("SYNC_ERROR");
 		when(relationsResolver.resolveStatus("SYNC_ERROR")).thenReturn(syncError);
 
-		handler.applyDecision(requestDelAnexo(), ApprovalLevel.HR, ApprovalDecision.APPROVED);
+		Request request = requestDelAnexo();
+
+		handler.applyDecision(request, ApprovalLevel.HR, ApprovalDecision.APPROVED);
 
 		assertThat(annex.getStatus()).isEqualTo(syncError);
 		assertThat(annex.getContract().getBaseSalary()).isEqualTo(BigDecimal.valueOf(850000));
+		assertThat(request.getSyncErrorMessage()).isEqualTo("Rex+ no respondió.");
 		verify(contractRepository, never()).save(any());
+	}
+
+	@Test
+	void retrySync_conSincronizacionExitosa_aplicaElCambioAlContratoYBorraElMotivo() {
+		Annex annex = anexoPendiente("SYNC_ERROR");
+		when(rexPlusClient.syncAnnex(annex)).thenReturn(RexSyncResult.success("REX-ANX-2"));
+		when(relationsResolver.resolveStatus("APPROVED")).thenReturn(estado("APPROVED"));
+		Request request = requestDelAnexo();
+		request.recordSyncFailure("Rex+ no respondió.");
+
+		handler.retrySync(request);
+
+		assertThat(annex.getStatus().getCode()).isEqualTo("APPROVED");
+		assertThat(annex.getContract().getBaseSalary()).isEqualTo(BigDecimal.valueOf(950000));
+		assertThat(request.getSyncErrorMessage()).isNull();
+	}
+
+	@Test
+	void isInSyncError_conAnexoEnSyncError_retornaTrue() {
+		anexoPendiente("SYNC_ERROR");
+
+		assertThat(handler.isInSyncError(ANNEX_ID)).isTrue();
 	}
 
 	private Annex anexoPendiente(String statusCode) {

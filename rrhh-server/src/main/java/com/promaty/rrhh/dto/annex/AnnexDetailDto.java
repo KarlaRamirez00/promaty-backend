@@ -57,4 +57,5 @@ public class AnnexDetailDto {
 	private List<Action> actions;
 	private List<FileAttachmentDto> attachments;
 	private List<AttachmentRequirementDto> attachmentRequirements;
+	private String syncErrorMessage;
 }

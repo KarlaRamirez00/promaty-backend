@@ -14,6 +14,7 @@ import com.promaty.rrhh.dto.request.RequestDetailDto;
 import com.promaty.rrhh.dto.request.RequestFilterParams;
 import com.promaty.rrhh.dto.request.RequestListDto;
 import com.promaty.rrhh.dto.request.RequesterOptionDto;
+import com.promaty.rrhh.dto.request.RetrySyncResultDto;
 import com.promaty.rrhh.entity.RequestEntityType;
 
 public interface RequestService {
@@ -21,6 +22,8 @@ public interface RequestService {
 	CreatedRequestDto createRequest(CreateRequestDto dto, List<MultipartFile> files);
 
 	void decideRequest(Long id, DecideRequestDto dto);
+
+	RetrySyncResultDto retrySync(Long id);
 
 	Page<RequestListDto> listRequests(RequestFilterParams filters, Pageable pageable);
 

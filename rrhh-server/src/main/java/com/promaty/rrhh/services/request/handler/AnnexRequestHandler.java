@@ -108,8 +108,7 @@ public class AnnexRequestHandler implements RequestHandler {
 
 	@Override
 	public void applyDecision(Request request, ApprovalLevel level, ApprovalDecision decision) {
-		Annex annex = annexRepository.findById(request.getEntityId())
-			.orElseThrow(() -> new ResourceNotFoundException("El anexo de la solicitud no existe."));
+		Annex annex = findAnnex(request.getEntityId());
 
 		if (decision == ApprovalDecision.REJECTED) {
 			changeStatus(annex, CODE_REJECTED);
@@ -123,15 +122,32 @@ public class AnnexRequestHandler implements RequestHandler {
 			changeStatus(annex, CODE_PENDING_VALIDATION);
 			return;
 		}
-		applyHrValidation(annex);
+		applyHrValidation(annex, request);
 	}
 
-	private void applyHrValidation(Annex annex) {
+	@Override
+	public boolean isInSyncError(Long entityId) {
+		return CODE_SYNC_ERROR.equals(findAnnex(entityId).getStatus().getCode());
+	}
+
+	@Override
+	public void retrySync(Request request) {
+		applyHrValidation(findAnnex(request.getEntityId()), request);
+	}
+
+	private Annex findAnnex(Long annexId) {
+		return annexRepository.findById(annexId)
+			.orElseThrow(() -> new ResourceNotFoundException("El anexo de la solicitud no existe."));
+	}
+
+	private void applyHrValidation(Annex annex, Request request) {
 		RexSyncResult sync = rexPlusClient.syncAnnex(annex);
 		if (!sync.success()) {
+			request.recordSyncFailure(sync.errorMessage());
 			changeStatus(annex, CODE_SYNC_ERROR);
 			return;
 		}
+		request.clearSyncFailure();
 		Contract contract = annex.getContract();
 		ruleRegistry.get(annex.getTypeCode()).apply(annex, contract);
 		contractRepository.save(contract);

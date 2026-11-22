@@ -21,6 +21,8 @@ import lombok.Setter;
 @Table(name = "requests")
 public class Request extends BaseDatedEntity {
 
+	public static final int SYNC_ERROR_MESSAGE_MAX_LENGTH = 500;
+
 	@Enumerated(EnumType.STRING)
 	@Column(name = "entity_type", nullable = false, length = 30)
 	private RequestEntityType entityType;
@@ -46,4 +48,19 @@ public class Request extends BaseDatedEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "status_id", nullable = false)
 	private PlatformStatus status;
+
+	@Column(name = "sync_error_message", length = SYNC_ERROR_MESSAGE_MAX_LENGTH)
+	private String syncErrorMessage;
+
+	public void recordSyncFailure(String message) {
+		if (message != null && message.length() > SYNC_ERROR_MESSAGE_MAX_LENGTH) {
+			this.syncErrorMessage = message.substring(0, SYNC_ERROR_MESSAGE_MAX_LENGTH);
+			return;
+		}
+		this.syncErrorMessage = message;
+	}
+
+	public void clearSyncFailure() {
+		this.syncErrorMessage = null;
+	}
 }
