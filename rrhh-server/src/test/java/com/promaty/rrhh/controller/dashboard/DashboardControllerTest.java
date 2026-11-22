@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ import com.promaty.rrhh.config.SecurityConfig;
 import com.promaty.rrhh.dto.dashboard.BirthdayDto;
 import com.promaty.rrhh.dto.dashboard.DashboardSummaryDto;
 import com.promaty.rrhh.dto.dashboard.ProjectProgressDto;
+import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.services.dashboard.DashboardService;
 import com.promaty.rrhh.support.TestJwt;
 
@@ -78,7 +80,7 @@ class DashboardControllerTest {
 
 	@Test
 	void birthdays_conStaffRead_retorna200ConLista() throws Exception {
-		when(dashboardService.listBirthdaysOfCurrentMonth(null)).thenReturn(List.of(
+		when(dashboardService.listBirthdays(null, null)).thenReturn(List.of(
 			new BirthdayDto(1L, "Ana Soto Rojas", 3, 11, "00824")
 		));
 
@@ -86,6 +88,41 @@ class DashboardControllerTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data[0].day").value(3))
 			.andExpect(jsonPath("$.meta.pagination").doesNotExist());
+	}
+
+	@Test
+	void birthdays_conMes_loPasaAlService() throws Exception {
+		when(dashboardService.listBirthdays(240L, 10)).thenReturn(List.of(
+			new BirthdayDto(7L, "Hernán Lorca Gaete", 28, 10, "00240")
+		));
+
+		mockMvc.perform(get("/dashboard/birthdays")
+				.param("projectId", "240")
+				.param("month", "10")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("staff.read")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data[0].day").value(28))
+			.andExpect(jsonPath("$.data[0].month").value(10));
+	}
+
+	@Test
+	void birthdays_conMesFueraDeRango_retorna400ConErrorEnMonth() throws Exception {
+		when(dashboardService.listBirthdays(null, 13))
+			.thenThrow(new BusinessValidationException("El mes debe estar entre 1 y 12.", Map.of("month", "El mes debe estar entre 1 y 12.")));
+
+		mockMvc.perform(get("/dashboard/birthdays")
+				.param("month", "13")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("staff.read")))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.error.errorFields.month").value("El mes debe estar entre 1 y 12."));
+	}
+
+	@Test
+	void birthdays_conMesNoNumerico_retorna400() throws Exception {
+		mockMvc.perform(get("/dashboard/birthdays")
+				.param("month", "octubre")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("staff.read")))
+			.andExpect(status().isBadRequest());
 	}
 
 	@Test

@@ -10,7 +10,7 @@ public interface DashboardService {
 
 	DashboardSummaryDto getSummary(Long projectId);
 
-	List<BirthdayDto> listBirthdaysOfCurrentMonth(Long projectId);
+	List<BirthdayDto> listBirthdays(Long projectId, Integer month);
 
 	List<ProjectProgressDto> listProjectProgress(Long projectId);
 }

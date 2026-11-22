@@ -13,6 +13,7 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.springframework.data.domain.Sort;
@@ -31,6 +32,7 @@ import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.entity.SettingKey;
 import com.promaty.rrhh.entity.Staff;
 import com.promaty.rrhh.entity.Termination;
+import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.ProjectRepository;
 import com.promaty.rrhh.repository.RequestRepository;
@@ -66,6 +68,11 @@ public class DashboardServiceImpl implements DashboardService {
 	private static final String CODE_PENDING_VALIDATION = "PENDING_VALIDATION";
 	private static final List<String> CODES_SCHEDULED_HIRE =
 		List.of(CODE_ACTIVE, CODE_PENDING_APPROVAL, CODE_PENDING_VALIDATION);
+
+	private static final int FIRST_MONTH = 1;
+	private static final int LAST_MONTH = 12;
+	private static final String FIELD_MONTH = "month";
+	private static final String INVALID_MONTH_MESSAGE = "El mes debe estar entre 1 y 12.";
 
 	private static final String FIELD_START_DATE = "startDate";
 	private static final String FIELD_TERMINATION_DATE = "terminationDate";
@@ -118,12 +125,11 @@ public class DashboardServiceImpl implements DashboardService {
 
 	@Override
 	@Transactional(readOnly = true)
-	public List<BirthdayDto> listBirthdaysOfCurrentMonth(Long projectId) {
+	public List<BirthdayDto> listBirthdays(Long projectId, Integer month) {
 		DashboardScope scope = DashboardScope.of(projectId);
-		int currentMonth = LocalDate.now(BUSINESS_ZONE).getMonthValue();
 		Specification<Contract> specification = scope.<Contract>onProject()
 			.and(hasStatus(CODE_ACTIVE))
-			.and(staffBirthdayInMonth(currentMonth))
+			.and(staffBirthdayInMonth(resolveBirthdayMonth(month)))
 			.and(fetchingStaffAndProject());
 		return contractRepository.findAll(specification).stream()
 			.map(DashboardMapper::toBirthdayDto)
@@ -140,6 +146,16 @@ public class DashboardServiceImpl implements DashboardService {
 		return projectRepository.findAll(specification, Sort.by(FIELD_COST_CENTER_CODE)).stream()
 			.map(project -> ProjectProgressCalculator.calculate(project, today))
 			.toList();
+	}
+
+	private int resolveBirthdayMonth(Integer month) {
+		if (month == null) {
+			return LocalDate.now(BUSINESS_ZONE).getMonthValue();
+		}
+		if (month < FIRST_MONTH || month > LAST_MONTH) {
+			throw new BusinessValidationException(INVALID_MONTH_MESSAGE, Map.of(FIELD_MONTH, INVALID_MONTH_MESSAGE));
+		}
+		return month;
 	}
 
 	private void fillContractIndicators(DashboardSummaryDto summary, DashboardScope scope, LocalDate today) {

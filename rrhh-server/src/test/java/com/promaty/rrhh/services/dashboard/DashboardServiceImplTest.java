@@ -15,6 +15,8 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -32,6 +34,7 @@ import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.Project;
 import com.promaty.rrhh.entity.SettingKey;
 import com.promaty.rrhh.entity.Staff;
+import com.promaty.rrhh.exception.BusinessValidationException;
 import com.promaty.rrhh.repository.ContractRepository;
 import com.promaty.rrhh.repository.ProjectRepository;
 import com.promaty.rrhh.repository.RequestRepository;
@@ -148,19 +151,45 @@ class DashboardServiceImplTest {
 	}
 
 	@Test
-	void listBirthdaysOfCurrentMonth_mapeaSoloDiaYMesYOrdenaPorDia() {
+	void listBirthdays_sinMes_mapeaSoloDiaYMesYOrdenaPorDia() {
 		autenticar(false, List.of(1L), "staff.read");
 		when(contractRepository.findAll(any(Specification.class))).thenReturn(List.of(
 			contratoDe(2L, "Pedro", LocalDate.of(1990, 11, 25)),
 			contratoDe(1L, "Ana", LocalDate.of(1985, 11, 3))
 		));
 
-		List<BirthdayDto> cumpleanos = service.listBirthdaysOfCurrentMonth(null);
+		List<BirthdayDto> cumpleanos = service.listBirthdays(null, null);
 
 		assertThat(cumpleanos).extracting(BirthdayDto::getStaffId).containsExactly(1L, 2L);
 		assertThat(cumpleanos.get(0).getDay()).isEqualTo(3);
 		assertThat(cumpleanos.get(0).getMonth()).isEqualTo(11);
 		assertThat(cumpleanos.get(0).getCostCenterCode()).isEqualTo("00824");
+	}
+
+	@Test
+	void listBirthdays_conMesDistintoDelActual_consultaYRetornaLosDeEseMes() {
+		autenticar(false, List.of(1L), "staff.read");
+		when(contractRepository.findAll(any(Specification.class))).thenReturn(List.of(
+			contratoDe(7L, "Hernán", LocalDate.of(1983, 10, 28))
+		));
+
+		List<BirthdayDto> cumpleanos = service.listBirthdays(null, 10);
+
+		assertThat(cumpleanos).extracting(BirthdayDto::getStaffId).containsExactly(7L);
+		assertThat(cumpleanos.get(0).getDay()).isEqualTo(28);
+		assertThat(cumpleanos.get(0).getMonth()).isEqualTo(10);
+	}
+
+	@ParameterizedTest
+	@ValueSource(ints = {-1, 0, 13})
+	void listBirthdays_conMesFueraDeRango_lanzaBusinessValidationExceptionSinConsultar(int month) {
+		autenticar(false, List.of(1L), "staff.read");
+
+		assertThatThrownBy(() -> service.listBirthdays(null, month))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields()).containsKey("month"));
+
+		verifyNoInteractions(contractRepository);
 	}
 
 	@Test

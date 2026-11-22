@@ -33,8 +33,11 @@ public class DashboardController {
 
 	@GetMapping("/birthdays")
 	@PreAuthorize("hasAuthority('staff.read')")
-	public ResponseEntity<BaseListData<BirthdayDto>> birthdays(@RequestParam(required = false) Long projectId) {
-		return ResponseEntity.ok(BaseListData.of(dashboardService.listBirthdaysOfCurrentMonth(projectId)));
+	public ResponseEntity<BaseListData<BirthdayDto>> birthdays(
+		@RequestParam(required = false) Long projectId,
+		@RequestParam(required = false) Integer month
+	) {
+		return ResponseEntity.ok(BaseListData.of(dashboardService.listBirthdays(projectId, month)));
 	}
 
 	@GetMapping("/projectProgress")
