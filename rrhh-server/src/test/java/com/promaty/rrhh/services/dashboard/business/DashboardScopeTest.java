@@ -49,7 +49,7 @@ class DashboardScopeTest {
 	}
 
 	private void autenticar(boolean allowedAllProjects, List<Long> projectIds) {
-		JwtPrincipal principal = new JwtPrincipal("1", "Editor", "Ana Pérez", List.of(), allowedAllProjects, projectIds, false);
+		JwtPrincipal principal = new JwtPrincipal("1", "Editor", "Ana Pérez", List.of(), allowedAllProjects, projectIds, false, 0L);
 		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, List.of()));
 	}
 }

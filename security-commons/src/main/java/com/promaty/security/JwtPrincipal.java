@@ -10,6 +10,7 @@ public record JwtPrincipal(
 	List<String> permissions,
 	boolean allowedAllProjects,
 	List<Long> projectIds,
-	boolean systemRole
+	boolean systemRole,
+	Long sessionVersion
 ) {
 }

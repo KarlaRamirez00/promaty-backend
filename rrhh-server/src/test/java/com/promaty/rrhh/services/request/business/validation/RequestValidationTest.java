@@ -139,7 +139,7 @@ class RequestValidationTest {
 	}
 
 	private static JwtPrincipal jefeDeObraCon(List<Long> projectIds) {
-		return new JwtPrincipal("1", "Jefe de obra", "Juan", List.of(), false, projectIds, false);
+		return new JwtPrincipal("1", "Jefe de obra", "Juan", List.of(), false, projectIds, false, 0L);
 	}
 
 	@AfterEach

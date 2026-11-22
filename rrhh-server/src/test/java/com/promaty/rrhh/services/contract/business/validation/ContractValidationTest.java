@@ -151,7 +151,7 @@ class ContractValidationTest {
 	}
 
 	private static void autenticarConProyectos(List<Long> projectIds) {
-		JwtPrincipal principal = new JwtPrincipal("1", "Jefe de obra", "Juan", List.of(), false, projectIds, false);
+		JwtPrincipal principal = new JwtPrincipal("1", "Jefe de obra", "Juan", List.of(), false, projectIds, false, 0L);
 		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, List.of()));
 	}
 }

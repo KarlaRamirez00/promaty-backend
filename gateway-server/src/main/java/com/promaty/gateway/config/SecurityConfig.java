@@ -15,6 +15,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.promaty.gateway.session.SessionVerifier;
+import com.promaty.gateway.session.SessionVersionFilter;
 import com.promaty.security.JwtAuthenticationFilter;
 import com.promaty.security.JwtService;
 
@@ -46,7 +48,8 @@ public class SecurityConfig {
 	public SecurityFilterChain securityFilterChain(
 		HttpSecurity http,
 		JwtService jwtService,
-		RestAuthErrorHandler restAuthErrorHandler
+		RestAuthErrorHandler restAuthErrorHandler,
+		SessionVerifier sessionVerifier
 	) throws Exception {
 		return http
 			.csrf(csrf -> csrf.disable()) // NOSONAR (java:S4502) - API stateless con Bearer token
@@ -59,6 +62,7 @@ public class SecurityConfig {
 				.authenticationEntryPoint(restAuthErrorHandler)
 				.accessDeniedHandler(restAuthErrorHandler))
 			.addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
+			.addFilterAfter(new SessionVersionFilter(sessionVerifier), JwtAuthenticationFilter.class)
 			.build();
 	}
 

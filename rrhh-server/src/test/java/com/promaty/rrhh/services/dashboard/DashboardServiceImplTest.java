@@ -199,7 +199,7 @@ class DashboardServiceImplTest {
 
 	private void autenticar(boolean allowedAllProjects, List<Long> projectIds, String... permisos) {
 		JwtPrincipal principal = new JwtPrincipal(
-			"1", "Editor", "Ana Pérez", List.of(permisos), allowedAllProjects, projectIds, false
+			"1", "Editor", "Ana Pérez", List.of(permisos), allowedAllProjects, projectIds, false, 0L
 		);
 		List<SimpleGrantedAuthority> autoridades = Arrays.stream(permisos).map(SimpleGrantedAuthority::new).toList();
 		SecurityContextHolder.getContext().setAuthentication(

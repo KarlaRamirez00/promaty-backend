@@ -32,8 +32,14 @@ public class JwtService {
 			readStringList(claims, "permissions"),
 			Boolean.TRUE.equals(claims.get("allowedAllProjects", Boolean.class)),
 			readLongList(claims, "projectIds"),
-			Boolean.TRUE.equals(claims.get("isSystemRole", Boolean.class))
+			Boolean.TRUE.equals(claims.get("isSystemRole", Boolean.class)),
+			readLong(claims, "sessionVersion")
 		);
+	}
+
+	private Long readLong(Claims claims, String key) {
+		Object value = claims.get(key);
+		return value instanceof Number number ? number.longValue() : null;
 	}
 
 	private List<String> readStringList(Claims claims, String key) {

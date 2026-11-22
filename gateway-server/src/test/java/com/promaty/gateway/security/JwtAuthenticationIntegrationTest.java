@@ -11,10 +11,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.promaty.gateway.config.GatewayRoutesConfig;
 import com.promaty.gateway.config.SecurityConfig;
+import com.promaty.gateway.session.SessionVerifier;
 import com.promaty.gateway.support.TestJwt;
 
 // @WebMvcTest en Boot 4.1 no auto-configura Spring Security; @EnableWebSecurity restituye el
@@ -27,6 +29,9 @@ class JwtAuthenticationIntegrationTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@MockitoBean
+	private SessionVerifier sessionVerifier;
 
 	@Test
 	void rutaProtegida_sinToken_retorna401ConShapeDeContrato() throws Exception {
