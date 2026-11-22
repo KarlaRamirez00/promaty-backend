@@ -7,8 +7,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +30,7 @@ import com.promaty.user.dto.role.RoleActiveUpdateDto;
 import com.promaty.user.dto.role.RoleActiveUpdateResultDto;
 import com.promaty.user.dto.role.UpdateRoleDto;
 import com.promaty.user.dto.shared.Action;
+import com.promaty.user.entity.Permission;
 import com.promaty.user.entity.Role;
 import com.promaty.user.entity.User;
 import com.promaty.user.exception.BusinessValidationException;
@@ -255,6 +258,75 @@ class RoleServiceImplTest {
 
 		assertThat(resultado).hasSize(1);
 		assertThat(resultado.get(0).getName()).isEqualTo("Superadmin");
+	}
+
+	@Test
+	void updateRole_conPermisosDistintos_invalidaLasSesionesDeLosUsuariosDelRol() {
+		stubRoleUpdate(roleWithPermissions("Editor", permissionWithId(1L)), permissionWithId(2L));
+
+		roleService.updateRole(1L, updateRoleDto("Editor", "Descripción"));
+
+		verify(userRepository).invalidateSessionsByRoleId(1L);
+	}
+
+	@Test
+	void updateRole_conNombreDistinto_invalidaLasSesionesDeLosUsuariosDelRol() {
+		stubRoleUpdate(roleWithPermissions("Editor", permissionWithId(1L)), permissionWithId(1L));
+
+		roleService.updateRole(1L, updateRoleDto("Editor general", "Descripción"));
+
+		verify(userRepository).invalidateSessionsByRoleId(1L);
+	}
+
+	@Test
+	void updateRole_soloConDescripcionDistinta_noInvalidaLasSesiones() {
+		stubRoleUpdate(roleWithPermissions("Editor", permissionWithId(1L)), permissionWithId(1L));
+
+		roleService.updateRole(1L, updateRoleDto("Editor", "Nueva descripción"));
+
+		verify(userRepository, never()).invalidateSessionsByRoleId(any());
+	}
+
+	@Test
+	void toggleRoleActive_alReasignarUsuarios_invalidaSusSesiones() {
+		Role role = roleConId(1L, true);
+		RoleActiveUpdateDto dto = new RoleActiveUpdateDto();
+		dto.setNewRoleId(2L);
+		User user = new User();
+		when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
+		when(userRepository.findByRole_Id(1L)).thenReturn(List.of(user));
+		when(roleRepository.findById(2L)).thenReturn(Optional.of(roleConId(2L, true)));
+		when(roleRepository.save(role)).thenReturn(role);
+
+		roleService.toggleRoleActive(1L, dto);
+
+		assertThat(user.getSessionVersion()).isEqualTo(1L);
+	}
+
+	private void stubRoleUpdate(Role role, Permission... resolvedPermissions) {
+		when(roleRepository.findById(role.getId())).thenReturn(Optional.of(role));
+		when(relationsResolver.resolvePermissions(any())).thenReturn(Set.of(resolvedPermissions));
+	}
+
+	private Role roleWithPermissions(String name, Permission... permissions) {
+		Role role = new Role();
+		role.setId(1L);
+		role.setName(name);
+		role.setPermissions(new HashSet<>(List.of(permissions)));
+		return role;
+	}
+
+	private Permission permissionWithId(Long id) {
+		Permission permission = new Permission();
+		permission.setId(id);
+		return permission;
+	}
+
+	private UpdateRoleDto updateRoleDto(String name, String description) {
+		UpdateRoleDto dto = new UpdateRoleDto();
+		dto.setName(name);
+		dto.setDescription(description);
+		return dto;
 	}
 
 	private Role roleConId(Long id, boolean active) {

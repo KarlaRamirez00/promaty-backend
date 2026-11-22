@@ -21,8 +21,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
+import com.promaty.contracts.auth.UserSessionStatusDto;
 import com.promaty.user.dto.shared.Action;
 import com.promaty.user.dto.user.CreateUserDto;
+import com.promaty.user.dto.user.UpdateUserDto;
 import com.promaty.user.dto.user.UserDetailDto;
 import com.promaty.user.dto.user.UserFilterParams;
 import com.promaty.user.dto.user.UserListDto;
@@ -151,6 +153,77 @@ class UserServiceImplTest {
 
 		assertThat(user.getActive()).isFalse();
 		assertThat(detalle.getActions()).containsExactly(Action.ACTIVE);
+	}
+
+	@Test
+	void updateUser_conRolDistinto_invalidaLasSesionesDelUsuario() {
+		User user = usuarioConId(3L);
+		stubUpdate(user, List.of(10L));
+
+		userService.updateUser(3L, updateDto(2L, List.of(10L)));
+
+		assertThat(user.getSessionVersion()).isEqualTo(1L);
+	}
+
+	@Test
+	void updateUser_conProyectosDistintos_invalidaLasSesionesDelUsuario() {
+		User user = usuarioConId(3L);
+		stubUpdate(user, List.of(10L));
+
+		userService.updateUser(3L, updateDto(1L, List.of(10L, 20L)));
+
+		assertThat(user.getSessionVersion()).isEqualTo(1L);
+	}
+
+	@Test
+	void updateUser_conMismoRolYProyectosEnOtroOrden_mantieneLasSesiones() {
+		User user = usuarioConId(3L);
+		stubUpdate(user, List.of(10L, 20L));
+		UpdateUserDto dto = updateDto(1L, List.of(20L, 10L));
+		dto.setPhoneNumber("+56911112222");
+
+		userService.updateUser(3L, dto);
+
+		assertThat(user.getSessionVersion()).isZero();
+	}
+
+	@Test
+	void getSessionStatus_usuarioExiste_retornaActivoYVersion() {
+		User user = usuarioConId(3L);
+		user.invalidateSessions();
+		when(userRepository.findById(3L)).thenReturn(Optional.of(user));
+
+		UserSessionStatusDto status = userService.getSessionStatus(3L);
+
+		assertThat(status.getActive()).isTrue();
+		assertThat(status.getSessionVersion()).isEqualTo(1L);
+	}
+
+	@Test
+	void getSessionStatus_usuarioNoExiste_lanzaResourceNotFoundException() {
+		when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> userService.getSessionStatus(99L))
+			.isInstanceOf(ResourceNotFoundException.class);
+	}
+
+	private void stubUpdate(User user, List<Long> currentProjectIds) {
+		when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+		when(userProjectAccessRepository.findProjectIdsByUserId(user.getId())).thenReturn(currentProjectIds);
+		when(roleRepository.getReferenceById(any())).thenAnswer(invocation -> roleWithId(invocation.getArgument(0)));
+	}
+
+	private UpdateUserDto updateDto(Long roleId, List<Long> projectIds) {
+		UpdateUserDto dto = new UpdateUserDto();
+		dto.setRoleId(roleId);
+		dto.setProjectIds(projectIds);
+		return dto;
+	}
+
+	private Role roleWithId(Long id) {
+		Role role = new Role();
+		role.setId(id);
+		return role;
 	}
 
 	private User usuarioConId(Long id) {

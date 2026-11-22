@@ -91,6 +91,18 @@ class JwtServiceTest {
 		assertThat(principal.role()).isNull();
 		assertThat(principal.name()).isNull();
 		assertThat(principal.systemRole()).isFalse();
+		assertThat(principal.sessionVersion()).isNull();
+	}
+
+	@Test
+	void parse_conSessionVersionComoInteger_laNormalizaALong() {
+		String token = Jwts.builder()
+			.subject("1")
+			.claim("sessionVersion", 3)
+			.signWith(key)
+			.compact();
+
+		assertThat(jwtService.parse(token).sessionVersion()).isEqualTo(3L);
 	}
 
 	@Test

@@ -1,5 +1,8 @@
 package com.promaty.gateway.security;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -40,6 +43,17 @@ class JwtAuthenticationIntegrationTest {
 			.andExpect(jsonPath("$.error.status").value(401))
 			.andExpect(jsonPath("$.error.name").value("UNAUTHORIZED"))
 			.andExpect(jsonPath("$.data").doesNotExist());
+	}
+
+	@Test
+	void rutaProtegida_conTokenValidoPeroSesionDesactualizada_retorna401() throws Exception {
+		when(sessionVerifier.isCurrent(any())).thenReturn(false);
+
+		mockMvc.perform(get("/roles").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("role.read")))
+			.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.error.status").value(401));
+
+		verify(sessionVerifier).isCurrent(any());
 	}
 
 	@Test

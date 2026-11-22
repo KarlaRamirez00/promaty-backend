@@ -64,6 +64,7 @@ class PasswordResetServiceImplTest {
 
 		assertThat(user.getPassword()).isEqualTo("$2a$nuevoHash");
 		assertThat(user.getMustChangePassword()).isFalse();
+		assertThat(user.getSessionVersion()).isEqualTo(1L);
 		verify(loginAttemptTracker).forget(EMAIL);
 		assertThat(latest.getUsedAt()).isNotNull();
 		assertThat(older.getUsedAt()).isNotNull();
@@ -84,6 +85,7 @@ class PasswordResetServiceImplTest {
 		assertThat(code.getAttempts()).isEqualTo(1);
 		assertThat(code.getUsedAt()).isNull();
 		assertThat(user.getMustChangePassword()).isTrue();
+		assertThat(user.getSessionVersion()).isZero();
 		verify(oneTimeCodeRepository).save(code);
 		verify(userRepository, never()).save(user);
 	}
