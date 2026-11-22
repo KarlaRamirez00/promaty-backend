@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.promaty.rrhh.dto.dashboard.BirthdayDto;
 import com.promaty.rrhh.dto.dashboard.DashboardSummaryDto;
+import com.promaty.rrhh.dto.dashboard.PendingByTypeDto;
 import com.promaty.rrhh.dto.dashboard.PendingRequestsDto;
 import com.promaty.rrhh.dto.dashboard.ProjectProgressDto;
 import com.promaty.rrhh.entity.Contract;
@@ -193,39 +194,62 @@ public class DashboardServiceImpl implements DashboardService {
 	}
 
 	private PendingRequestsDto resolvePendingRequests(DashboardScope scope, Set<String> authorities) {
-		Long contract = countPendingRequests(
-			scope, authorities, RequestEntityType.CONTRACT, PERMISSION_CONTRACT_APPROVE, PERMISSION_CONTRACT_VALIDATE
+		Long contractToApprove = countPendingRequests(
+			scope, authorities, RequestEntityType.CONTRACT, PERMISSION_CONTRACT_APPROVE, CODE_PENDING_APPROVAL
 		);
-		Long termination = countPendingRequests(
-			scope, authorities, RequestEntityType.TERMINATION, PERMISSION_TERMINATION_APPROVE, PERMISSION_TERMINATION_VALIDATE
+		Long contractToValidate = countPendingRequests(
+			scope, authorities, RequestEntityType.CONTRACT, PERMISSION_CONTRACT_VALIDATE, CODE_PENDING_VALIDATION
 		);
-		Long annex = countPendingRequests(
-			scope, authorities, RequestEntityType.ANNEX, PERMISSION_ANNEX_APPROVE, PERMISSION_ANNEX_VALIDATE
+		Long terminationToApprove = countPendingRequests(
+			scope, authorities, RequestEntityType.TERMINATION, PERMISSION_TERMINATION_APPROVE, CODE_PENDING_APPROVAL
 		);
+		Long terminationToValidate = countPendingRequests(
+			scope, authorities, RequestEntityType.TERMINATION, PERMISSION_TERMINATION_VALIDATE, CODE_PENDING_VALIDATION
+		);
+		Long annexToApprove = countPendingRequests(
+			scope, authorities, RequestEntityType.ANNEX, PERMISSION_ANNEX_APPROVE, CODE_PENDING_APPROVAL
+		);
+		Long annexToValidate = countPendingRequests(
+			scope, authorities, RequestEntityType.ANNEX, PERMISSION_ANNEX_VALIDATE, CODE_PENDING_VALIDATION
+		);
+
+		PendingByTypeDto toApprove = groupIfAnyVisible(contractToApprove, terminationToApprove, annexToApprove);
+		PendingByTypeDto toValidate = groupIfAnyVisible(contractToValidate, terminationToValidate, annexToValidate);
+		if (toApprove == null && toValidate == null) {
+			return null;
+		}
+		return new PendingRequestsDto(
+			sumVisible(contractToApprove, contractToValidate),
+			sumVisible(terminationToApprove, terminationToValidate),
+			sumVisible(annexToApprove, annexToValidate),
+			toApprove,
+			toValidate
+		);
+	}
+
+	private PendingByTypeDto groupIfAnyVisible(Long contract, Long termination, Long annex) {
 		boolean noneVisible = contract == null && termination == null && annex == null;
-		return noneVisible ? null : new PendingRequestsDto(contract, termination, annex);
+		return noneVisible ? null : new PendingByTypeDto(contract, termination, annex);
+	}
+
+	private Long sumVisible(Long toApprove, Long toValidate) {
+		if (toApprove == null && toValidate == null) {
+			return null;
+		}
+		return (toApprove == null ? 0L : toApprove) + (toValidate == null ? 0L : toValidate);
 	}
 
 	private Long countPendingRequests(
 		DashboardScope scope,
 		Set<String> authorities,
 		RequestEntityType entityType,
-		String approvePermission,
-		String validatePermission
+		String permission,
+		String statusCode
 	) {
-		boolean canApprove = authorities.contains(approvePermission);
-		boolean canValidate = authorities.contains(validatePermission);
-		if (!canApprove && !canValidate) {
+		if (!authorities.contains(permission)) {
 			return null;
 		}
-		long pending = 0;
-		if (canApprove) {
-			pending += countRequests(scope, entityType, CODE_PENDING_APPROVAL);
-		}
-		if (canValidate) {
-			pending += countRequests(scope, entityType, CODE_PENDING_VALIDATION);
-		}
-		return pending;
+		return countRequests(scope, entityType, statusCode);
 	}
 
 	private long countRequests(DashboardScope scope, RequestEntityType entityType, String statusCode) {

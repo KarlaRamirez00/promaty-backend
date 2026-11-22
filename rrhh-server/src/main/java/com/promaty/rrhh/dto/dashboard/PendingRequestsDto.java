@@ -14,4 +14,6 @@ public class PendingRequestsDto {
 	private Long contract;
 	private Long termination;
 	private Long annex;
+	private PendingByTypeDto toApprove;
+	private PendingByTypeDto toValidate;
 }

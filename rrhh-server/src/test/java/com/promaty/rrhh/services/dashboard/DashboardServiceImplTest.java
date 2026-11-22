@@ -140,7 +140,37 @@ class DashboardServiceImplTest {
 		assertThat(resumen.getPendingRequests().getContract()).isEqualTo(4L);
 		assertThat(resumen.getPendingRequests().getTermination()).isNull();
 		assertThat(resumen.getPendingRequests().getAnnex()).isNull();
+		assertThat(resumen.getPendingRequests().getToApprove().getContract()).isEqualTo(3L);
+		assertThat(resumen.getPendingRequests().getToValidate().getContract()).isEqualTo(1L);
 		verify(requestRepository, times(2)).count(any(Specification.class));
+	}
+
+	@Test
+	void getSummary_soloConAprobarContrato_dejaToValidateEnNull() {
+		autenticar(false, List.of(1L), "contract.approve");
+		when(requestRepository.count(any(Specification.class))).thenReturn(5L);
+
+		DashboardSummaryDto resumen = service.getSummary(null);
+
+		assertThat(resumen.getPendingRequests().getContract()).isEqualTo(5L);
+		assertThat(resumen.getPendingRequests().getToApprove().getContract()).isEqualTo(5L);
+		assertThat(resumen.getPendingRequests().getToApprove().getTermination()).isNull();
+		assertThat(resumen.getPendingRequests().getToValidate()).isNull();
+	}
+
+	@Test
+	void getSummary_conAprobarYValidarEnVariosTipos_separaCadaNivelPorTipo() {
+		autenticar(false, List.of(1L), "contract.approve", "termination.validate", "annex.approve", "annex.validate");
+		when(requestRepository.count(any(Specification.class))).thenReturn(2L, 4L, 6L, 1L);
+
+		DashboardSummaryDto resumen = service.getSummary(null);
+
+		assertThat(resumen.getPendingRequests().getToApprove().getContract()).isEqualTo(2L);
+		assertThat(resumen.getPendingRequests().getToApprove().getTermination()).isNull();
+		assertThat(resumen.getPendingRequests().getToApprove().getAnnex()).isEqualTo(6L);
+		assertThat(resumen.getPendingRequests().getToValidate().getContract()).isNull();
+		assertThat(resumen.getPendingRequests().getToValidate().getTermination()).isEqualTo(4L);
+		assertThat(resumen.getPendingRequests().getToValidate().getAnnex()).isEqualTo(1L);
 	}
 
 	@Test
