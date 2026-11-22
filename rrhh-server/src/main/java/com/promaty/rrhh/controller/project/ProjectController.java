@@ -25,6 +25,7 @@ import com.promaty.rrhh.dto.project.UpdateProjectDto;
 import com.promaty.rrhh.dto.project.UpdateProjectStatusDto;
 import com.promaty.rrhh.dto.response.BaseData;
 import com.promaty.rrhh.dto.response.BaseListData;
+import com.promaty.rrhh.dto.shared.CatalogOptionDto;
 import com.promaty.rrhh.services.project.ProjectService;
 
 import jakarta.validation.Valid;
@@ -59,6 +60,12 @@ public class ProjectController {
 	@PreAuthorize("hasAuthority('project.read')")
 	public ResponseEntity<BaseData<ProjectDetailDto>> detail(@PathVariable Long id) {
 		return ResponseEntity.ok(BaseData.success(projectService.getProjectDetail(id)));
+	}
+
+	@GetMapping("/options")
+	@PreAuthorize(ProjectAuthorities.CAN_FILTER_BY_COST_CENTER)
+	public ResponseEntity<BaseListData<CatalogOptionDto>> filterOptions() {
+		return ResponseEntity.ok(BaseListData.of(projectService.listFilterOptions()));
 	}
 
 	@GetMapping("/selector")

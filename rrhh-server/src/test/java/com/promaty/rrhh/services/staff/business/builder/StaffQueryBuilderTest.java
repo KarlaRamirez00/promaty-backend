@@ -123,9 +123,9 @@ class StaffQueryBuilderTest {
 	}
 
 	@Test
-	void fromFilters_conCostCenterCode_filtraPorSubqueryDeContratoActivo() {
+	void fromFilters_conProjectId_filtraPorSubqueryDeContratoActivo() {
 		StaffFilterParams filtros = new StaffFilterParams();
-		filtros.setCostCenterCode("00824");
+		filtros.setProjectId(240L);
 
 		Subquery<Long> subquery = mock(Subquery.class);
 		Root<Contract> contractRoot = mock(Root.class);
@@ -134,9 +134,9 @@ class StaffQueryBuilderTest {
 		Path<Object> contractStatusPath = mock(Path.class);
 		Path<String> contractStatusCodePath = mock(Path.class);
 		Path<Object> contractProjectPath = mock(Path.class);
-		Path<String> contractCostCenterCodePath = mock(Path.class);
+		Path<Long> contractProjectIdPath = mock(Path.class);
 		Predicate statusEquals = mock(Predicate.class);
-		Predicate costCenterEquals = mock(Predicate.class);
+		Predicate projectEquals = mock(Predicate.class);
 		Path<Long> staffIdPath = mock(Path.class);
 		Predicate inPredicate = mock(Predicate.class);
 		Predicate combinado = mock(Predicate.class);
@@ -148,11 +148,11 @@ class StaffQueryBuilderTest {
 		when(contractRoot.get("status")).thenReturn(contractStatusPath);
 		when(contractStatusPath.<String>get("code")).thenReturn(contractStatusCodePath);
 		when(contractRoot.get("project")).thenReturn(contractProjectPath);
-		when(contractProjectPath.<String>get("costCenterCode")).thenReturn(contractCostCenterCodePath);
+		when(contractProjectPath.<Long>get("id")).thenReturn(contractProjectIdPath);
 		when(cb.equal(contractStatusCodePath, "ACTIVE")).thenReturn(statusEquals);
-		when(cb.equal(contractCostCenterCodePath, "00824")).thenReturn(costCenterEquals);
+		when(cb.equal(contractProjectIdPath, 240L)).thenReturn(projectEquals);
 		when(subquery.select(contractStaffIdPath)).thenReturn(subquery);
-		when(subquery.where(statusEquals, costCenterEquals)).thenReturn(subquery);
+		when(subquery.where(statusEquals, projectEquals)).thenReturn(subquery);
 		when(root.<Long>get("id")).thenReturn(staffIdPath);
 		when(staffIdPath.in(subquery)).thenReturn(inPredicate);
 		ArgumentCaptor<Predicate[]> captor = ArgumentCaptor.forClass(Predicate[].class);

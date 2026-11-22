@@ -12,6 +12,7 @@ import com.promaty.rrhh.dto.project.ProjectListDto;
 import com.promaty.rrhh.dto.project.ProjectSelectorOptionDto;
 import com.promaty.rrhh.dto.project.UpdateProjectDto;
 import com.promaty.rrhh.dto.project.UpdateProjectStatusDto;
+import com.promaty.rrhh.dto.shared.CatalogOptionDto;
 
 public interface ProjectService {
 
@@ -26,4 +27,6 @@ public interface ProjectService {
 	ProjectDetailDto getProjectDetail(Long id);
 
 	List<ProjectSelectorOptionDto> listSelectorOptionsForContract();
+
+	List<CatalogOptionDto> listFilterOptions();
 }

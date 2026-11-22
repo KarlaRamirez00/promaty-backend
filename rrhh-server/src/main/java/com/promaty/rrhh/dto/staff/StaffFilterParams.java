@@ -9,5 +9,5 @@ public class StaffFilterParams {
 
 	private String search;
 	private String statusCode;
-	private String costCenterCode;
+	private Long projectId;
 }

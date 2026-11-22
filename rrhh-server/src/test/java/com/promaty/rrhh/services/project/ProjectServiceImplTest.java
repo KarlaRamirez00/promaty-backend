@@ -3,6 +3,7 @@ package com.promaty.rrhh.services.project;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,6 +20,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.promaty.rrhh.dto.shared.CatalogOptionDto;
 import com.promaty.rrhh.dto.project.CreateProjectDto;
 import com.promaty.rrhh.dto.project.ProjectDetailDto;
 import com.promaty.rrhh.dto.project.ProjectSelectorOptionDto;
@@ -151,6 +153,27 @@ class ProjectServiceImplTest {
 		assertThat(opciones).hasSize(1);
 		assertThat(opciones.get(0).getId()).isEqualTo(1L);
 		assertThat(opciones.get(0).getName()).isEqualTo("00824 - Edificio Norte");
+	}
+
+	@Test
+	void listFilterOptions_mapeaIdNombreYCodigoDelCentroDeCosto() {
+		when(projectRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of(projectCompleto()));
+
+		List<CatalogOptionDto> opciones = service.listFilterOptions();
+
+		assertThat(opciones).hasSize(1);
+		assertThat(opciones.get(0).getId()).isEqualTo(1L);
+		assertThat(opciones.get(0).getName()).isEqualTo("Edificio Norte");
+		assertThat(opciones.get(0).getCode()).isEqualTo("00824");
+	}
+
+	@Test
+	void listFilterOptions_ordenaPorCodigoDeCentroDeCosto() {
+		when(projectRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of());
+
+		service.listFilterOptions();
+
+		verify(projectRepository).findAll(any(Specification.class), eq(Sort.by("costCenterCode")));
 	}
 
 	private Project projectConId(Long id) {

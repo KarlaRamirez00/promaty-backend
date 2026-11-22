@@ -18,6 +18,7 @@ import com.promaty.rrhh.dto.project.ProjectSelectorOptionDto;
 import com.promaty.rrhh.dto.project.UpdateProjectDto;
 import com.promaty.rrhh.dto.project.UpdateProjectStatusDto;
 import com.promaty.rrhh.dto.shared.Action;
+import com.promaty.rrhh.dto.shared.CatalogOptionDto;
 import com.promaty.rrhh.entity.Project;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ProjectRepository;
@@ -120,6 +121,15 @@ public class ProjectServiceImpl implements ProjectService {
 		return projectRepository.findAll(especificacion, Sort.by("costCenterCode"))
 			.stream()
 			.map(project -> new ProjectSelectorOptionDto(project.getId(), project.getDisplayName()))
+			.toList();
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<CatalogOptionDto> listFilterOptions() {
+		return projectRepository.findAll(ProjectAccessSpecification.<Project>onProjectId(), Sort.by("costCenterCode"))
+			.stream()
+			.map(ProjectMapper::toOptionDto)
 			.toList();
 	}
 

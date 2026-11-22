@@ -4,6 +4,7 @@ import com.promaty.rrhh.dto.platformstatus.PlatformStatusOptionDto;
 import com.promaty.rrhh.dto.project.ProjectDetailDto;
 import com.promaty.rrhh.dto.project.ProjectListDto;
 import com.promaty.rrhh.dto.project.RelationSummaryDto;
+import com.promaty.rrhh.dto.shared.CatalogOptionDto;
 import com.promaty.rrhh.entity.Project;
 
 public final class ProjectMapper {
@@ -27,6 +28,10 @@ public final class ProjectMapper {
 			project.getUpdatedBy(),
 			null // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
 		);
+	}
+
+	public static CatalogOptionDto toOptionDto(Project project) {
+		return new CatalogOptionDto(project.getId(), project.getName(), project.getCostCenterCode());
 	}
 
 	public static ProjectDetailDto toDetailDto(Project project) {

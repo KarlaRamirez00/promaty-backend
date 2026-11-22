@@ -13,6 +13,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -32,6 +34,7 @@ import com.promaty.rrhh.dto.project.ProjectDetailDto;
 import com.promaty.rrhh.dto.project.ProjectListDto;
 import com.promaty.rrhh.dto.project.ProjectSelectorOptionDto;
 import com.promaty.rrhh.dto.project.RelationSummaryDto;
+import com.promaty.rrhh.dto.shared.CatalogOptionDto;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.services.project.ProjectService;
 import com.promaty.rrhh.support.TestJwt;
@@ -87,6 +90,35 @@ class ProjectControllerTest {
 	@Test
 	void selectorForContract_sinPermiso_retorna403() throws Exception {
 		mockMvc.perform(get("/projects/selector").header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS))
+			.andExpect(status().isForbidden());
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {
+		"project.read", "staff.read", "user.read", "contract.read", "termination.read", "annex.read",
+		"contract.approve", "contract.validate", "termination.approve", "termination.validate",
+		"annex.approve", "annex.validate"
+	})
+	void filterOptions_conCualquierPermisoQueFiltraPorCentroDeCosto_retorna200ConIdNombreYCodigo(String authority)
+			throws Exception {
+		when(projectService.listFilterOptions()).thenReturn(List.of(new CatalogOptionDto(240L, "Climatización Grupo Crear", "00240")));
+
+		mockMvc.perform(get("/projects/options").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer(authority)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data[0].id").value(240))
+			.andExpect(jsonPath("$.data[0].name").value("Climatización Grupo Crear"))
+			.andExpect(jsonPath("$.data[0].code").value("00240"));
+	}
+
+	@Test
+	void filterOptions_conPermisoAjenoALosListados_retorna403() throws Exception {
+		mockMvc.perform(get("/projects/options").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("role.read")))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void filterOptions_sinPermisos_retorna403() throws Exception {
+		mockMvc.perform(get("/projects/options").header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS))
 			.andExpect(status().isForbidden());
 	}
 

@@ -41,13 +41,13 @@ public final class StaffQueryBuilder {
 				predicates.add(cb.equal(root.get("status").get("code"), filters.getStatusCode()));
 			}
 
-			if (filters.getCostCenterCode() != null && !filters.getCostCenterCode().isBlank()) {
+			if (filters.getProjectId() != null) {
 				Subquery<Long> contratoActivoDelCentroDeCosto = query.subquery(Long.class);
 				var contract = contratoActivoDelCentroDeCosto.from(Contract.class);
 				contratoActivoDelCentroDeCosto.select(contract.get("staff").get("id"))
 					.where(
 						cb.equal(contract.get("status").get("code"), CODIGO_ESTADO_CONTRATO_ACTIVO),
-						cb.equal(contract.get("project").get("costCenterCode"), filters.getCostCenterCode())
+						cb.equal(contract.get("project").get("id"), filters.getProjectId())
 					);
 				predicates.add(root.get("id").in(contratoActivoDelCentroDeCosto));
 			}
