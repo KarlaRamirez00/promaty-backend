@@ -37,3 +37,15 @@ jwt:
 
 file:
   upload-dir: ${FILE_UPLOAD_DIR:/uploads}
+
+rexplus:
+  # 'stub': adaptador en proceso sin red (respaldo). 'http': consume el servicio externo rex-stub.
+  mode: ${REXPLUS_MODE:stub}
+  stub:
+    force-error: ${REXPLUS_STUB_FORCE_ERROR:false}
+  http:
+    base-url: ${REXPLUS_BASE_URL:http://localhost:8090}
+    # Sin default para no commitear el secreto; obligatoria solo con mode=http.
+    api-key: ${REXPLUS_API_KEY:}
+    connect-timeout-ms: ${REXPLUS_CONNECT_TIMEOUT_MS:2000}
+    read-timeout-ms: ${REXPLUS_READ_TIMEOUT_MS:5000}

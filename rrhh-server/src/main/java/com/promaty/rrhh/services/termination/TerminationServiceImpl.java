@@ -177,7 +177,7 @@ public class TerminationServiceImpl implements TerminationService {
 		Termination termination = findById(id);
 		terminationAnnulmentValidation.validateAnnul(termination);
 
-		RexSyncResult syncResult = rexPlusClient.annulTermination(termination);
+		RexSyncResult syncResult = rexPlusClient.annulTermination(termination, dto.getReason());
 		if (!syncResult.success()) {
 			termination.setStatus(resolveStatus(SUBMODULE_TERMINATION, CODE_SYNC_ERROR));
 			terminationRepository.save(termination);

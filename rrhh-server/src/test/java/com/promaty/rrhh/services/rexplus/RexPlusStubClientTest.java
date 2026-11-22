@@ -55,7 +55,7 @@ class RexPlusStubClientTest {
 		Termination termination = new Termination();
 		termination.setRexTerminationNumber("REX-TERM-123");
 
-		RexSyncResult resultado = client.annulTermination(termination);
+		RexSyncResult resultado = client.annulTermination(termination, "Error de digitación");
 
 		assertThat(resultado.success()).isTrue();
 		assertThat(resultado.externalReferenceNumber()).isEqualTo("REX-TERM-123");
@@ -65,7 +65,7 @@ class RexPlusStubClientTest {
 	void annulTermination_forzandoError_retornaFallo() {
 		RexPlusStubClient client = new RexPlusStubClient(true);
 
-		RexSyncResult resultado = client.annulTermination(new Termination());
+		RexSyncResult resultado = client.annulTermination(new Termination(), "Error de digitación");
 
 		assertThat(resultado.success()).isFalse();
 		assertThat(resultado.errorMessage()).isNotBlank();

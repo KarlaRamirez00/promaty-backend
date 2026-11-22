@@ -1,6 +1,7 @@
 package com.promaty.rrhh.services.rexplus;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.promaty.rrhh.entity.Annex;
@@ -8,6 +9,7 @@ import com.promaty.rrhh.entity.Contract;
 import com.promaty.rrhh.entity.Termination;
 
 @Component
+@ConditionalOnProperty(name = "rexplus.mode", havingValue = "stub", matchIfMissing = true)
 public class RexPlusStubClient implements RexPlusClient {
 
 	private static final String PREFIJO_NUMERO_CONTRATO = "REX-";
@@ -38,7 +40,7 @@ public class RexPlusStubClient implements RexPlusClient {
 	}
 
 	@Override
-	public RexSyncResult annulTermination(Termination termination) {
+	public RexSyncResult annulTermination(Termination termination, String reason) {
 		if (forzarError) {
 			return RexSyncResult.failure(MENSAJE_ERROR_SIMULADO);
 		}

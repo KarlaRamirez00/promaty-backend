@@ -239,7 +239,7 @@ class TerminationServiceImplTest {
 		request.setStatus(statusRequestApproved);
 
 		when(terminationRepository.findById(1L)).thenReturn(Optional.of(termination));
-		when(rexPlusClient.annulTermination(termination)).thenReturn(RexSyncResult.success("REX-TERM-1"));
+		when(rexPlusClient.annulTermination(termination, "Error administrativo al aprobar.")).thenReturn(RexSyncResult.success("REX-TERM-1"));
 		when(platformStatusRepository.findBySubModuleAndCode("contract", "ACTIVE")).thenReturn(Optional.of(statusCon("contract", "ACTIVE")));
 		when(platformStatusRepository.findBySubModuleAndCode("staff", "ACTIVE")).thenReturn(Optional.of(statusCon("staff", "ACTIVE")));
 		when(platformStatusRepository.findBySubModuleAndCode("termination", "ANNULLED")).thenReturn(Optional.of(statusCon("termination", "ANNULLED")));
@@ -269,7 +269,7 @@ class TerminationServiceImplTest {
 		Contract contrato = termination.getContract();
 
 		when(terminationRepository.findById(1L)).thenReturn(Optional.of(termination));
-		when(rexPlusClient.annulTermination(termination)).thenReturn(RexSyncResult.success("REX-TERM-1"));
+		when(rexPlusClient.annulTermination(termination, "Error administrativo al aprobar.")).thenReturn(RexSyncResult.success("REX-TERM-1"));
 		when(platformStatusRepository.findBySubModuleAndCode("contract", "ACTIVE")).thenReturn(Optional.of(statusCon("contract", "ACTIVE")));
 		when(platformStatusRepository.findBySubModuleAndCode("staff", "ACTIVE")).thenReturn(Optional.of(statusCon("staff", "ACTIVE")));
 		when(platformStatusRepository.findBySubModuleAndCode("termination", "ANNULLED")).thenReturn(Optional.of(statusCon("termination", "ANNULLED")));
@@ -286,7 +286,7 @@ class TerminationServiceImplTest {
 	void annulTermination_fallaSincronizacionConRex_marcaSyncErrorYLanzaExcepcion() {
 		Termination termination = terminacionAprobada();
 		when(terminationRepository.findById(1L)).thenReturn(Optional.of(termination));
-		when(rexPlusClient.annulTermination(termination)).thenReturn(RexSyncResult.failure("Rex+ no respondió."));
+		when(rexPlusClient.annulTermination(termination, "Error administrativo al aprobar.")).thenReturn(RexSyncResult.failure("Rex+ no respondió."));
 		when(platformStatusRepository.findBySubModuleAndCode("termination", "SYNC_ERROR"))
 			.thenReturn(Optional.of(statusCon("termination", "SYNC_ERROR")));
 
