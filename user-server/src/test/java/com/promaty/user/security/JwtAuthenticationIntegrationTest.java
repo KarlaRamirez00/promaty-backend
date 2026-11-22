@@ -79,7 +79,7 @@ class JwtAuthenticationIntegrationTest {
 	@Test
 	void rutaInterna_conSecretoDeServicio_pasaLaAutenticacion() throws Exception {
 		when(authService.validate(any())).thenReturn(new AuthValidationResponseDto(
-			AuthOutcome.AUTHENTICATED, 1L, "Editor", "Ana Pérez", List.of("rrhh.read"), false, List.of(10L), false, null));
+			AuthOutcome.AUTHENTICATED, 1L, "Editor", "Ana Pérez", List.of("rrhh.read"), false, List.of(10L), false, null, 0L));
 
 		mockMvc.perform(post("/internal/auth/validate")
 				.header(InternalApiHeader.SECRET, TestInternalApi.SECRET)

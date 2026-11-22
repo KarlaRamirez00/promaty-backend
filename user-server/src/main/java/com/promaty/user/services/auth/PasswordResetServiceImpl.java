@@ -61,6 +61,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
 		user.setPassword(passwordEncoder.encode(dto.getPassword()));
 		user.setMustChangePassword(false);
+		user.invalidateSessions();
 		loginAttemptTracker.forget(user.getEmail());
 		pendingCodes.forEach(pending -> pending.markUsed(now));
 		userRepository.save(user);

@@ -22,13 +22,14 @@ public class AuthValidationResponseDto {
 	private List<Long> projectIds;
 	private Boolean systemRole;
 	private Long retryAfterSeconds;
+	private Long sessionVersion;
 
 	public static AuthValidationResponseDto rejected(AuthOutcome outcome) {
-		return new AuthValidationResponseDto(outcome, null, null, null, null, null, null, null, null);
+		return new AuthValidationResponseDto(outcome, null, null, null, null, null, null, null, null, null);
 	}
 
 	public static AuthValidationResponseDto locked(long retryAfterSeconds) {
 		return new AuthValidationResponseDto(
-			AuthOutcome.ACCOUNT_LOCKED, null, null, null, null, null, null, null, retryAfterSeconds);
+			AuthOutcome.ACCOUNT_LOCKED, null, null, null, null, null, null, null, retryAfterSeconds, null);
 	}
 }

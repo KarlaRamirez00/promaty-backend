@@ -2,6 +2,8 @@ package com.promaty.user.services.user;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -10,6 +12,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.promaty.contracts.auth.UserSessionStatusDto;
 import com.promaty.user.dto.shared.Action;
 import com.promaty.user.dto.user.CreateUserDto;
 import com.promaty.user.dto.user.UpdateUserDto;
@@ -98,8 +101,12 @@ public class UserServiceImpl implements UserService {
 	public void updateUser(Long id, UpdateUserDto dto) {
 		userValidation.validateUpdate(id, dto);
 		User existente = buscarPorId(id);
+		boolean accessChanged = hasAccessChanged(existente, dto);
 		Role role = roleRepository.getReferenceById(dto.getRoleId());
 		UpdateUserBuilder.apply(existente, dto, role);
+		if (accessChanged) {
+			existente.invalidateSessions();
+		}
 		userRepository.save(existente);
 		guardarAccesoAProyectos(existente, dto.getProjectIds());
 	}
@@ -129,6 +136,19 @@ public class UserServiceImpl implements UserService {
 		user.toggleActive();
 		User guardado = userRepository.save(user);
 		return conAcciones(UserMapper.toDetailDto(guardado, userProjectAccessRepository.findProjectIdsByUserId(id)));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public UserSessionStatusDto getSessionStatus(Long id) {
+		return UserMapper.toSessionStatusDto(buscarPorId(id));
+	}
+
+	private boolean hasAccessChanged(User user, UpdateUserDto dto) {
+		boolean roleChanged = !Objects.equals(user.getRole().getId(), dto.getRoleId());
+		Set<Long> currentProjectIds = Set.copyOf(userProjectAccessRepository.findProjectIdsByUserId(user.getId()));
+		Set<Long> requestedProjectIds = dto.getProjectIds() == null ? Set.of() : Set.copyOf(dto.getProjectIds());
+		return roleChanged || !currentProjectIds.equals(requestedProjectIds);
 	}
 
 	private void guardarAccesoAProyectos(User user, List<Long> projectIds) {

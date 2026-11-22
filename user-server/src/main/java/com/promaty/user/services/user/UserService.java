@@ -3,6 +3,7 @@ package com.promaty.user.services.user;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import com.promaty.contracts.auth.UserSessionStatusDto;
 import com.promaty.user.dto.user.CreateUserDto;
 import com.promaty.user.dto.user.UpdateUserDto;
 import com.promaty.user.dto.user.UserDetailDto;
@@ -20,4 +21,6 @@ public interface UserService {
 	UserDetailDto getUserDetail(Long id);
 
 	UserDetailDto toggleUserActive(Long id);
+
+	UserSessionStatusDto getSessionStatus(Long id);
 }

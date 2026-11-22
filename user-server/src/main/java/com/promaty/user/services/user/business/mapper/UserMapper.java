@@ -2,6 +2,7 @@ package com.promaty.user.services.user.business.mapper;
 
 import java.util.List;
 
+import com.promaty.contracts.auth.UserSessionStatusDto;
 import com.promaty.user.dto.user.UserDetailDto;
 import com.promaty.user.dto.user.UserListDto;
 import com.promaty.user.entity.User;
@@ -44,5 +45,9 @@ public final class UserMapper {
 			user.getUpdatedBy(),
 			null // actions depende de los permisos del usuario que pide, no de la entidad: lo completa el service
 		);
+	}
+
+	public static UserSessionStatusDto toSessionStatusDto(User user) {
+		return new UserSessionStatusDto(user.getActive(), user.getSessionVersion());
 	}
 }

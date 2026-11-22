@@ -78,6 +78,7 @@ public class AuthServiceImpl implements AuthService {
 			.claim("allowedAllProjects", validacion.getAllowedAllProjects())
 			.claim("projectIds", validacion.getProjectIds())
 			.claim("isSystemRole", validacion.getSystemRole())
+			.claim("sessionVersion", validacion.getSessionVersion())
 			// jjwt solo acepta java.util.Date en su API, no Instant.
 			.issuedAt(Date.from(ahora)) // NOSONAR
 			.expiration(Date.from(expiracion)) // NOSONAR

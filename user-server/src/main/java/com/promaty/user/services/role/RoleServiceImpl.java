@@ -94,8 +94,17 @@ public class RoleServiceImpl implements RoleService {
 		roleValidation.validateUpdate(id, dto);
 		Set<Permission> permisos = relationsResolver.resolvePermissions(dto.getPermissionIds());
 		Set<SubModule> subModulos = relationsResolver.deriveSubModules(permisos);
+		boolean tokenClaimsChanged = !existente.getName().equals(dto.getName())
+			|| !permissionIds(existente.getPermissions()).equals(permissionIds(permisos));
 		UpdateRoleBuilder.apply(existente, dto, permisos, subModulos);
 		roleRepository.save(existente);
+		if (tokenClaimsChanged) {
+			userRepository.invalidateSessionsByRoleId(id);
+		}
+	}
+
+	private Set<Long> permissionIds(Set<Permission> permissions) {
+		return permissions.stream().map(Permission::getId).collect(Collectors.toSet());
 	}
 
 	@Override
@@ -153,7 +162,10 @@ public class RoleServiceImpl implements RoleService {
 		boolean seEstaDesactivando = role.getActive();
 		if (seEstaDesactivando && !usuariosAsignados.isEmpty()) {
 			Role nuevoRol = resolverRolDeReemplazo(dto.getNewRoleId(), usuariosAsignados.size());
-			usuariosAsignados.forEach(usuario -> usuario.setRole(nuevoRol));
+			usuariosAsignados.forEach(usuario -> {
+				usuario.setRole(nuevoRol);
+				usuario.invalidateSessions();
+			});
 			userRepository.saveAll(usuariosAsignados);
 			reasignados = usuariosAsignados.size();
 		}

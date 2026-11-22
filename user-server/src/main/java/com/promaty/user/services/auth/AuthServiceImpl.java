@@ -106,6 +106,6 @@ public class AuthServiceImpl implements AuthService {
 		String fullName = user.getFirstName() + " " + user.getLastName();
 		boolean systemRole = Boolean.TRUE.equals(user.getRole().getSystem());
 		return new AuthValidationResponseDto(AuthOutcome.AUTHENTICATED, user.getId(), user.getRole().getName(), fullName, permissions,
-			allowedAllProjects, projectIds, systemRole, null);
+			allowedAllProjects, projectIds, systemRole, null, user.getSessionVersion());
 	}
 }

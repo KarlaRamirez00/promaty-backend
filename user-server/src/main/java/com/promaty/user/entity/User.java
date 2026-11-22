@@ -41,11 +41,19 @@ public class User extends BaseDatedEntity {
 	@Column(nullable = false, columnDefinition = "boolean not null default false")
 	private Boolean mustChangePassword = false;
 
+	@Column(nullable = false, columnDefinition = "bigint not null default 0")
+	private Long sessionVersion = 0L;
+
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "role_id", nullable = false)
 	private Role role;
 
 	public void toggleActive() {
 		this.active = !this.active;
+		invalidateSessions();
+	}
+
+	public void invalidateSessions() {
+		this.sessionVersion++;
 	}
 }
