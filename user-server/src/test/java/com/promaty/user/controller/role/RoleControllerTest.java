@@ -13,6 +13,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -61,6 +63,21 @@ class RoleControllerTest {
 
 	@MockitoBean
 	private RoleService roleService;
+
+	@ParameterizedTest
+	@ValueSource(strings = {"user.read", "user.create", "user.update"})
+	void selector_withUserPermissionWithoutRoleRead_returns200(String authority) throws Exception {
+		when(roleService.listSelectorOptionsForUserAssignment()).thenReturn(List.of());
+
+		mockMvc.perform(get("/roles/selector").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer(authority)))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void selector_withoutUserPermission_returns403() throws Exception {
+		mockMvc.perform(get("/roles/selector").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("role.read")))
+			.andExpect(status().isForbidden());
+	}
 
 	@Test
 	void create_conDatosValidos_retorna201ConId() throws Exception {

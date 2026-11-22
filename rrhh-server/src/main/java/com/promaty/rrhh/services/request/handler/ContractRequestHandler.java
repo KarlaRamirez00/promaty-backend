@@ -203,6 +203,7 @@ public class ContractRequestHandler implements RequestHandler {
 		}
 		RexSyncResult sincronizacion = rexPlusClient.syncContract(contract);
 		if (sincronizacion.success()) {
+			contract.setStaffStatusBeforeActivation(contract.getStaff().getStatus());
 			contract.setRexContractNumber(sincronizacion.externalReferenceNumber());
 			contract.setStatus(resolveEstado(CODE_ACTIVE));
 			contractRepository.save(contract);

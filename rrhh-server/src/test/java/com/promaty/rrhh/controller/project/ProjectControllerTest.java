@@ -95,7 +95,8 @@ class ProjectControllerTest {
 
 	@ParameterizedTest
 	@ValueSource(strings = {
-		"project.read", "staff.read", "user.read", "contract.read", "termination.read", "annex.read",
+		"project.read", "staff.read", "user.read", "user.create", "user.update",
+		"contract.read", "termination.read", "annex.read",
 		"contract.approve", "contract.validate", "termination.approve", "termination.validate",
 		"annex.approve", "annex.validate"
 	})

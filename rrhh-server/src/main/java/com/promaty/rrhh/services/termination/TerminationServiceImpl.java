@@ -136,7 +136,7 @@ public class TerminationServiceImpl implements TerminationService {
 		TerminationDetailDto dto = TerminationMapper.toDetailDto(termination);
 		Request request = requestRepository.findByEntityTypeAndEntityId(RequestEntityType.TERMINATION, id).orElse(null);
 		dto.setRequestId(request == null ? null : request.getId());
-		dto.setActions(resolveActions(request));
+		dto.setActions(resolveActions(request, termination.getStatus().getCode()));
 		AttachmentOwner owner = attachmentOwner(id);
 		dto.setAttachments(attachmentService.list(owner));
 		dto.setAttachmentRequirements(attachmentService.requirements(
@@ -242,11 +242,11 @@ public class TerminationServiceImpl implements TerminationService {
 
 	private TerminationListDto withRequestAndActions(TerminationListDto dto, Request request) {
 		dto.setRequestId(request == null ? null : request.getId());
-		dto.setActions(resolveActions(request));
+		dto.setActions(resolveActions(request, dto.getStatusCode()));
 		return dto;
 	}
 
-	private List<Action> resolveActions(Request request) {
+	private List<Action> resolveActions(Request request, String terminationStatusCode) {
 		if (request == null) {
 			return List.of();
 		}
@@ -256,7 +256,7 @@ public class TerminationServiceImpl implements TerminationService {
 			actions = new ArrayList<>(actions);
 			actions.add(Action.UPDATE);
 		}
-		if (CODE_APPROVED.equals(statusCode) && CurrentUserAuthorities.get().contains(PERMISSION_ANNUL)) {
+		if (CODE_APPROVED.equals(terminationStatusCode) && CurrentUserAuthorities.get().contains(PERMISSION_ANNUL)) {
 			actions = new ArrayList<>(actions);
 			actions.add(Action.ANNUL);
 		}

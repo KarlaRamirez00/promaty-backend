@@ -21,7 +21,7 @@ public class JobTitleController {
 	}
 
 	@GetMapping
-	@PreAuthorize("hasAuthority('contract.read')")
+	@PreAuthorize("hasAnyAuthority('contract.read', 'annex.read', 'annex.create', 'annex.update')")
 	public ResponseEntity<BaseListData<CatalogOptionDto>> list() {
 		return ResponseEntity.ok(BaseListData.of(jobTitleService.listOptions()));
 	}

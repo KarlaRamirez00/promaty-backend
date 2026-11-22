@@ -109,6 +109,29 @@ class RexPlusHttpClientTest {
 	}
 
 	@Test
+	void annulContract_conReferencia_llamaAlEndpointDeAnulacionConElMotivo() {
+		status = 200;
+		var contract = RexPlusTestData.syncedContract();
+		responseBody = "{\"referenceNumber\":\"" + contract.getRexContractNumber() + "\"}";
+
+		RexSyncResult result = client().annulContract(contract, "No se presentó a trabajar");
+
+		assertThat(result.success()).isTrue();
+		assertThat(result.externalReferenceNumber()).isEqualTo(contract.getRexContractNumber());
+		assertThat(lastPath).isEqualTo("/api/v1/contracts/" + contract.getRexContractNumber() + "/annulment");
+		assertThat(lastBody).contains("\"reason\":\"No se presentó a trabajar\"");
+	}
+
+	@Test
+	void annulContract_sinReferenciaEnRex_fallaSinLlamarAlServicio() {
+		RexSyncResult result = client().annulContract(RexPlusTestData.contract(), "motivo");
+
+		assertThat(result.success()).isFalse();
+		assertThat(result.errorMessage()).isNotBlank();
+		assertThat(lastPath).isNull();
+	}
+
+	@Test
 	void syncAnnex_respuestaExitosa_retornaLaReferenciaDelAnexo() {
 		responseBody = "{\"referenceNumber\":\"REX-ANX-000001\"}";
 

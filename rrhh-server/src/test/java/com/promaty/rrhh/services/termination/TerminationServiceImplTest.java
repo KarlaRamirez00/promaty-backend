@@ -172,6 +172,32 @@ class TerminationServiceImplTest {
 	}
 
 	@Test
+	void getTerminationDetail_finiquitoAprobadoYPermisoDeAnular_incluyeAccionAnnul() {
+		autenticarCon("termination.annul");
+		when(terminationRepository.findById(1L)).thenReturn(Optional.of(terminacionAprobada()));
+		when(requestRepository.findByEntityTypeAndEntityId(RequestEntityType.TERMINATION, 1L))
+			.thenReturn(Optional.of(solicitudConEstado("APPROVED")));
+
+		TerminationDetailDto detalle = service.getTerminationDetail(1L);
+
+		assertThat(detalle.getActions()).contains(Action.ANNUL);
+	}
+
+	@Test
+	void getTerminationDetail_finiquitoEnSyncErrorConSolicitudAprobada_noIncluyeAccionAnnul() {
+		autenticarCon("termination.annul");
+		Termination termination = terminacionCompleta();
+		termination.setStatus(statusCon("termination", "SYNC_ERROR"));
+		when(terminationRepository.findById(1L)).thenReturn(Optional.of(termination));
+		when(requestRepository.findByEntityTypeAndEntityId(RequestEntityType.TERMINATION, 1L))
+			.thenReturn(Optional.of(solicitudConEstado("APPROVED")));
+
+		TerminationDetailDto detalle = service.getTerminationDetail(1L);
+
+		assertThat(detalle.getActions()).doesNotContain(Action.ANNUL);
+	}
+
+	@Test
 	void updateTermination_registroNoExiste_lanzaResourceNotFoundException() {
 		when(terminationRepository.findById(1L)).thenReturn(Optional.empty());
 
@@ -299,6 +325,12 @@ class TerminationServiceImplTest {
 		assertThat(termination.getStatus().getCode()).isEqualTo("SYNC_ERROR");
 		verify(contractRepository, org.mockito.Mockito.never()).save(any());
 		verify(staffRepository, org.mockito.Mockito.never()).save(any());
+	}
+
+	private Request solicitudConEstado(String code) {
+		Request request = new Request();
+		request.setStatus(statusCon("request", code));
+		return request;
 	}
 
 	private PlatformStatus statusCon(String subModule, String code) {

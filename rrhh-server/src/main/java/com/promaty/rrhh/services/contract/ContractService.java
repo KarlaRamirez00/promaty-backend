@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.promaty.rrhh.dto.contract.AnnulContractDto;
 import com.promaty.rrhh.dto.contract.ContractCountersDto;
 import com.promaty.rrhh.dto.contract.ContractDetailDto;
 import com.promaty.rrhh.dto.contract.ContractFilterParams;
@@ -21,5 +22,7 @@ public interface ContractService {
 	ContractCountersDto getCounters();
 
 	void updateContract(Long contractId, UpdateContractDto dto, List<MultipartFile> files);
+
+	void annulContract(Long contractId, AnnulContractDto dto);
 
 }

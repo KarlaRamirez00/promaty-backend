@@ -14,6 +14,8 @@ public interface TerminationRepository extends JpaRepository<Termination, Long>,
 
 	List<Termination> findByContract_IdAndStatus_CodeIn(Long contractId, List<String> statusCodes);
 
+	boolean existsByContract_IdAndStatus_CodeIn(Long contractId, List<String> statusCodes);
+
 	@Query("""
 		select t.id as entityId,
 			t.staff.identificationType as staffIdentificationType,

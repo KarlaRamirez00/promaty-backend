@@ -8,6 +8,8 @@ public interface RexPlusClient {
 
 	RexSyncResult syncContract(Contract contract);
 
+	RexSyncResult annulContract(Contract contract, String reason);
+
 	RexSyncResult syncTermination(Termination termination);
 
 	RexSyncResult annulTermination(Termination termination, String reason);

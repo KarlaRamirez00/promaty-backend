@@ -20,6 +20,7 @@ import com.promaty.rrhh.dto.request.RequestCountersDto;
 import com.promaty.rrhh.dto.request.RequestDetailDto;
 import com.promaty.rrhh.dto.request.RequestFilterParams;
 import com.promaty.rrhh.dto.request.RequestListDto;
+import com.promaty.rrhh.dto.request.RequesterOptionDto;
 import com.promaty.rrhh.entity.Approval;
 import com.promaty.rrhh.entity.ApprovalLevel;
 import com.promaty.rrhh.entity.PlatformStatus;
@@ -47,6 +48,7 @@ import com.promaty.rrhh.services.request.handler.RequestHandler;
 import com.promaty.rrhh.services.request.handler.RequestHandlerRegistry;
 import com.promaty.rrhh.services.shared.CurrentUserAuthorities;
 import com.promaty.rrhh.services.shared.CurrentUserId;
+import com.promaty.rrhh.services.shared.CurrentUserProjectAccess;
 import com.promaty.rrhh.services.shared.ProjectAccessSpecification;
 import com.promaty.rrhh.services.shared.RequestApprovalActionsResolver;
 import com.promaty.rrhh.services.shared.attachment.AttachmentOwner;
@@ -201,6 +203,23 @@ public class RequestServiceImpl implements RequestService {
 			contarPorStatus(CODE_PENDING_APPROVAL, entityType),
 			contarPorStatus(CODE_PENDING_VALIDATION, entityType)
 		);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<RequesterOptionDto> listRequesterOptions() {
+		List<RequestEntityType> readableTypes = handlerRegistry.entityTypesReadableBy(CurrentUserAuthorities.get());
+		if (readableTypes.isEmpty()) {
+			return List.of();
+		}
+		if (CurrentUserProjectAccess.allowedAllProjects()) {
+			return RequestMapper.toRequesterOptions(requestRepository.findRequesters(readableTypes));
+		}
+		List<Long> projectIds = CurrentUserProjectAccess.projectIds();
+		if (projectIds.isEmpty()) {
+			return List.of();
+		}
+		return RequestMapper.toRequesterOptions(requestRepository.findRequestersInProjects(readableTypes, projectIds));
 	}
 
 	private long contarPorStatus(String statusCode, RequestEntityType entityType) {

@@ -55,6 +55,9 @@ import com.promaty.rrhh.repository.RequestRejectionReasonRepository;
 import com.promaty.rrhh.repository.RequestRepository;
 import com.promaty.rrhh.repository.TerminationRepository;
 import com.promaty.rrhh.repository.projection.RequestStaffDataProjection;
+import com.promaty.rrhh.repository.projection.RequesterOptionProjection;
+import com.promaty.rrhh.dto.request.RequesterOptionDto;
+import com.promaty.security.JwtPrincipal;
 import com.promaty.rrhh.services.request.business.builder.CreateRequestBuilder;
 import com.promaty.rrhh.services.request.business.builder.RequestRelationsResolver;
 import com.promaty.rrhh.services.request.business.mapper.ContractPendingDataResolver;
@@ -410,6 +413,72 @@ class RequestServiceImplTest {
 		requestService.listRequests(new RequestFilterParams(), PageRequest.of(0, 20));
 
 		verify(handlerRegistry).entityTypesReadableBy(any());
+	}
+
+	@Test
+	void listRequesterOptions_withAllProjects_queriesWithoutProjectScopeAndSortsByName() {
+		authenticateWithProjectScope(true, List.of());
+		when(handlerRegistry.entityTypesReadableBy(any())).thenReturn(List.of(RequestEntityType.CONTRACT));
+		when(requestRepository.findRequesters(List.of(RequestEntityType.CONTRACT)))
+			.thenReturn(List.of(requester(2L, "Zoe Pérez"), requester(1L, "Ana Soto")));
+
+		List<RequesterOptionDto> options = requestService.listRequesterOptions();
+
+		assertThat(options).extracting(RequesterOptionDto::getName).containsExactly("Ana Soto", "Zoe Pérez");
+		verify(requestRepository, never()).findRequestersInProjects(any(), any());
+	}
+
+	@Test
+	void listRequesterOptions_withProjectScope_queriesOnlyAssignedProjects() {
+		authenticateWithProjectScope(false, List.of(5L));
+		when(handlerRegistry.entityTypesReadableBy(any())).thenReturn(List.of(RequestEntityType.CONTRACT));
+		when(requestRepository.findRequestersInProjects(List.of(RequestEntityType.CONTRACT), List.of(5L)))
+			.thenReturn(List.of(requester(1L, "Ana Soto")));
+
+		assertThat(requestService.listRequesterOptions()).extracting(RequesterOptionDto::getId).containsExactly(1L);
+		verify(requestRepository, never()).findRequesters(any());
+	}
+
+	@Test
+	void listRequesterOptions_withoutAssignedProjects_returnsEmptyWithoutQuerying() {
+		authenticateWithProjectScope(false, List.of());
+		when(handlerRegistry.entityTypesReadableBy(any())).thenReturn(List.of(RequestEntityType.CONTRACT));
+
+		assertThat(requestService.listRequesterOptions()).isEmpty();
+		verify(requestRepository, never()).findRequestersInProjects(any(), any());
+	}
+
+	@Test
+	void listRequesterOptions_withoutReadableTypes_returnsEmptyWithoutQuerying() {
+		authenticateWithProjectScope(true, List.of());
+		when(handlerRegistry.entityTypesReadableBy(any())).thenReturn(List.of());
+
+		assertThat(requestService.listRequesterOptions()).isEmpty();
+		verify(requestRepository, never()).findRequesters(any());
+	}
+
+	@Test
+	void listRequesterOptions_sameUserWithTwoNames_returnsOneOption() {
+		authenticateWithProjectScope(true, List.of());
+		when(handlerRegistry.entityTypesReadableBy(any())).thenReturn(List.of(RequestEntityType.CONTRACT));
+		when(requestRepository.findRequesters(any()))
+			.thenReturn(List.of(requester(1L, "Ana Soto"), requester(1L, "Ana Soto Rojas")));
+
+		assertThat(requestService.listRequesterOptions()).hasSize(1);
+	}
+
+	private void authenticateWithProjectScope(boolean allowedAllProjects, List<Long> projectIds) {
+		JwtPrincipal principal = new JwtPrincipal(
+			"9", "Rol", "Usuario", List.of("contract.read"), allowedAllProjects, projectIds, false, 1L);
+		SecurityContextHolder.getContext().setAuthentication(
+			new UsernamePasswordAuthenticationToken(principal, null, List.of(new SimpleGrantedAuthority("contract.read"))));
+	}
+
+	private RequesterOptionProjection requester(Long id, String name) {
+		RequesterOptionProjection projection = mock(RequesterOptionProjection.class);
+		when(projection.getId()).thenReturn(id);
+		when(projection.getName()).thenReturn(name);
+		return projection;
 	}
 
 	private void autenticarCon(String autoridad) {

@@ -1,17 +1,31 @@
 package com.promaty.rrhh.services.request.business.mapper;
 
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.promaty.rrhh.dto.platformstatus.PlatformStatusOptionDto;
 import com.promaty.rrhh.dto.request.ApprovalSummaryDto;
 import com.promaty.rrhh.dto.request.RequestDetailDto;
 import com.promaty.rrhh.dto.request.RequestListDto;
+import com.promaty.rrhh.dto.request.RequesterOptionDto;
 import com.promaty.rrhh.entity.Approval;
 import com.promaty.rrhh.entity.Request;
+import com.promaty.rrhh.repository.projection.RequesterOptionProjection;
 
 public final class RequestMapper {
 
 	private RequestMapper() {
+	}
+
+	public static List<RequesterOptionDto> toRequesterOptions(List<RequesterOptionProjection> rows) {
+		Map<Long, String> nameById = new LinkedHashMap<>();
+		rows.forEach(row -> nameById.putIfAbsent(row.getId(), row.getName()));
+		return nameById.entrySet().stream()
+			.map(entry -> new RequesterOptionDto(entry.getKey(), entry.getValue()))
+			.sorted(Comparator.comparing(RequesterOptionDto::getName, String.CASE_INSENSITIVE_ORDER))
+			.toList();
 	}
 
 	public static RequestListDto toListDto(Request request) {

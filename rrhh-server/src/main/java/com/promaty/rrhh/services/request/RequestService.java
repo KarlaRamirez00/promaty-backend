@@ -13,6 +13,7 @@ import com.promaty.rrhh.dto.request.RequestCountersDto;
 import com.promaty.rrhh.dto.request.RequestDetailDto;
 import com.promaty.rrhh.dto.request.RequestFilterParams;
 import com.promaty.rrhh.dto.request.RequestListDto;
+import com.promaty.rrhh.dto.request.RequesterOptionDto;
 import com.promaty.rrhh.entity.RequestEntityType;
 
 public interface RequestService {
@@ -26,4 +27,6 @@ public interface RequestService {
 	RequestDetailDto getRequestDetail(Long id);
 
 	RequestCountersDto getCounters(RequestEntityType entityType);
+
+	List<RequesterOptionDto> listRequesterOptions();
 }

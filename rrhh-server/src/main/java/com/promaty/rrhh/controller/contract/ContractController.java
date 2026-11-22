@@ -10,13 +10,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.promaty.rrhh.dto.contract.AnnulContractDto;
 import com.promaty.rrhh.dto.contract.ContractDetailDto;
 import com.promaty.rrhh.dto.contract.ContractFilterParams;
 import com.promaty.rrhh.dto.contract.ContractListDto;
@@ -60,6 +63,16 @@ public class ContractController {
 		@RequestPart(value = "files", required = false) List<MultipartFile> files
 	) {
 		contractService.updateContract(id, dto, files);
+		return ResponseEntity.ok(BaseData.success(contractService.getContractDetail(id)));
+	}
+
+	@PatchMapping("/{id}/annul")
+	@PreAuthorize("hasAuthority('contract.annul')")
+	public ResponseEntity<BaseData<ContractDetailDto>> annul(
+		@PathVariable Long id,
+		@Valid @RequestBody AnnulContractDto dto
+	) {
+		contractService.annulContract(id, dto);
 		return ResponseEntity.ok(BaseData.success(contractService.getContractDetail(id)));
 	}
 }

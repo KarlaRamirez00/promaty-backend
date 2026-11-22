@@ -64,6 +64,26 @@ class RequestRejectionReasonControllerTest {
 	}
 
 	@Test
+	void selector_withTerminationApprovePermission_returns200() throws Exception {
+		when(requestRejectionReasonService.listOptionsBySubModule(any())).thenReturn(List.of());
+
+		mockMvc.perform(get("/requestRejectionReasons/selector")
+				.param("subModule", "terminations")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("termination.approve")))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void selector_withAnnexValidatePermission_returns200() throws Exception {
+		when(requestRejectionReasonService.listOptionsBySubModule(any())).thenReturn(List.of());
+
+		mockMvc.perform(get("/requestRejectionReasons/selector")
+				.param("subModule", "annexes")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("annex.validate")))
+			.andExpect(status().isOk());
+	}
+
+	@Test
 	void selector_sinNingunPermisoRelevante_retorna403() throws Exception {
 		mockMvc.perform(get("/requestRejectionReasons/selector")
 				.param("subModule", "contracts")

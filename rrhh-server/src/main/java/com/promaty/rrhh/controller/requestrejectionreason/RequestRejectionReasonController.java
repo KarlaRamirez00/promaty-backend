@@ -57,7 +57,8 @@ public class RequestRejectionReasonController {
 	}
 
 	@GetMapping("/selector")
-	@PreAuthorize("hasAnyAuthority('requestRejectionReason.read', 'contract.approve', 'contract.validate')")
+	@PreAuthorize("hasAnyAuthority('requestRejectionReason.read', 'contract.approve', 'contract.validate', "
+		+ "'termination.approve', 'termination.validate', 'annex.approve', 'annex.validate')")
 	public ResponseEntity<BaseListData<RequestRejectionReasonOptionDto>> selector(@RequestParam String subModule) {
 		return ResponseEntity.ok(BaseListData.of(requestRejectionReasonService.listOptionsBySubModule(subModule)));
 	}

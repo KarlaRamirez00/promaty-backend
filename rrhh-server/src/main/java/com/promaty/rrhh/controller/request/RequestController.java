@@ -27,6 +27,7 @@ import com.promaty.rrhh.dto.request.RequestCountersDto;
 import com.promaty.rrhh.dto.request.RequestDetailDto;
 import com.promaty.rrhh.dto.request.RequestFilterParams;
 import com.promaty.rrhh.dto.request.RequestListDto;
+import com.promaty.rrhh.dto.request.RequesterOptionDto;
 import com.promaty.rrhh.dto.response.BaseData;
 import com.promaty.rrhh.dto.response.BaseListData;
 import com.promaty.rrhh.services.request.RequestService;
@@ -68,6 +69,12 @@ public class RequestController {
 	) {
 		RequestCountersDto counters = requestService.getCounters(filters.getEntityType());
 		return ResponseEntity.ok(BaseListData.of(requestService.listRequests(filters, pageable), counters));
+	}
+
+	@GetMapping("/requesters")
+	@PreAuthorize("hasAnyAuthority('contract.read', 'termination.read', 'annex.read')")
+	public ResponseEntity<BaseListData<RequesterOptionDto>> requesters() {
+		return ResponseEntity.ok(BaseListData.of(requestService.listRequesterOptions()));
 	}
 
 	@GetMapping("/{id}")

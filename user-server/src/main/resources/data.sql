@@ -69,6 +69,7 @@ FROM (VALUES
   ('contract.update', 'Editar contratos', 'contracts'),
   ('contract.approve', 'Aprobar solicitud de contrato (gerente de obra)', 'contracts'),
   ('contract.validate', 'Validar solicitud de contrato (RRHH)', 'contracts'),
+  ('contract.annul', 'Anular contrato aprobado', 'contracts'),
   ('requestRejectionReason.read', 'Ver motivos de rechazo', 'requestRejectionReasons'),
   ('requestRejectionReason.create', 'Crear motivos de rechazo', 'requestRejectionReasons'),
   ('requestRejectionReason.update', 'Editar motivos de rechazo', 'requestRejectionReasons'),

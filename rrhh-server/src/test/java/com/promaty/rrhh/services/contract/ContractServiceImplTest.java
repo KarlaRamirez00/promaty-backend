@@ -32,13 +32,18 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import com.promaty.rrhh.dto.contract.AnnulContractDto;
 import com.promaty.rrhh.dto.contract.ContractCountersDto;
 import com.promaty.rrhh.dto.contract.ContractDetailDto;
 import com.promaty.rrhh.dto.contract.ContractFilterParams;
 import com.promaty.rrhh.dto.contract.UpdateContractDto;
 import com.promaty.rrhh.dto.request.ContractPendingDataDto;
+import com.promaty.rrhh.services.contract.business.builder.AnnulContractBuilder;
 import com.promaty.rrhh.services.contract.business.builder.UpdateContractBuilder;
+import com.promaty.rrhh.services.contract.business.validation.ContractAnnulmentValidation;
 import com.promaty.rrhh.services.contract.business.validation.ContractValidation;
+import com.promaty.rrhh.services.rexplus.RexPlusClient;
+import com.promaty.rrhh.services.rexplus.RexSyncResult;
 import com.promaty.rrhh.dto.shared.Action;
 import com.promaty.rrhh.entity.AttachmentEntityType;
 import com.promaty.rrhh.entity.Request;
@@ -81,6 +86,12 @@ class ContractServiceImplTest {
 	private ContractValidation contractValidation;
 	@Mock
 	private UpdateContractBuilder updateContractBuilder;
+	@Mock
+	private ContractAnnulmentValidation contractAnnulmentValidation;
+	@Mock
+	private AnnulContractBuilder annulContractBuilder;
+	@Mock
+	private RexPlusClient rexPlusClient;
 	@Spy
 	private RequestApprovalActionsResolver actionsResolver = new RequestApprovalActionsResolver();
 
@@ -107,6 +118,91 @@ class ContractServiceImplTest {
 
 		assertThat(detalle.getActions()).containsExactly(Action.UPDATE);
 		verify(attachmentService).requirements(new AttachmentOwner(AttachmentEntityType.CONTRACT, 1L), ContractAttachmentRules.rules());
+	}
+
+	@Test
+	void getContractDetail_contratoVigenteConPermisoDeAnular_incluyeAccionAnnul() {
+		autenticarCon("contract.annul");
+		Contract contrato = contratoCompleto();
+		contrato.getStatus().setCode("ACTIVE");
+		when(contractRepository.findById(1L)).thenReturn(Optional.of(contrato));
+
+		ContractDetailDto detalle = service.getContractDetail(1L);
+
+		assertThat(detalle.getActions()).containsExactly(Action.ANNUL);
+	}
+
+	@Test
+	void getContractDetail_contratoNoVigenteConPermisoDeAnular_noIncluyeAccionAnnul() {
+		autenticarCon("contract.annul");
+		when(contractRepository.findById(1L)).thenReturn(Optional.of(contratoCompleto()));
+
+		ContractDetailDto detalle = service.getContractDetail(1L);
+
+		assertThat(detalle.getActions()).doesNotContain(Action.ANNUL);
+	}
+
+	@Test
+	void getContractDetail_contratoVigenteSinPermisoDeAnular_noIncluyeAccionAnnul() {
+		autenticarCon("contract.read");
+		Contract contrato = contratoCompleto();
+		contrato.getStatus().setCode("ACTIVE");
+		when(contractRepository.findById(1L)).thenReturn(Optional.of(contrato));
+
+		ContractDetailDto detalle = service.getContractDetail(1L);
+
+		assertThat(detalle.getActions()).doesNotContain(Action.ANNUL);
+	}
+
+	@Test
+	void annulContract_conSincronizacionExitosa_validaSincronizaYAplicaLaAnulacion() {
+		Contract contrato = contratoCompleto();
+		AnnulContractDto dto = anulacion("No se presentó a trabajar");
+		when(contractRepository.findById(1L)).thenReturn(Optional.of(contrato));
+		when(rexPlusClient.annulContract(contrato, dto.getReason())).thenReturn(RexSyncResult.success("REX-1"));
+
+		service.annulContract(1L, dto);
+
+		InOrder orden = inOrder(contractAnnulmentValidation, rexPlusClient, annulContractBuilder);
+		orden.verify(contractAnnulmentValidation).validateAnnul(contrato);
+		orden.verify(rexPlusClient).annulContract(contrato, dto.getReason());
+		orden.verify(annulContractBuilder).apply(contrato, dto.getReason());
+	}
+
+	@Test
+	void annulContract_fallaLaSincronizacionConRex_lanzaErrorConElMensajeDeRexSinAplicarNada() {
+		Contract contrato = contratoCompleto();
+		AnnulContractDto dto = anulacion("motivo");
+		when(contractRepository.findById(1L)).thenReturn(Optional.of(contrato));
+		when(rexPlusClient.annulContract(contrato, "motivo")).thenReturn(RexSyncResult.failure("Rex+ no respondió."));
+
+		assertThatThrownBy(() -> service.annulContract(1L, dto))
+			.isInstanceOf(BusinessValidationException.class)
+			.satisfies(ex -> assertThat(((BusinessValidationException) ex).getErrorFields())
+				.containsEntry("status", "Rex+ no respondió."));
+
+		verifyNoInteractions(annulContractBuilder);
+	}
+
+	@Test
+	void annulContract_validacionRechaza_noLlamaARexNiAplica() {
+		Contract contrato = contratoCompleto();
+		when(contractRepository.findById(1L)).thenReturn(Optional.of(contrato));
+		doThrow(new BusinessValidationException("x", Map.of("status", "plazo vencido")))
+			.when(contractAnnulmentValidation).validateAnnul(contrato);
+
+		assertThatThrownBy(() -> service.annulContract(1L, anulacion("motivo")))
+			.isInstanceOf(BusinessValidationException.class);
+
+		verifyNoInteractions(rexPlusClient, annulContractBuilder);
+	}
+
+	@Test
+	void annulContract_registroNoExiste_lanzaResourceNotFoundException() {
+		when(contractRepository.findById(1L)).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> service.annulContract(1L, anulacion("motivo")))
+			.isInstanceOf(ResourceNotFoundException.class);
 	}
 
 	@Test
@@ -229,6 +325,18 @@ class ContractServiceImplTest {
 		service.listContracts(new ContractFilterParams(), Pageable.unpaged());
 
 		verifyNoInteractions(settingProvider);
+	}
+
+	private void autenticarCon(String autoridad) {
+		SecurityContextHolder.getContext().setAuthentication(
+			new UsernamePasswordAuthenticationToken("juan", null, List.of(new SimpleGrantedAuthority(autoridad)))
+		);
+	}
+
+	private AnnulContractDto anulacion(String motivo) {
+		AnnulContractDto dto = new AnnulContractDto();
+		dto.setReason(motivo);
+		return dto;
 	}
 
 	private Contract contratoCompleto() {

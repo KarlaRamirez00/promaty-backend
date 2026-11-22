@@ -32,6 +32,14 @@ public class RexPlusStubClient implements RexPlusClient {
 	}
 
 	@Override
+	public RexSyncResult annulContract(Contract contract, String reason) {
+		if (forzarError) {
+			return RexSyncResult.failure(MENSAJE_ERROR_SIMULADO);
+		}
+		return RexSyncResult.success(contract.getRexContractNumber());
+	}
+
+	@Override
 	public RexSyncResult syncTermination(Termination termination) {
 		if (forzarError) {
 			return RexSyncResult.failure(MENSAJE_ERROR_SIMULADO);

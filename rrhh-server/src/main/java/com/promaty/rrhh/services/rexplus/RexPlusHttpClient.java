@@ -21,11 +21,13 @@ public class RexPlusHttpClient implements RexPlusClient {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(RexPlusHttpClient.class);
 	private static final String CONTRACTS_PATH = "/api/v1/contracts";
+	private static final String CONTRACT_ANNULMENT_PATH = "/api/v1/contracts/{reference}/annulment";
 	private static final String TERMINATIONS_PATH = "/api/v1/terminations";
 	private static final String ANNULMENT_PATH = "/api/v1/terminations/{reference}/annulment";
 	private static final String ANNEXES_PATH = "/api/v1/annexes";
 	private static final String MSG_NO_RESPONSE = "Rex+ no respondió.";
 	private static final String MSG_NO_REFERENCE = "Rex+ respondió sin número de referencia.";
+	private static final String MSG_CONTRACT_NOT_SYNCED = "El contrato no tiene número de referencia en Rex+.";
 	private static final String MSG_TERMINATION_NOT_SYNCED = "La terminación no tiene número de referencia en Rex+.";
 
 	private final RestClient restClient;
@@ -37,6 +39,15 @@ public class RexPlusHttpClient implements RexPlusClient {
 	@Override
 	public RexSyncResult syncContract(Contract contract) {
 		return post(CONTRACTS_PATH, RexPlusPayloadMapper.toRequest(contract));
+	}
+
+	@Override
+	public RexSyncResult annulContract(Contract contract, String reason) {
+		String reference = contract.getRexContractNumber();
+		if (reference == null || reference.isBlank()) {
+			return RexSyncResult.failure(MSG_CONTRACT_NOT_SYNCED);
+		}
+		return post(CONTRACT_ANNULMENT_PATH, new RexAnnulmentRequest(reason), reference);
 	}
 
 	@Override

@@ -57,7 +57,7 @@ public class RoleController {
 	}
 
 	@GetMapping("/selector")
-	@PreAuthorize("hasAnyAuthority('user.create', 'user.update')")
+	@PreAuthorize("hasAnyAuthority('user.read', 'user.create', 'user.update')")
 	public ResponseEntity<BaseListData<RoleSelectorOptionDto>> selectorForUserAssignment() {
 		return ResponseEntity.ok(BaseListData.of(roleService.listSelectorOptionsForUserAssignment()));
 	}

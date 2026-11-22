@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -32,6 +33,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 
 import com.promaty.rrhh.config.SecurityConfig;
+import com.promaty.rrhh.dto.contract.AnnulContractDto;
 import com.promaty.rrhh.dto.contract.ContractCountersDto;
 import com.promaty.rrhh.dto.contract.ContractDetailDto;
 import com.promaty.rrhh.dto.contract.ContractFilterParams;
@@ -51,6 +53,7 @@ class ContractControllerTest {
 	private static final String TOKEN = TestJwt.bearer("contract.read");
 	private static final String SIN_PERMISOS = TestJwt.bearer();
 	private static final String EDICION = TestJwt.bearer("contract.update");
+	private static final String ANULACION = TestJwt.bearer("contract.annul");
 	private static final String UPDATE_JSON = """
 		{ "projectId": 2, "companyId": 3, "contractTypeId": 4, "jobTitleId": 5, "siteId": 6,
 		  "startDate": "2026-12-01", "baseSalary": 900000, "weeklyWorkHours": 45, "workDays": 5 }
@@ -107,7 +110,7 @@ class ContractControllerTest {
 		StaffSummaryDto staff = new StaffSummaryDto(1L, "Juan Perez Soto", "12345678-5");
 		ContractDetailDto detalle = new ContractDetailDto(1L, staff, null, null, null, null, null, "00824",
 			LocalDate.of(2026, 1, 1), null, null, null, null, null, null, null, null, null,
-			null, null, null, "system", null, null, List.of(), null, null);
+			null, null, null, "system", null, null, List.of(), null, null, null);
 		when(contractService.getContractDetail(1L)).thenReturn(detalle);
 
 		mockMvc.perform(get("/contracts/1").header(HttpHeaders.AUTHORIZATION, TOKEN))
@@ -141,6 +144,40 @@ class ContractControllerTest {
 	@Test
 	void update_soloConLectura_retorna403() throws Exception {
 		mockMvc.perform(contractPut("/contracts/1", TOKEN, UPDATE_JSON))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void annul_conPermisoYMotivo_retorna200YDelegaEnElService() throws Exception {
+		when(contractService.getContractDetail(1L)).thenReturn(new ContractDetailDto());
+
+		mockMvc.perform(patch("/contracts/1/annul")
+				.header(HttpHeaders.AUTHORIZATION, ANULACION)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"reason\":\"No se presentó a trabajar\"}"))
+			.andExpect(status().isOk());
+
+		ArgumentCaptor<AnnulContractDto> captor = ArgumentCaptor.forClass(AnnulContractDto.class);
+		verify(contractService).annulContract(eq(1L), captor.capture());
+		assertThat(captor.getValue().getReason()).isEqualTo("No se presentó a trabajar");
+	}
+
+	@Test
+	void annul_sinMotivo_retorna400ConElCampo() throws Exception {
+		mockMvc.perform(patch("/contracts/1/annul")
+				.header(HttpHeaders.AUTHORIZATION, ANULACION)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"reason\":\" \"}"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.error.errorFields.reason").exists());
+	}
+
+	@Test
+	void annul_soloConLectura_retorna403() throws Exception {
+		mockMvc.perform(patch("/contracts/1/annul")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"reason\":\"motivo\"}"))
 			.andExpect(status().isForbidden());
 	}
 

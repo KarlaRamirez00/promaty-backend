@@ -85,4 +85,11 @@ public class Contract extends BaseDatedEntity {
 
 	@Column(name = "rex_contract_number", unique = true, length = 20)
 	private String rexContractNumber;
+
+	@Column(name = "annulment_reason", length = 250)
+	private String annulmentReason;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "staff_status_before_id")
+	private PlatformStatus staffStatusBeforeActivation;
 }

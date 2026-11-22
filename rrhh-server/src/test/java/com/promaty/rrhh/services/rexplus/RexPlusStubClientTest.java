@@ -30,6 +30,28 @@ class RexPlusStubClientTest {
 	}
 
 	@Test
+	void annulContract_sinForzarError_retornaExitoConElMismoNumeroDeReferencia() {
+		RexPlusStubClient client = new RexPlusStubClient(false);
+		Contract contract = new Contract();
+		contract.setRexContractNumber("REX-123");
+
+		RexSyncResult resultado = client.annulContract(contract, "No se presentó a trabajar");
+
+		assertThat(resultado.success()).isTrue();
+		assertThat(resultado.externalReferenceNumber()).isEqualTo("REX-123");
+	}
+
+	@Test
+	void annulContract_forzandoError_retornaFallo() {
+		RexPlusStubClient client = new RexPlusStubClient(true);
+
+		RexSyncResult resultado = client.annulContract(new Contract(), "motivo");
+
+		assertThat(resultado.success()).isFalse();
+		assertThat(resultado.errorMessage()).isNotBlank();
+	}
+
+	@Test
 	void syncTermination_sinForzarError_retornaExito() {
 		RexPlusStubClient client = new RexPlusStubClient(false);
 

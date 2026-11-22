@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -47,6 +49,15 @@ class SiteControllerTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.data[0].code").value("MATRIZ"))
 			.andExpect(jsonPath("$.meta.pagination").doesNotExist());
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"annex.read", "annex.create", "annex.update"})
+	void list_withAnnexPermissionWithoutContractRead_returns200(String authority) throws Exception {
+		when(siteService.listOptions()).thenReturn(List.of());
+
+		mockMvc.perform(get("/sites").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer(authority)))
+			.andExpect(status().isOk());
 	}
 
 	@Test

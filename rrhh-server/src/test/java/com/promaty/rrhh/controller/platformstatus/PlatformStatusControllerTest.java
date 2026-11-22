@@ -9,6 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -65,6 +67,16 @@ class PlatformStatusControllerTest {
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.error.errorFields.subModule").exists())
 			.andExpect(jsonPath("$.data").doesNotExist());
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"termination.read", "annex.read"})
+	void list_withTerminationOrAnnexReadOnly_returns200(String authority) throws Exception {
+		when(platformStatusService.listOptionsBySubModule(eq("terminations"))).thenReturn(List.of());
+
+		mockMvc.perform(get("/platformStatuses").param("subModule", "terminations")
+				.header(HttpHeaders.AUTHORIZATION, TestJwt.bearer(authority)))
+			.andExpect(status().isOk());
 	}
 
 	// --- Autorizacion por permiso (@PreAuthorize) ---

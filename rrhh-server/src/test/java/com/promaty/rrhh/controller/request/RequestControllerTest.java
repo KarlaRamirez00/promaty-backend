@@ -34,6 +34,7 @@ import com.promaty.rrhh.config.SecurityConfig;
 import com.promaty.rrhh.dto.request.CreatedRequestDto;
 import com.promaty.rrhh.dto.request.RequestDetailDto;
 import com.promaty.rrhh.dto.request.RequestListDto;
+import com.promaty.rrhh.dto.request.RequesterOptionDto;
 import com.promaty.rrhh.entity.RequestAction;
 import com.promaty.rrhh.entity.RequestEntityType;
 import com.promaty.rrhh.services.request.RequestService;
@@ -248,6 +249,24 @@ class RequestControllerTest {
 	@Test
 	void list_sinPermiso_retorna403() throws Exception {
 		mockMvc.perform(get("/requests")
+				.header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	void requesters_withReadPermissionAndWithoutUserRead_returns200() throws Exception {
+		when(requestService.listRequesterOptions()).thenReturn(List.of(new RequesterOptionDto(12L, "Karla Ramírez")));
+
+		mockMvc.perform(get("/requests/requesters")
+				.header(HttpHeaders.AUTHORIZATION, TOKEN_LECTURA))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data[0].id").value(12))
+			.andExpect(jsonPath("$.data[0].name").value("Karla Ramírez"));
+	}
+
+	@Test
+	void requesters_withoutPermission_returns403() throws Exception {
+		mockMvc.perform(get("/requests/requesters")
 				.header(HttpHeaders.AUTHORIZATION, SIN_PERMISOS))
 			.andExpect(status().isForbidden());
 	}
