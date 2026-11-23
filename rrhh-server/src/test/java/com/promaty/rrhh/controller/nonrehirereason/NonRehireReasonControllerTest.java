@@ -12,6 +12,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -47,6 +49,21 @@ class NonRehireReasonControllerTest {
 
 	@MockitoBean
 	private NonRehireReasonService nonRehireReasonService;
+
+	@ParameterizedTest
+	@ValueSource(strings = {"nonRehireReason.read", "termination.create", "termination.update"})
+	void selector_withAllowedPermission_returns200(String authority) throws Exception {
+		when(nonRehireReasonService.listOptions()).thenReturn(List.of());
+
+		mockMvc.perform(get("/nonRehireReasons/selector").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer(authority)))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void selector_withUnrelatedPermission_returns403() throws Exception {
+		mockMvc.perform(get("/nonRehireReasons/selector").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("role.read")))
+			.andExpect(status().isForbidden());
+	}
 
 	@Test
 	void create_conDatosValidos_retorna201ConId() throws Exception {

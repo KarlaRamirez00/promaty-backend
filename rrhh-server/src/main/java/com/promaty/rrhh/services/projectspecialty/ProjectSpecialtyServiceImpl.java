@@ -15,6 +15,7 @@ import com.promaty.rrhh.dto.projectspecialty.ProjectSpecialtyFilterParams;
 import com.promaty.rrhh.dto.projectspecialty.ProjectSpecialtyListDto;
 import com.promaty.rrhh.dto.projectspecialty.UpdateProjectSpecialtyDto;
 import com.promaty.rrhh.dto.shared.Action;
+import com.promaty.rrhh.dto.shared.NamedOptionDto;
 import com.promaty.rrhh.entity.ProjectSpecialty;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ProjectSpecialtyRepository;
@@ -89,6 +90,15 @@ public class ProjectSpecialtyServiceImpl implements ProjectSpecialtyService {
 		ProjectSpecialty projectSpecialty = buscarPorId(id);
 		projectSpecialty.toggleActive();
 		return conAcciones(ProjectSpecialtyMapper.toDetailDto(projectSpecialtyRepository.save(projectSpecialty)));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<NamedOptionDto> listOptions() {
+		return projectSpecialtyRepository.findByActiveTrueOrderByName()
+			.stream()
+			.map(e -> new NamedOptionDto(e.getId(), e.getName()))
+			.toList();
 	}
 
 	private ProjectSpecialty buscarPorId(Long id) {

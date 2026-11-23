@@ -15,6 +15,7 @@ import com.promaty.rrhh.dto.projecttype.ProjectTypeFilterParams;
 import com.promaty.rrhh.dto.projecttype.ProjectTypeListDto;
 import com.promaty.rrhh.dto.projecttype.UpdateProjectTypeDto;
 import com.promaty.rrhh.dto.shared.Action;
+import com.promaty.rrhh.dto.shared.NamedOptionDto;
 import com.promaty.rrhh.entity.ProjectType;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ProjectTypeRepository;
@@ -89,6 +90,15 @@ public class ProjectTypeServiceImpl implements ProjectTypeService {
 		ProjectType projectType = buscarPorId(id);
 		projectType.toggleActive();
 		return conAcciones(ProjectTypeMapper.toDetailDto(projectTypeRepository.save(projectType)));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<NamedOptionDto> listOptions() {
+		return projectTypeRepository.findByActiveTrueOrderByName()
+			.stream()
+			.map(e -> new NamedOptionDto(e.getId(), e.getName()))
+			.toList();
 	}
 
 	private ProjectType buscarPorId(Long id) {

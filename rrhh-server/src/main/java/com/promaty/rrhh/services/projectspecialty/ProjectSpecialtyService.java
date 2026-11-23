@@ -1,5 +1,7 @@
 package com.promaty.rrhh.services.projectspecialty;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -8,6 +10,7 @@ import com.promaty.rrhh.dto.projectspecialty.ProjectSpecialtyDetailDto;
 import com.promaty.rrhh.dto.projectspecialty.ProjectSpecialtyFilterParams;
 import com.promaty.rrhh.dto.projectspecialty.ProjectSpecialtyListDto;
 import com.promaty.rrhh.dto.projectspecialty.UpdateProjectSpecialtyDto;
+import com.promaty.rrhh.dto.shared.NamedOptionDto;
 
 public interface ProjectSpecialtyService {
 
@@ -20,4 +23,6 @@ public interface ProjectSpecialtyService {
 	ProjectSpecialtyDetailDto getProjectSpecialtyDetail(Long id);
 
 	ProjectSpecialtyDetailDto toggleProjectSpecialtyActive(Long id);
+
+	List<NamedOptionDto> listOptions();
 }

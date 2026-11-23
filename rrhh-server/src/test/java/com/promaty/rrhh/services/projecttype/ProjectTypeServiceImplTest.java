@@ -3,9 +3,11 @@ package com.promaty.rrhh.services.projecttype;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -17,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.promaty.rrhh.dto.projecttype.CreateProjectTypeDto;
 import com.promaty.rrhh.dto.projecttype.ProjectTypeDetailDto;
 import com.promaty.rrhh.dto.projecttype.UpdateProjectTypeDto;
+import com.promaty.rrhh.dto.shared.NamedOptionDto;
 import com.promaty.rrhh.entity.ProjectType;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ProjectTypeRepository;
@@ -37,6 +40,20 @@ class ProjectTypeServiceImplTest {
 
 	@InjectMocks
 	private ProjectTypeServiceImpl service;
+
+	@Test
+	void listOptions_mapsOnlyActiveRecordsReturnedByRepository() {
+		ProjectType entity = mock(ProjectType.class);
+		when(entity.getId()).thenReturn(3L);
+		when(entity.getName()).thenReturn("Opcion A");
+		when(projectTypeRepository.findByActiveTrueOrderByName()).thenReturn(List.of(entity));
+
+		List<NamedOptionDto> options = service.listOptions();
+
+		assertThat(options).hasSize(1);
+		assertThat(options.get(0).getId()).isEqualTo(3L);
+		assertThat(options.get(0).getName()).isEqualTo("Opcion A");
+	}
 
 	@Test
 	void createProjectType_conDatosValidos_validaGuardaYRetornaId() {

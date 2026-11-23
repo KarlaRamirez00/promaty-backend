@@ -1,5 +1,6 @@
 package com.promaty.rrhh.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,4 +11,6 @@ import com.promaty.rrhh.entity.Client;
 public interface ClientRepository extends JpaRepository<Client, Long>, JpaSpecificationExecutor<Client> {
 
 	Optional<Client> findByName(String name);
+
+	List<Client> findByActiveTrueOrderByName();
 }

@@ -8,8 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,6 +23,7 @@ import com.promaty.rrhh.dto.nonrehirereason.NonRehireReasonListDto;
 import com.promaty.rrhh.dto.nonrehirereason.UpdateNonRehireReasonDto;
 import com.promaty.rrhh.dto.response.BaseData;
 import com.promaty.rrhh.dto.response.BaseListData;
+import com.promaty.rrhh.dto.shared.CatalogOptionDto;
 import com.promaty.rrhh.services.nonrehirereason.NonRehireReasonService;
 
 import jakarta.validation.Valid;
@@ -51,6 +52,12 @@ public class NonRehireReasonController {
 		@PageableDefault(sort = {"createdAt", "id"}, direction = Sort.Direction.DESC) Pageable pageable
 	) {
 		return ResponseEntity.ok(BaseListData.of(nonRehireReasonService.listNonRehireReasons(filters, pageable)));
+	}
+
+	@GetMapping("/selector")
+	@PreAuthorize("hasAnyAuthority('nonRehireReason.read', 'termination.create', 'termination.update')")
+	public ResponseEntity<BaseListData<CatalogOptionDto>> selector() {
+		return ResponseEntity.ok(BaseListData.of(nonRehireReasonService.listOptions()));
 	}
 
 	@GetMapping("/{id}")

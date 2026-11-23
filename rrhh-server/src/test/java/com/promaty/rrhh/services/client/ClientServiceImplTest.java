@@ -3,6 +3,7 @@ package com.promaty.rrhh.services.client;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,6 +20,7 @@ import com.promaty.rrhh.dto.client.ClientDetailDto;
 import com.promaty.rrhh.dto.client.CreateClientDto;
 import com.promaty.rrhh.dto.client.UpdateClientDto;
 import com.promaty.rrhh.dto.shared.Action;
+import com.promaty.rrhh.dto.shared.NamedOptionDto;
 import com.promaty.rrhh.entity.Client;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ClientRepository;
@@ -39,6 +41,20 @@ class ClientServiceImplTest {
 
 	@InjectMocks
 	private ClientServiceImpl service;
+
+	@Test
+	void listOptions_mapsOnlyActiveRecordsReturnedByRepository() {
+		Client entity = mock(Client.class);
+		when(entity.getId()).thenReturn(3L);
+		when(entity.getName()).thenReturn("Opcion A");
+		when(clientRepository.findByActiveTrueOrderByName()).thenReturn(List.of(entity));
+
+		List<NamedOptionDto> options = service.listOptions();
+
+		assertThat(options).hasSize(1);
+		assertThat(options.get(0).getId()).isEqualTo(3L);
+		assertThat(options.get(0).getName()).isEqualTo("Opcion A");
+	}
 
 	@Test
 	void createClient_conDatosValidos_validaGuardaYRetornaId() {

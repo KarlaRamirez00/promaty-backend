@@ -8,8 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,6 +23,7 @@ import com.promaty.rrhh.dto.projectspecialty.ProjectSpecialtyListDto;
 import com.promaty.rrhh.dto.projectspecialty.UpdateProjectSpecialtyDto;
 import com.promaty.rrhh.dto.response.BaseData;
 import com.promaty.rrhh.dto.response.BaseListData;
+import com.promaty.rrhh.dto.shared.NamedOptionDto;
 import com.promaty.rrhh.services.projectspecialty.ProjectSpecialtyService;
 
 import jakarta.validation.Valid;
@@ -51,6 +52,12 @@ public class ProjectSpecialtyController {
 		@PageableDefault(sort = {"createdAt", "id"}, direction = Sort.Direction.DESC) Pageable pageable
 	) {
 		return ResponseEntity.ok(BaseListData.of(projectSpecialtyService.listProjectSpecialties(filters, pageable)));
+	}
+
+	@GetMapping("/selector")
+	@PreAuthorize("hasAnyAuthority('projectSpecialty.read', 'project.read', 'project.create', 'project.update')")
+	public ResponseEntity<BaseListData<NamedOptionDto>> selector() {
+		return ResponseEntity.ok(BaseListData.of(projectSpecialtyService.listOptions()));
 	}
 
 	@GetMapping("/{id}")

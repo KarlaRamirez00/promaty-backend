@@ -15,6 +15,7 @@ import com.promaty.rrhh.dto.nonrehirereason.NonRehireReasonFilterParams;
 import com.promaty.rrhh.dto.nonrehirereason.NonRehireReasonListDto;
 import com.promaty.rrhh.dto.nonrehirereason.UpdateNonRehireReasonDto;
 import com.promaty.rrhh.dto.shared.Action;
+import com.promaty.rrhh.dto.shared.CatalogOptionDto;
 import com.promaty.rrhh.entity.NonRehireReason;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.NonRehireReasonRepository;
@@ -98,6 +99,15 @@ public class NonRehireReasonServiceImpl implements NonRehireReasonService {
 		NonRehireReason reason = buscarPorId(id);
 		reason.toggleActive();
 		return conAcciones(NonRehireReasonMapper.toDetailDto(nonRehireReasonRepository.save(reason)));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<CatalogOptionDto> listOptions() {
+		return nonRehireReasonRepository.findByActiveTrueOrderByName()
+			.stream()
+			.map(e -> new CatalogOptionDto(e.getId(), e.getName(), e.getCode()))
+			.toList();
 	}
 
 	private NonRehireReason buscarPorId(Long id) {

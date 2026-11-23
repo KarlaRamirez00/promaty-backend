@@ -3,9 +3,11 @@ package com.promaty.rrhh.services.projectspecialty;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -17,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.promaty.rrhh.dto.projectspecialty.CreateProjectSpecialtyDto;
 import com.promaty.rrhh.dto.projectspecialty.ProjectSpecialtyDetailDto;
 import com.promaty.rrhh.dto.projectspecialty.UpdateProjectSpecialtyDto;
+import com.promaty.rrhh.dto.shared.NamedOptionDto;
 import com.promaty.rrhh.entity.ProjectSpecialty;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ProjectSpecialtyRepository;
@@ -37,6 +40,20 @@ class ProjectSpecialtyServiceImplTest {
 
 	@InjectMocks
 	private ProjectSpecialtyServiceImpl service;
+
+	@Test
+	void listOptions_mapsOnlyActiveRecordsReturnedByRepository() {
+		ProjectSpecialty entity = mock(ProjectSpecialty.class);
+		when(entity.getId()).thenReturn(3L);
+		when(entity.getName()).thenReturn("Opcion A");
+		when(projectSpecialtyRepository.findByActiveTrueOrderByName()).thenReturn(List.of(entity));
+
+		List<NamedOptionDto> options = service.listOptions();
+
+		assertThat(options).hasSize(1);
+		assertThat(options.get(0).getId()).isEqualTo(3L);
+		assertThat(options.get(0).getName()).isEqualTo("Opcion A");
+	}
 
 	@Test
 	void createProjectSpecialty_conDatosValidos_validaGuardaYRetornaId() {

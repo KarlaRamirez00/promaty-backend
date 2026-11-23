@@ -15,6 +15,7 @@ import com.promaty.rrhh.dto.client.ClientListDto;
 import com.promaty.rrhh.dto.client.CreateClientDto;
 import com.promaty.rrhh.dto.client.UpdateClientDto;
 import com.promaty.rrhh.dto.shared.Action;
+import com.promaty.rrhh.dto.shared.NamedOptionDto;
 import com.promaty.rrhh.entity.Client;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.ClientRepository;
@@ -89,6 +90,15 @@ public class ClientServiceImpl implements ClientService {
 		Client client = buscarPorId(id);
 		client.toggleActive();
 		return conAcciones(ClientMapper.toDetailDto(clientRepository.save(client)));
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<NamedOptionDto> listOptions() {
+		return clientRepository.findByActiveTrueOrderByName()
+			.stream()
+			.map(e -> new NamedOptionDto(e.getId(), e.getName()))
+			.toList();
 	}
 
 	private Client buscarPorId(Long id) {

@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -52,6 +54,21 @@ class ProjectTypeControllerTest {
 
 	@MockitoBean
 	private ProjectTypeService projectTypeService;
+
+	@ParameterizedTest
+	@ValueSource(strings = {"projectType.read", "project.read", "project.create", "project.update"})
+	void selector_withAllowedPermission_returns200(String authority) throws Exception {
+		when(projectTypeService.listOptions()).thenReturn(List.of());
+
+		mockMvc.perform(get("/projectTypes/selector").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer(authority)))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	void selector_withUnrelatedPermission_returns403() throws Exception {
+		mockMvc.perform(get("/projectTypes/selector").header(HttpHeaders.AUTHORIZATION, TestJwt.bearer("role.read")))
+			.andExpect(status().isForbidden());
+	}
 
 	@Test
 	void create_conDatosValidos_retorna201ConId() throws Exception {

@@ -3,9 +3,11 @@ package com.promaty.rrhh.services.nonrehirereason;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -17,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.promaty.rrhh.dto.nonrehirereason.CreateNonRehireReasonDto;
 import com.promaty.rrhh.dto.nonrehirereason.NonRehireReasonDetailDto;
 import com.promaty.rrhh.dto.nonrehirereason.UpdateNonRehireReasonDto;
+import com.promaty.rrhh.dto.shared.CatalogOptionDto;
 import com.promaty.rrhh.entity.NonRehireReason;
 import com.promaty.rrhh.exception.ResourceNotFoundException;
 import com.promaty.rrhh.repository.NonRehireReasonRepository;
@@ -37,6 +40,22 @@ class NonRehireReasonServiceImplTest {
 
 	@InjectMocks
 	private NonRehireReasonServiceImpl service;
+
+	@Test
+	void listOptions_mapsOnlyActiveRecordsReturnedByRepository() {
+		NonRehireReason entity = mock(NonRehireReason.class);
+		when(entity.getId()).thenReturn(3L);
+		when(entity.getName()).thenReturn("Opcion A");
+		when(entity.getCode()).thenReturn("CODE_A");
+		when(nonRehireReasonRepository.findByActiveTrueOrderByName()).thenReturn(List.of(entity));
+
+		List<CatalogOptionDto> options = service.listOptions();
+
+		assertThat(options).hasSize(1);
+		assertThat(options.get(0).getId()).isEqualTo(3L);
+		assertThat(options.get(0).getName()).isEqualTo("Opcion A");
+		assertThat(options.get(0).getCode()).isEqualTo("CODE_A");
+	}
 
 	@Test
 	void createNonRehireReason_conDatosValidos_validaGuardaYRetornaId() {
